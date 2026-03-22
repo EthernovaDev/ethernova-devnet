@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/params/ethernova"
@@ -139,4 +140,46 @@ func (api *EthernovaAPI) NodeHealth() NodeHealthResult {
 		MemoryMB:            mem.Alloc / 1024 / 1024,
 		DualSignerFallbacks: fallbacks,
 	}
+}
+
+// EvmProfileResult holds the EVM opcode profiling snapshot.
+type EvmProfileResult struct {
+	Enabled       bool              `json:"enabled"`
+	TotalOps      uint64            `json:"totalOps"`
+	TotalGas      uint64            `json:"totalGas"`
+	TopOpcodes    []vm.OpcodeStats  `json:"topOpcodes"`
+	TopContracts  []vm.ContractStats `json:"topContracts"`
+}
+
+// EvmProfile returns EVM opcode execution profiling data.
+func (api *EthernovaAPI) EvmProfile() EvmProfileResult {
+	opcodes := vm.GlobalProfiler.Snapshot()
+	// Return top 30 opcodes
+	if len(opcodes) > 30 {
+		opcodes = opcodes[:30]
+	}
+
+	contracts := vm.GlobalContractProfiler.TopContracts(20)
+
+	return EvmProfileResult{
+		Enabled:      vm.GlobalProfiler.IsEnabled(),
+		TotalOps:     vm.GlobalProfiler.TotalOps(),
+		TotalGas:     vm.GlobalProfiler.TotalGas(),
+		TopOpcodes:   opcodes,
+		TopContracts: contracts,
+	}
+}
+
+// EvmProfileReset clears all profiling data.
+func (api *EthernovaAPI) EvmProfileReset() bool {
+	vm.GlobalProfiler.Reset()
+	vm.GlobalContractProfiler.Reset()
+	return true
+}
+
+// EvmProfileToggle enables or disables profiling.
+func (api *EthernovaAPI) EvmProfileToggle(enabled bool) bool {
+	vm.GlobalProfiler.SetEnabled(enabled)
+	vm.GlobalContractProfiler.enabled.Store(enabled)
+	return vm.GlobalProfiler.IsEnabled()
 }

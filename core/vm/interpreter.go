@@ -182,6 +182,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		op = contract.GetOp(pc)
 		operation := in.table[op]
 		cost = operation.constantGas // For tracing
+
+		// Ethernova: record opcode execution for profiling
+		GlobalProfiler.Record(op, cost)
 		// Validate stack
 		if sLen := stack.len(); sLen < operation.minStack {
 			return nil, &ErrStackUnderflow{stackLen: sLen, required: operation.minStack}
