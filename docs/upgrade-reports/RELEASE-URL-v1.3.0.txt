@@ -1,0 +1,1 @@
+https://github.com/EthernovaDev/ethernova-coregeth/releases/tag/v1.3.0

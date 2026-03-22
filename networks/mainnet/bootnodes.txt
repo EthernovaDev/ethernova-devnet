@@ -1,0 +1,2 @@
+# Replace with real enode URLs (one per line) before launch.
+# Example: enode://PUBKEY@ip:30303

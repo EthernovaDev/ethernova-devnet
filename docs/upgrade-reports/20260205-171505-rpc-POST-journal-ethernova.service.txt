@@ -1,0 +1,200 @@
+Feb 06 02:05:17 vmi2979962 ethernova[1577977]: INFO [02-06|02:05:17.954] Looking for peers                        peercount=4 tried=55  static=0
+Feb 06 02:05:28 vmi2979962 ethernova[1577977]: INFO [02-06|02:05:28.271] Looking for peers                        peercount=4 tried=75  static=0
+Feb 06 02:05:35 vmi2979962 ethernova[1577977]: INFO [02-06|02:05:35.025] Imported new chain segment               number=116,719 hash=b1611f..9792e4 blocks=1  txs=0 mgas=0.000 elapsed=16.261ms  mgasps=0.000   snapdiffs=411.68KiB triedirty=215.46KiB
+Feb 06 02:05:38 vmi2979962 ethernova[1577977]: INFO [02-06|02:05:38.531] Looking for peers                        peercount=4 tried=37  static=0
+Feb 06 02:05:48 vmi2979962 ethernova[1577977]: INFO [02-06|02:05:48.592] Looking for peers                        peercount=4 tried=37  static=0
+Feb 06 02:05:58 vmi2979962 ethernova[1577977]: INFO [02-06|02:05:58.641] Looking for peers                        peercount=4 tried=32  static=0
+Feb 06 02:06:08 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:08.797] Looking for peers                        peercount=4 tried=19  static=0
+Feb 06 02:06:18 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:18.798] Looking for peers                        peercount=5 tried=46  static=0
+Feb 06 02:06:27 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:27.581] Imported new chain segment               number=116,720 hash=2cc801..c0cd1b blocks=1  txs=0 mgas=0.000 elapsed=15.871ms  mgasps=0.000   snapdiffs=411.72KiB triedirty=215.46KiB
+Feb 06 02:06:27 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:27.789] Imported new chain segment               number=116,721 hash=9e8a53..843df4 blocks=1  txs=0 mgas=0.000 elapsed=14.385ms  mgasps=0.000   snapdiffs=411.77KiB triedirty=215.46KiB
+Feb 06 02:06:29 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:29.334] Looking for peers                        peercount=4 tried=61  static=0
+Feb 06 02:06:34 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:34.721] Imported new chain segment               number=116,722 hash=656f64..9ac0d1 blocks=1  txs=0 mgas=0.000 elapsed=12.690ms  mgasps=0.000   snapdiffs=411.82KiB triedirty=215.46KiB
+Feb 06 02:06:39 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:39.372] Looking for peers                        peercount=4 tried=52  static=0
+Feb 06 02:06:43 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:43.970] Imported new chain segment               number=116,723 hash=5ae12d..11ba24 blocks=1  txs=0 mgas=0.000 elapsed=12.357ms  mgasps=0.000   snapdiffs=411.87KiB triedirty=215.46KiB
+Feb 06 02:06:49 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:49.447] Looking for peers                        peercount=4 tried=40  static=0
+Feb 06 02:06:54 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:54.225] Imported new chain segment               number=116,724 hash=a0f0a2..9a86d4 blocks=1  txs=0 mgas=0.000 elapsed=14.569ms  mgasps=0.000   snapdiffs=411.92KiB triedirty=215.46KiB
+Feb 06 02:06:56 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:56.957] Imported new chain segment               number=116,725 hash=886cb4..2124c1 blocks=1  txs=0 mgas=0.000 elapsed=16.475ms  mgasps=0.000   snapdiffs=411.96KiB triedirty=215.46KiB
+Feb 06 02:06:59 vmi2979962 ethernova[1577977]: INFO [02-06|02:06:59.583] Looking for peers                        peercount=4 tried=50  static=0
+Feb 06 02:07:07 vmi2979962 ethernova[1577977]: INFO [02-06|02:07:07.187] Imported new chain segment               number=116,726 hash=9e5466..c0ebaf blocks=1  txs=0 mgas=0.000 elapsed=14.460ms  mgasps=0.000   snapdiffs=412.01KiB triedirty=215.46KiB
+Feb 06 02:07:09 vmi2979962 ethernova[1577977]: INFO [02-06|02:07:09.858] Looking for peers                        peercount=4 tried=48  static=0
+Feb 06 02:07:19 vmi2979962 ethernova[1577977]: INFO [02-06|02:07:19.083] Imported new chain segment               number=116,727 hash=a26d51..52f784 blocks=1  txs=0 mgas=0.000 elapsed=17.342ms  mgasps=0.000   snapdiffs=412.06KiB triedirty=215.46KiB
+Feb 06 02:07:20 vmi2979962 ethernova[1577977]: INFO [02-06|02:07:20.443] Looking for peers                        peercount=4 tried=21  static=0
+Feb 06 02:07:21 vmi2979962 ethernova[1577977]: INFO [02-06|02:07:21.680] Imported new chain segment               number=116,728 hash=40cf74..b53bff blocks=1  txs=0 mgas=0.000 elapsed=13.765ms  mgasps=0.000   snapdiffs=412.11KiB triedirty=215.46KiB
+Feb 06 02:07:30 vmi2979962 ethernova[1577977]: INFO [02-06|02:07:30.646] Looking for peers                        peercount=4 tried=37  static=0
+Feb 06 02:07:32 vmi2979962 ethernova[1577977]: INFO [02-06|02:07:32.132] Imported new chain segment               number=116,729 hash=3f067c..973dde blocks=1  txs=0 mgas=0.000 elapsed=9.563ms   mgasps=0.000   snapdiffs=412.16KiB triedirty=215.46KiB
+Feb 06 02:07:40 vmi2979962 ethernova[1577977]: INFO [02-06|02:07:40.647] Looking for peers                        peercount=4 tried=45  static=0
+Feb 06 02:07:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:07:50.893] Looking for peers                        peercount=5 tried=22  static=0
+Feb 06 02:08:00 vmi2979962 ethernova[1577977]: INFO [02-06|02:08:00.944] Looking for peers                        peercount=5 tried=45  static=0
+Feb 06 02:08:11 vmi2979962 ethernova[1577977]: INFO [02-06|02:08:11.051] Looking for peers                        peercount=4 tried=29  static=0
+Feb 06 02:08:16 vmi2979962 ethernova[1577977]: INFO [02-06|02:08:16.455] Imported new chain segment               number=116,730 hash=a10ff4..c4f880 blocks=1  txs=0 mgas=0.000 elapsed=13.178ms  mgasps=0.000   snapdiffs=412.20KiB triedirty=215.46KiB
+Feb 06 02:08:21 vmi2979962 ethernova[1577977]: INFO [02-06|02:08:21.077] Looking for peers                        peercount=4 tried=32  static=0
+Feb 06 02:08:31 vmi2979962 ethernova[1577977]: INFO [02-06|02:08:31.092] Looking for peers                        peercount=4 tried=26  static=0
+Feb 06 02:08:40 vmi2979962 ethernova[1577977]: INFO [02-06|02:08:40.206] Imported new chain segment               number=116,731 hash=c03a22..59cab4 blocks=1  txs=0 mgas=0.000 elapsed=17.431ms  mgasps=0.000   snapdiffs=412.25KiB triedirty=215.46KiB
+Feb 06 02:08:41 vmi2979962 ethernova[1577977]: INFO [02-06|02:08:41.124] Looking for peers                        peercount=4 tried=46  static=0
+Feb 06 02:08:51 vmi2979962 ethernova[1577977]: INFO [02-06|02:08:51.354] Looking for peers                        peercount=4 tried=34  static=0
+Feb 06 02:09:01 vmi2979962 ethernova[1577977]: INFO [02-06|02:09:01.626] Looking for peers                        peercount=4 tried=39  static=0
+Feb 06 02:09:11 vmi2979962 ethernova[1577977]: INFO [02-06|02:09:11.643] Looking for peers                        peercount=4 tried=72  static=0
+Feb 06 02:09:21 vmi2979962 ethernova[1577977]: INFO [02-06|02:09:21.674] Looking for peers                        peercount=5 tried=34  static=0
+Feb 06 02:09:32 vmi2979962 ethernova[1577977]: INFO [02-06|02:09:32.020] Looking for peers                        peercount=4 tried=69  static=0
+Feb 06 02:09:42 vmi2979962 ethernova[1577977]: INFO [02-06|02:09:42.064] Imported new chain segment               number=116,732 hash=0bb532..69b183 blocks=1  txs=0 mgas=0.000 elapsed=14.139ms  mgasps=0.000   age=1m2s  snapdiffs=412.30KiB triedirty=213.66KiB
+Feb 06 02:09:42 vmi2979962 ethernova[1577977]: INFO [02-06|02:09:42.072] Looking for peers                        peercount=4 tried=20  static=0
+Feb 06 02:09:52 vmi2979962 ethernova[1577977]: INFO [02-06|02:09:52.143] Looking for peers                        peercount=4 tried=52  static=0
+Feb 06 02:10:02 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:02.173] Looking for peers                        peercount=4 tried=23  static=0
+Feb 06 02:10:12 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:12.183] Looking for peers                        peercount=4 tried=44  static=0
+Feb 06 02:10:13 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:13.339] Imported new chain segment               number=116,733 hash=01a968..53e180 blocks=1  txs=0 mgas=0.000 elapsed=17.059ms  mgasps=0.000   snapdiffs=412.35KiB triedirty=213.66KiB
+Feb 06 02:10:22 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:22.378] Looking for peers                        peercount=4 tried=42  static=0
+Feb 06 02:10:23 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:23.597] Imported new chain segment               number=116,734 hash=bb3229..3fffe8 blocks=1  txs=0 mgas=0.000 elapsed=19.672ms  mgasps=0.000   snapdiffs=412.39KiB triedirty=213.66KiB
+Feb 06 02:10:24 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:24.334] Imported new chain segment               number=116,735 hash=d92d77..967b67 blocks=1  txs=0 mgas=0.000 elapsed=19.019ms  mgasps=0.000   snapdiffs=412.44KiB triedirty=213.66KiB
+Feb 06 02:10:24 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:24.889] Imported new chain segment               number=116,736 hash=5946c9..5fd161 blocks=1  txs=0 mgas=0.000 elapsed=12.408ms  mgasps=0.000   snapdiffs=412.49KiB triedirty=213.66KiB
+Feb 06 02:10:32 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:32.403] Looking for peers                        peercount=4 tried=38  static=0
+Feb 06 02:10:42 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:42.456] Looking for peers                        peercount=4 tried=56  static=0
+Feb 06 02:10:47 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:47.679] Imported new chain segment               number=116,737 hash=90368a..c694e3 blocks=1  txs=0 mgas=0.000 elapsed=19.586ms  mgasps=0.000   snapdiffs=412.54KiB triedirty=213.66KiB
+Feb 06 02:10:49 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:49.332] Imported new chain segment               number=116,738 hash=3831a2..ad96b8 blocks=1  txs=0 mgas=0.000 elapsed=13.333ms  mgasps=0.000   snapdiffs=412.59KiB triedirty=213.66KiB
+Feb 06 02:10:52 vmi2979962 ethernova[1577977]: INFO [02-06|02:10:52.468] Looking for peers                        peercount=4 tried=40  static=0
+Feb 06 02:11:02 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:02.152] Imported new chain segment               number=116,739 hash=366b7d..0ff1f2 blocks=1  txs=0 mgas=0.000 elapsed=19.482ms  mgasps=0.000   snapdiffs=412.63KiB triedirty=213.66KiB
+Feb 06 02:11:02 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:02.818] Looking for peers                        peercount=4 tried=25  static=0
+Feb 06 02:11:12 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:12.869] Looking for peers                        peercount=4 tried=35  static=0
+Feb 06 02:11:22 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:22.896] Looking for peers                        peercount=4 tried=66  static=0
+Feb 06 02:11:26 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:26.991] Imported new chain segment               number=116,740 hash=c2d0da..e8ea71 blocks=1  txs=0 mgas=0.000 elapsed=16.168ms  mgasps=0.000   snapdiffs=412.68KiB triedirty=213.66KiB
+Feb 06 02:11:32 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:32.932] Looking for peers                        peercount=4 tried=61  static=0
+Feb 06 02:11:39 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:39.797] Imported new chain segment               number=116,741 hash=239600..2c8ced blocks=1  txs=1 mgas=0.021 elapsed=25.173ms  mgasps=0.834   snapdiffs=412.82KiB triedirty=215.46KiB
+Feb 06 02:11:42 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:42.991] Looking for peers                        peercount=4 tried=33  static=0
+Feb 06 02:11:50 vmi2979962 systemd[1]: Stopping ethernova.service - Ethernova Core v1.2.7...
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.965] Got interrupt, shutting down...
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.966] HTTP server stopped                      endpoint=127.0.0.1:8545
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.966] HTTP server stopped                      endpoint=127.0.0.1:8546
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.966] HTTP server stopped                      endpoint=127.0.0.1:8551
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.966] IPC endpoint closed                      url=/var/lib/ethernova/geth.ipc
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.967] Ethereum protocol stopped
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.967] Transaction pool stopped
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.979] Writing cached state to disk             block=116,741 hash=239600..2c8ced root=5fe08f..3b4618
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.983] Persisted trie from memory database      nodes=93  size=14.69KiB time=3.500744ms  gcnodes=23809 gcsize=8.19MiB gctime=177.830092ms livenodes=420 livesize=148.38KiB
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.983] Writing cached state to disk             block=116,740 hash=c2d0da..e8ea71 root=8a18a8..834b0f
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.985] Persisted trie from memory database      nodes=8   size=2.38KiB  time=1.742572ms  gcnodes=0     gcsize=0.00B   gctime=0s           livenodes=412 livesize=146.00KiB
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.985] Writing cached state to disk             block=116,614 hash=e146c9..b535f0 root=526a03..03c09f
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.990] Persisted trie from memory database      nodes=15  size=3.64KiB  time=4.98098ms   gcnodes=0     gcsize=0.00B   gctime=0s           livenodes=397 livesize=142.37KiB
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.991] Writing snapshot state to disk           root=8322ec..48ca59
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.991] Persisted trie from memory database      nodes=0   size=0.00B    time="27.06?s"   gcnodes=0     gcsize=0.00B   gctime=0s           livenodes=397 livesize=142.37KiB
+Feb 06 02:11:50 vmi2979962 ethernova[1577977]: INFO [02-06|02:11:50.993] Blockchain stopped
+Feb 06 02:11:55 vmi2979962 systemd[1]: ethernova.service: Deactivated successfully.
+Feb 06 02:11:55 vmi2979962 systemd[1]: Stopped ethernova.service - Ethernova Core v1.2.7.
+Feb 06 02:11:55 vmi2979962 systemd[1]: ethernova.service: Consumed 1h 50min 32.974s CPU time, 317.1M memory peak, 0B memory swap peak.
+Feb 06 02:11:55 vmi2979962 systemd[1]: Started ethernova.service - Ethernova Core v1.2.7.
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:55.876] Logging configured                       rotate=false format=terminal location=/var/lib/ethernova/logs/ethernova.log
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:55.907] Persisted trie from memory database      nodes=181 size=27.46KiB time="572.973?s" gcnodes=0 gcsize=0.00B gctime=0s livenodes=0 livesize=0.00B
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: cwd=/var/lib/ethernova
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: datadir=/var/lib/ethernova
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: genesis_path_used=embedded
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: genesis_hash_expected=0xc3812eb81498965a3f9ff3e73d2f423934e6d440578d4f4fbb6623cc61c453d9
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: genesis_hash_actual=0xc3812eb81498965a3f9ff3e73d2f423934e6d440578d4f4fbb6623cc61c453d9
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: chain_id=121525 network_id=121525
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: fork scheduled at 105000 (Constantinople)
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: EIP-658 scheduled at 110500 (receipt status)
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: mega fork scheduled at 118200 (EVM-compat)
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:55.909] Using pebble as the backing database
+Feb 06 02:11:55 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:55.909] Allocated cache and file handles         database=/var/lib/ethernova/geth/chaindata cache=16.00MiB handles=16
+Feb 06 02:11:56 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:56.217] Opened ancient database                  database=/var/lib/ethernova/geth/chaindata/ancient/chain readonly=false
+Feb 06 02:11:56 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:56.224] State scheme set to already existing     scheme=hash
+Feb 06 02:11:56 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:56.234] Persisted trie from memory database      nodes=181 size=27.46KiB time="571.44?s"  gcnodes=0 gcsize=0.00B gctime=0s livenodes=0 livesize=0.00B
+Feb 06 02:11:56 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:56.236] Found stored genesis block               config="NetworkID: 121525, ChainID: 121525 Engine: ethash EIP1014: 105000 EIP1052: 105000 EIP1108: 105000 EIP1283Disable: 105000 EIP1283: 105000 EIP1344: 105000 EIP145: 105000 EIP152: 105000 EIP1559: 0 EIP155: 0 EIP1884: 105000 EIP2028: 105000 EIP2200: 105000 EIP2565: 0 EIP2718: 0 EIP2929: 0 EIP2930: 0 EIP658: 110500 "
+Feb 06 02:11:56 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:56.244] Ethernova lock written                   path=/var/lib/ethernova/ethernova.lock.json
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.329] genesis verified OK: 0xc3812eb81498965a3f9ff3e73d2f423934e6d440578d4f4fbb6623cc61c453d9
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.329] "chain_id=121525 network_id=121525"
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.331] Maximum peer count                       ETH=50 total=50
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.334] Smartcard socket not found, disabling    err="stat /run/pcscd/pcscd.comm: no such file or directory"
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: ERROR[02-06|02:11:57.351] The static-nodes.json file is deprecated and ignored. Use P2P.StaticNodes in config.toml instead.
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.356] Set global gas cap                       cap=50,000,000
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.356] Configured Ethereum protocol versions    capabilities=[68]
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.356] Initializing the KZG library             backend=gokzg
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.387] Allocated trie memory caches             clean=154.00MiB dirty=256.00MiB
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.387] Using pebble as the backing database
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.387] Allocated cache and file handles         database=/var/lib/ethernova/geth/chaindata cache=512.00MiB handles=524,288
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.404] Opened ancient database                  database=/var/lib/ethernova/geth/chaindata/ancient/chain readonly=false
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.404] State scheme set to already existing     scheme=hash
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.416] Persisted trie from memory database      nodes=181 size=27.46KiB time="413.757?s" gcnodes=0 gcsize=0.00B gctime=0s livenodes=0 livesize=0.00B
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.420] Persisted trie from memory database      nodes=181 size=27.46KiB time="269.18?s"  gcnodes=0 gcsize=0.00B gctime=0s livenodes=0 livesize=0.00B
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.421] Disk storage enabled for ethash caches   dir=/var/lib/ethernova/geth/ethash count=3
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.421] Disk storage enabled for ethash DAGs     dir=/home/ethernova/.ethash        count=2
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.421] Initialising Ethereum protocol           network=121,525 dbversion=8
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.427] Persisted trie from memory database      nodes=181 size=27.46KiB time="278.166?s" gcnodes=0 gcsize=0.00B gctime=0s livenodes=0 livesize=0.00B
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.428] Found stored genesis block               config="NetworkID: 121525, ChainID: 121525 Engine: ethash EIP1014: 105000 EIP1052: 105000 EIP1108: 105000 EIP1283Disable: 105000 EIP1283: 105000 EIP1344: 105000 EIP140: 118200 EIP145: 105000 EIP150: 118200 EIP152: 105000 EIP1559: 0 EIP155: 0 EIP160: 118200 EIP161abc: 118200 EIP161d: 118200 EIP1706: 118200 EIP170: 118200 EIP1884: 105000 EIP198: 118200 EIP2028: 105000 EIP211: 118200 EIP212: 118200 EIP213: 118200 EIP214: 118200 EIP2200: 105000 EIP2565: 0 EIP2718: 0 EIP2929: 0 EIP2930: 0 EIP2: 118200 EIP3198: 0 EIP3529: 0 EIP3541: 0 EIP658: 110500 EIP7: 118200 EthashEIP100B: 118200 EthashHomestead: 118200 "
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.432]
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.432] ---------------------------------------------------------------------------------------------------------------------------------------------------------
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.433] NetworkID: 121525, ChainID: 121525 Engine: ethash EIP1014: 105000 EIP1052: 105000 EIP1108: 105000 EIP1283Disable: 105000 EIP1283: 105000 EIP1344: 105000 EIP140: 118200 EIP145: 105000 EIP150: 118200 EIP152: 105000 EIP1559: 0 EIP155: 0 EIP160: 118200 EIP161abc: 118200 EIP161d: 118200 EIP1706: 118200 EIP170: 118200 EIP1884: 105000 EIP198: 118200 EIP2028: 105000 EIP211: 118200 EIP212: 118200 EIP213: 118200 EIP214: 118200 EIP2200: 105000 EIP2565: 0 EIP2718: 0 EIP2929: 0 EIP2930: 0 EIP2: 118200 EIP3198: 0 EIP3529: 0 EIP3541: 0 EIP658: 110500 EIP7: 118200 EthashEIP100B: 118200 EthashHomestead: 118200
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.433] ---------------------------------------------------------------------------------------------------------------------------------------------------------
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.434]
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.435] Loaded most recent local block           number=116,741 hash=239600..2c8ced td=9,097,553,749,574,556 age=31s
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.435] Loaded last snap-sync pivot marker       number=450
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.459] Initialized transaction indexer          range="last 2350000 blocks"
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.459] Chain identity                           chain_id=121,525 network_id=121,525 genesis=c3812e..c453d9
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.459] "Ethernova fork enforcement block=105,000" chain_id=121,525 genesis=c3812e..c453d9 reason="chain=121525"
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.459] "Ethernova EVM fork block=105,000 enforcement block=105,000" chain_id=121,525 genesis=c3812e..c453d9
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.459] Loaded local transaction journal         transactions=0 dropped=0
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: WARN [02-06|02:11:57.489] Switch sync mode from snap sync to full sync reason="snap sync complete"
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.490] Gasprice oracle is ignoring threshold set threshold=2
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: WARN [02-06|02:11:57.501] Engine API enabled                       protocol=eth
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: WARN [02-06|02:11:57.501] Engine API started but chain not configured for merge yet
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.501] Starting peer-to-peer node               instance=Ethernova/v1.3.0/linux-amd64/go1.21.13
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.590] New local node record                    seq=1,768,404,719,801 id=a8831adb144b341d ip=127.0.0.1 udp=30303 tcp=30303
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.591] Started P2P networking                   self=enode://3d29733de3a9fcde5841f3550e245655895a63550a712fabf4bd4d03feaa133cc329de58cbccdfd3787d94defc62625e63887a1a79436986e2265f2fa8483a1c@127.0.0.1:30303
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.593] IPC endpoint opened                      url=/var/lib/ethernova/geth.ipc
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.595] Loaded JWT secret file                   path=/var/lib/ethernova/geth/jwtsecret      crc32=0x517c35e0
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.596] HTTP server started                      endpoint=127.0.0.1:8545 auth=false prefix= cors= vhosts=localhost,rpc.ethnova.net,explorer.ethnova.net
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.596] WebSocket enabled                        url=ws://127.0.0.1:8546
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.597] WebSocket enabled                        url=ws://127.0.0.1:8551
+Feb 06 02:11:57 vmi2979962 ethernova[3749831]: INFO [02-06|02:11:57.597] HTTP server started                      endpoint=127.0.0.1:8551 auth=true  prefix= cors=localhost vhosts=localhost
+Feb 06 02:12:00 vmi2979962 ethernova[3749831]: INFO [02-06|02:12:00.028] New local node record                    seq=1,768,404,719,802 id=a8831adb144b341d ip=207.180.230.125 udp=30303 tcp=30303
+Feb 06 02:12:03 vmi2979962 ethernova[3749831]: WARN [02-06|02:12:03.113] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:12:08 vmi2979962 ethernova[3749831]: INFO [02-06|02:12:08.206] Looking for peers                        peercount=0 tried=33 static=0
+Feb 06 02:12:19 vmi2979962 ethernova[3749831]: INFO [02-06|02:12:19.187] Looking for peers                        peercount=1 tried=46 static=0
+Feb 06 02:12:28 vmi2979962 ethernova[3749831]: WARN [02-06|02:12:28.428] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:12:29 vmi2979962 ethernova[3749831]: INFO [02-06|02:12:29.342] Looking for peers                        peercount=0 tried=24 static=0
+Feb 06 02:12:39 vmi2979962 ethernova[3749831]: INFO [02-06|02:12:39.398] Looking for peers                        peercount=1 tried=32 static=0
+Feb 06 02:12:43 vmi2979962 ethernova[3749831]: WARN [02-06|02:12:43.423] Rejected peer due to client version gate id=7676c7c59b0bc552 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:12:49 vmi2979962 ethernova[3749831]: INFO [02-06|02:12:49.666] Looking for peers                        peercount=0 tried=49 static=0
+Feb 06 02:12:59 vmi2979962 ethernova[3749831]: INFO [02-06|02:12:59.786] Looking for peers                        peercount=0 tried=27 static=0
+Feb 06 02:13:01 vmi2979962 ethernova[3749831]: WARN [02-06|02:13:01.249] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:13:04 vmi2979962 ethernova[3749831]: WARN [02-06|02:13:04.404] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:13:10 vmi2979962 ethernova[3749831]: INFO [02-06|02:13:10.246] Looking for peers                        peercount=0 tried=38 static=0
+Feb 06 02:13:20 vmi2979962 ethernova[3749831]: INFO [02-06|02:13:20.256] Looking for peers                        peercount=2 tried=40 static=0
+Feb 06 02:13:30 vmi2979962 ethernova[3749831]: INFO [02-06|02:13:30.265] Looking for peers                        peercount=0 tried=61 static=0
+Feb 06 02:13:36 vmi2979962 ethernova[3749831]: WARN [02-06|02:13:36.249] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:13:39 vmi2979962 ethernova[3749831]: WARN [02-06|02:13:39.402] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:13:40 vmi2979962 ethernova[3749831]: INFO [02-06|02:13:40.462] Looking for peers                        peercount=0 tried=45 static=0
+Feb 06 02:13:46 vmi2979962 ethernova[3749831]: WARN [02-06|02:13:46.722] Rejected peer due to client version gate id=7676c7c59b0bc552 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:13:51 vmi2979962 ethernova[3749831]: INFO [02-06|02:13:51.084] Looking for peers                        peercount=0 tried=43 static=0
+Feb 06 02:13:53 vmi2979962 ethernova[3749831]: WARN [02-06|02:13:53.096] Rejected peer due to client version gate id=7676c7c59b0bc552 conn=dyndial name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:14:01 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:01.270] Looking for peers                        peercount=0 tried=51 static=0
+Feb 06 02:14:11 vmi2979962 ethernova[3749831]: WARN [02-06|02:14:11.251] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:14:11 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:11.313] Looking for peers                        peercount=0 tried=22 static=0
+Feb 06 02:14:14 vmi2979962 ethernova[3749831]: WARN [02-06|02:14:14.444] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:14:21 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:21.337] Looking for peers                        peercount=0 tried=43 static=0
+Feb 06 02:14:26 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:26.769] Block synchronisation started
+Feb 06 02:14:26 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:26.827] Imported new chain segment               number=116,749 hash=0a25c7..0283b3 blocks=8 txs=1 mgas=0.000 elapsed=47.671ms mgasps=0.000 snapdiffs=15.94KiB triedirty=11.18KiB ignored=1
+Feb 06 02:14:31 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:31.406] Looking for peers                        peercount=1 tried=60 static=0
+Feb 06 02:14:36 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:36.797] Imported new chain segment               number=116,750 hash=6b6001..e868ad blocks=1 txs=0 mgas=0.000 elapsed=13.661ms mgasps=0.000 snapdiffs=15.99KiB triedirty=12.58KiB
+Feb 06 02:14:41 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:41.533] Looking for peers                        peercount=1 tried=38 static=0
+Feb 06 02:14:41 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:41.696] Imported new chain segment               number=116,751 hash=e79e85..7d1a40 blocks=1 txs=0 mgas=0.000 elapsed=14.554ms mgasps=0.000 snapdiffs=16.04KiB triedirty=13.97KiB
+Feb 06 02:14:46 vmi2979962 ethernova[3749831]: WARN [02-06|02:14:46.248] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:14:49 vmi2979962 ethernova[3749831]: WARN [02-06|02:14:49.426] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:14:51 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:51.555] Looking for peers                        peercount=3 tried=60 static=0
+Feb 06 02:14:56 vmi2979962 ethernova[3749831]: INFO [02-06|02:14:56.525] Imported new chain segment               number=116,752 hash=7efaa0..135399 blocks=1 txs=0 mgas=0.000 elapsed=8.943ms  mgasps=0.000 snapdiffs=16.09KiB triedirty=15.37KiB
+Feb 06 02:15:01 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:01.644] Looking for peers                        peercount=1 tried=59 static=0
+Feb 06 02:15:11 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:11.683] Looking for peers                        peercount=1 tried=67 static=0
+Feb 06 02:15:16 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:16.182] Imported new chain segment               number=116,753 hash=edf42d..9c38c5 blocks=1 txs=0 mgas=0.000 elapsed=19.681ms mgasps=0.000 snapdiffs=16.13KiB triedirty=16.77KiB
+Feb 06 02:15:18 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:18.694] Imported new chain segment               number=116,754 hash=aa17df..faaa95 blocks=1 txs=0 mgas=0.000 elapsed=13.318ms mgasps=0.000 snapdiffs=16.18KiB triedirty=18.17KiB
+Feb 06 02:15:21 vmi2979962 ethernova[3749831]: WARN [02-06|02:15:21.250] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:15:21 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:21.859] Looking for peers                        peercount=1 tried=33 static=0
+Feb 06 02:15:22 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:22.078] Imported new chain segment               number=116,755 hash=66c8cf..d2a65b blocks=1 txs=0 mgas=0.000 elapsed=11.804ms mgasps=0.000 snapdiffs=16.23KiB triedirty=19.56KiB
+Feb 06 02:15:24 vmi2979962 ethernova[3749831]: WARN [02-06|02:15:24.459] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:15:32 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:32.935] Looking for peers                        peercount=1 tried=37 static=0
+Feb 06 02:15:34 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:34.849] Imported new chain segment               number=116,756 hash=76ed18..ff17ec blocks=1 txs=0 mgas=0.000 elapsed=9.752ms  mgasps=0.000 snapdiffs=16.28KiB triedirty=20.96KiB
+Feb 06 02:15:39 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:39.033] Imported new chain segment               number=116,757 hash=0cf3d1..ae600f blocks=1 txs=0 mgas=0.000 elapsed=16.988ms mgasps=0.000 snapdiffs=16.33KiB triedirty=22.36KiB
+Feb 06 02:15:43 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:43.070] Looking for peers                        peercount=1 tried=54 static=0
+Feb 06 02:15:53 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:53.127] Looking for peers                        peercount=1 tried=33 static=0
+Feb 06 02:15:56 vmi2979962 ethernova[3749831]: WARN [02-06|02:15:56.249] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:15:59 vmi2979962 ethernova[3749831]: WARN [02-06|02:15:59.520] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:16:03 vmi2979962 ethernova[3749831]: INFO [02-06|02:16:03.388] Looking for peers                        peercount=1 tried=41 static=0
+Feb 06 02:16:13 vmi2979962 ethernova[3749831]: INFO [02-06|02:16:13.542] Looking for peers                        peercount=1 tried=32 static=0
+Feb 06 02:16:23 vmi2979962 ethernova[3749831]: INFO [02-06|02:16:23.559] Looking for peers                        peercount=1 tried=49 static=0

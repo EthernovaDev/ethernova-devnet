@@ -1,0 +1,20 @@
+? ethernova-archive.service - Ethernova Core v1.2.7 (archive)
+     Loaded: loaded (/etc/systemd/system/ethernova-archive.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-02-04 16:34:33 CET; 1 day 9h ago
+   Main PID: 1577982 (ethernova)
+      Tasks: 15 (limit: 28792)
+     Memory: 150.9M (peak: 197.0M)
+        CPU: 1h 19min 33.901s
+     CGroup: /system.slice/ethernova-archive.service
+             ??1577982 /opt/ethernova/bin/ethernova --datadir /var/lib/ethernova-archive --networkid 121525 --syncmode full --gcmode=archive --cache=4096 --http --http.addr 127.0.0.1 --http.port 9545 --http.api eth,net,web3,debug,txpool --ws --ws.addr 127.0.0.1 --ws.port 9546 --authrpc.addr 127.0.0.1 --authrpc.port 9551 --port 30304 --bootnodes enode://63b423151f549437e9fee41f16dcf1e421f3aabc9c5179cc14f3746a0c6071c1727f4a006b2609da7a31476f0665caebb400e047e9c569b532e737ea155a2de5@207.180.211.179:30303,enode://110117f08ba9c19ffede29379eb6b45ff880674800097b0c27afa7a0f4b26be4397d80e249e1a21f3ca67494eed7520f370180ad301b6a563d363756d404afc7@159.195.61.39:20001 --http.vhosts localhost --ws.origins http://localhost,http://127.0.0.1
+
+Feb 06 02:04:02 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:02.804] Looking for peers                        peercount=3 tried=38  static=0
+Feb 06 02:04:12 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:12.807] Looking for peers                        peercount=3 tried=42  static=0
+Feb 06 02:04:23 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:23.200] Looking for peers                        peercount=3 tried=52  static=0
+Feb 06 02:04:33 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:33.217] Looking for peers                        peercount=3 tried=47  static=0
+Feb 06 02:04:43 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:43.410] Looking for peers                        peercount=3 tried=34  static=0
+Feb 06 02:04:49 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:49.093] Imported new chain segment               number=116,717 hash=6abfa8..c5d206 blocks=1  txs=0 mgas=0.000 elapsed=15.515ms  mgasps=0.000   snapdiffs=406.51KiB triedirty=0.00B
+Feb 06 02:04:53 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:53.665] Looking for peers                        peercount=3 tried=41  static=0
+Feb 06 02:04:56 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:56.484] Imported new chain segment               number=116,718 hash=06c5a8..0b551f blocks=1  txs=2 mgas=0.042 elapsed=17.360ms  mgasps=2.419   snapdiffs=406.70KiB triedirty=0.00B
+Feb 06 02:05:03 vmi2979962 ethernova[1577982]: INFO [02-06|02:05:03.811] Looking for peers                        peercount=3 tried=64  static=0
+Feb 06 02:05:14 vmi2979962 ethernova[1577982]: INFO [02-06|02:05:14.111] Looking for peers                        peercount=3 tried=32  static=0

@@ -1,0 +1,200 @@
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.4206] [I] [PayoutManager] Processing payments for pool nova1-solo, block 116757
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.4552] [I] [PayoutManager] Processing payments for pool nova1-solo, block 116760
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.4576] [I] [PayoutManager] Processing payments for pool nova1-solo, block 116762
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.4930] [I] [PayoutManager] Processing payments for pool nova1-solo, block 116764
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.5335] [I] [PayoutManager] Processing payments for pool nova1-solo, block 116765
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.5630] [I] [PayoutManager] Processing payments for pool nova1-solo, block 116769
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.5962] [I] [PayoutManager] Processing payments for pool nova1-solo, block 116771
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6304] [I] [PayoutManager] Processing payments for pool nova1-solo, block 116772
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6606] [I] [PayoutManager] No balances over configured minimum payout for pool nova1-solo
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6606] [I] [PayoutManager] Processing payments for pool nova1
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6747] [I] [nova1] [Ethereum Payout Handler] Unlocked block 116745 worth 10 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6758] [I] [nova1] [Ethereum Payout Handler] Unlocked block 116746 worth 10 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6766] [I] [nova1] [Ethereum Payout Handler] Unlocked block 116747 worth 10 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6775] [I] [nova1] [Ethereum Payout Handler] Unlocked block 116748 worth 10 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6783] [I] [nova1] [Ethereum Payout Handler] Unlocked block 116750 worth 10 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6790] [I] [nova1] [Ethereum Payout Handler] Unlocked block 116751 worth 10 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6790] [I] [nova1] [Ethereum Payout Handler] Unlocked block 116752 worth 10 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6806] [I] [nova1] [Ethereum Payout Handler] Unlocked block 116754 worth 10 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6814] [I] [nova1] [Ethereum Payout Handler] Unlocked block 116756 worth 10 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6814] [I] [PayoutManager] Processing payments for pool nova1, block 116745
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6814] [I] [nova1] Crediting 0x3a38560b66205bB6a31Decbcb245450B2f15d4fD with 0.2 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6836] [I] [PPLNS Payment] Fetching page 0 of shares for pool nova1, block 116745
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6849] [I] [PPLNS Payment] Balance-calculation for pool nova1, block 116745 completed with accumulated score 2 (100%)
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6849] [I] [PPLNS Payment] Crediting 0x246190560c08248a010932609b5548b0c3a665f1 with 5.29617 NOVA for 96.66G (96661162125.95807) shares for block 116745
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6861] [I] [PPLNS Payment] Crediting 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 with 2.53209 NOVA for 38.65G (38654705664) shares for block 116745
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6872] [I] [PPLNS Payment] Crediting 0x68944104c5a52a1226cf42c7ca949be539e9252f with 1.68788 NOVA for 25.77G (25769803776) shares for block 116745
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6890] [I] [PPLNS Payment] Crediting 0x3ff6d43c5956231009c389f76a9260a262c7aefe with 0.28136 NOVA for 4.29G (4294967296) shares for block 116745
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6907] [I] [PPLNS Payment] Fetching page 0 of discarded shares for pool nova1, block 116745
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6916] [I] [PPLNS Payment] 173.76G (173762130665.02966) total discarded shares, block 116745
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6916] [I] [PPLNS Payment] 0x246190560c08248a010932609b5548b0c3a665f1 = 169.47G (169467163369.02966) discarded shares, block 116745
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6916] [I] [PPLNS Payment] 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 = 4.29G (4294967296) discarded shares, block 116745
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6916] [I] [PPLNS Payment] Deleting 6 discarded shares before 2026-02-06T01:10:56.1787110Z
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6922] [I] [PPLNS Payment] 165.38G (165380638861.96) shares contributed to a total payout of 9.7975 NOVA (100.00% of block reward) to 4 addresses
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6936] [I] [PayoutManager] Processing payments for pool nova1, block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6936] [I] [nova1] Crediting 0x3a38560b66205bB6a31Decbcb245450B2f15d4fD with 0.2 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6949] [I] [PPLNS Payment] Fetching page 0 of shares for pool nova1, block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6958] [I] [PPLNS Payment] Balance-calculation for pool nova1, block 116746 completed with accumulated score 2 (100%)
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6958] [I] [PPLNS Payment] Crediting 0x246190560c08248a010932609b5548b0c3a665f1 with 6.1718 NOVA for 94.15G (94151594178.22821) shares for block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6975] [I] [PPLNS Payment] Crediting 0x3ff6d43c5956231009c389f76a9260a262c7aefe with 0.28163 NOVA for 4.29G (4294967296) shares for block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.6988] [I] [PPLNS Payment] Crediting 0x68944104c5a52a1226cf42c7ca949be539e9252f with 1.40735 NOVA for 21.47G (21474836480) shares for block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7001] [I] [PPLNS Payment] Crediting 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 with 1.93672 NOVA for 30.06G (30064771072) shares for block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7016] [I] [PPLNS Payment] Fetching page 0 of discarded shares for pool nova1, block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7024] [I] [PPLNS Payment] 59.66G (59663236449.80593) total discarded shares, block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7024] [I] [PPLNS Payment] 0x246190560c08248a010932609b5548b0c3a665f1 = 33.89G (33893432673.80593) discarded shares, block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7024] [I] [PPLNS Payment] 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 = 12.88G (12884901888) discarded shares, block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7024] [I] [PPLNS Payment] 0x68944104c5a52a1226cf42c7ca949be539e9252f = 8.59G (8589934592) discarded shares, block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7024] [I] [PPLNS Payment] 0x3ff6d43c5956231009c389f76a9260a262c7aefe = 4.29G (4294967296) discarded shares, block 116746
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7024] [I] [PPLNS Payment] Deleting 7 discarded shares before 2026-02-06T01:12:03.2088940Z
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7031] [I] [PPLNS Payment] 149.99G (149986169026.23) shares contributed to a total payout of 9.7975 NOVA (100.00% of block reward) to 4 addresses
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7048] [I] [PayoutManager] Processing payments for pool nova1, block 116747
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7048] [I] [nova1] Crediting 0x3a38560b66205bB6a31Decbcb245450B2f15d4fD with 0.2 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7062] [I] [PPLNS Payment] Fetching page 0 of shares for pool nova1, block 116747
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7071] [I] [PPLNS Payment] Balance-calculation for pool nova1, block 116747 completed with accumulated score 2 (100%)
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7071] [I] [PPLNS Payment] Crediting 0x246190560c08248a010932609b5548b0c3a665f1 with 8.10811 NOVA for 125.54G (125535458904.30428) shares for block 116747
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7081] [I] [PPLNS Payment] Crediting 0x68944104c5a52a1226cf42c7ca949be539e9252f with 0.84463 NOVA for 12.88G (12884901888) shares for block 116747
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7091] [I] [PPLNS Payment] Crediting 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 with 0.56313 NOVA for 8.59G (8589934592) shares for block 116747
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7101] [I] [PPLNS Payment] Crediting 0x3ff6d43c5956231009c389f76a9260a262c7aefe with 0.28163 NOVA for 4.29G (4294967296) shares for block 116747
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7116] [I] [PPLNS Payment] Fetching page 0 of discarded shares for pool nova1, block 116747
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7125] [I] [PPLNS Payment] 42.95G (42949672960) total discarded shares, block 116747
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7125] [I] [PPLNS Payment] 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 = 25.77G (25769803776) discarded shares, block 116747
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7125] [I] [PPLNS Payment] 0x68944104c5a52a1226cf42c7ca949be539e9252f = 17.18G (17179869184) discarded shares, block 116747
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7125] [I] [PPLNS Payment] Deleting 10 discarded shares before 2026-02-06T01:12:43.6239460Z
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7131] [I] [PPLNS Payment] 151.31G (151305262680.30) shares contributed to a total payout of 9.7975 NOVA (100.00% of block reward) to 4 addresses
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7149] [I] [PayoutManager] Processing payments for pool nova1, block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7149] [I] [nova1] Crediting 0x3a38560b66205bB6a31Decbcb245450B2f15d4fD with 0.2 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7166] [I] [PPLNS Payment] Fetching page 0 of shares for pool nova1, block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7177] [I] [PPLNS Payment] Balance-calculation for pool nova1, block 116748 completed with accumulated score 2 (100%)
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7177] [I] [PPLNS Payment] Crediting 0x246190560c08248a010932609b5548b0c3a665f1 with 7.82647 NOVA for 125.54G (125535458904.30428) shares for block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7191] [I] [PPLNS Payment] Crediting 0x68944104c5a52a1226cf42c7ca949be539e9252f with 0.84463 NOVA for 12.88G (12884901888) shares for block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7205] [I] [PPLNS Payment] Crediting 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 with 0.84476 NOVA for 12.88G (12884901888) shares for block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7215] [I] [PPLNS Payment] Crediting 0x3ff6d43c5956231009c389f76a9260a262c7aefe with 0.28163 NOVA for 4.29G (4294967296) shares for block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7230] [I] [PPLNS Payment] Fetching page 0 of discarded shares for pool nova1, block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7241] [I] [PPLNS Payment] 75.65G (75652631340.15213) total discarded shares, block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7241] [I] [PPLNS Payment] 0x246190560c08248a010932609b5548b0c3a665f1 = 62.77G (62767729452.15214) discarded shares, block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7241] [I] [PPLNS Payment] 0x3ff6d43c5956231009c389f76a9260a262c7aefe = 4.29G (4294967296) discarded shares, block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7241] [I] [PPLNS Payment] 0x68944104c5a52a1226cf42c7ca949be539e9252f = 4.29G (4294967296) discarded shares, block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7241] [I] [PPLNS Payment] 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 = 4.29G (4294967296) discarded shares, block 116748
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7241] [I] [PPLNS Payment] Deleting 5 discarded shares before 2026-02-06T01:12:52.4018340Z
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7241] [I] [PPLNS Payment] 155.6G (155600229976.30) shares contributed to a total payout of 9.7975 NOVA (100.00% of block reward) to 4 addresses
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7266] [I] [PayoutManager] Processing payments for pool nova1, block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7266] [I] [nova1] Crediting 0x3a38560b66205bB6a31Decbcb245450B2f15d4fD with 0.2 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7282] [I] [PPLNS Payment] Fetching page 0 of shares for pool nova1, block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7282] [I] [PPLNS Payment] Balance-calculation for pool nova1, block 116750 completed with accumulated score 2 (100%)
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7282] [I] [PPLNS Payment] Crediting 0x246190560c08248a010932609b5548b0c3a665f1 with 8.23577 NOVA for 125.54G (125535458904.30428) shares for block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7303] [I] [PPLNS Payment] Crediting 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 with 1.2801 NOVA for 21.47G (21474836480) shares for block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7315] [I] [PPLNS Payment] Crediting 0x68944104c5a52a1226cf42c7ca949be539e9252f with 0.28163 NOVA for 4.29G (4294967296) shares for block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7333] [I] [PPLNS Payment] Fetching page 0 of discarded shares for pool nova1, block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7344] [I] [PPLNS Payment] 111.33G (111331463362.22821) total discarded shares, block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7344] [I] [PPLNS Payment] 0x246190560c08248a010932609b5548b0c3a665f1 = 94.15G (94151594178.22821) discarded shares, block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7344] [I] [PPLNS Payment] 0x68944104c5a52a1226cf42c7ca949be539e9252f = 8.59G (8589934592) discarded shares, block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7344] [I] [PPLNS Payment] 0x3ff6d43c5956231009c389f76a9260a262c7aefe = 4.29G (4294967296) discarded shares, block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7344] [I] [PPLNS Payment] 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 = 4.29G (4294967296) discarded shares, block 116750
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7344] [I] [PPLNS Payment] Deleting 7 discarded shares before 2026-02-06T01:13:48.5313480Z
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7344] [I] [PPLNS Payment] 151.31G (151305262680.30) shares contributed to a total payout of 9.7975 NOVA (100.00% of block reward) to 3 addresses
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7364] [I] [PayoutManager] Processing payments for pool nova1, block 116751
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7671] [I] [nova1] Crediting 0x3a38560b66205bB6a31Decbcb245450B2f15d4fD with 0.2 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7694] [I] [PPLNS Payment] Fetching page 0 of shares for pool nova1, block 116751
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7694] [I] [PPLNS Payment] Balance-calculation for pool nova1, block 116751 completed with accumulated score 2 (100%)
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7694] [I] [PPLNS Payment] Crediting 0x246190560c08248a010932609b5548b0c3a665f1 with 8.9526 NOVA for 156.92G (156919323630.38034) shares for block 116751
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7719] [I] [PPLNS Payment] Crediting 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 with 0.8449 NOVA for 12.88G (12884901888) shares for block 116751
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7739] [I] [PPLNS Payment] Fetching page 0 of discarded shares for pool nova1, block 116751
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7751] [I] [PPLNS Payment] 12.88G (12884901888) total discarded shares, block 116751
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7751] [I] [PPLNS Payment] 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 = 8.59G (8589934592) discarded shares, block 116751
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7751] [I] [PPLNS Payment] 0x68944104c5a52a1226cf42c7ca949be539e9252f = 4.29G (4294967296) discarded shares, block 116751
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7751] [I] [PPLNS Payment] Deleting 3 discarded shares before 2026-02-06T01:14:01.1782590Z
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7751] [I] [PPLNS Payment] 169.8G (169804225518.38) shares contributed to a total payout of 9.7975 NOVA (100.00% of block reward) to 2 addresses
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7774] [I] [PayoutManager] Processing payments for pool nova1, block 116752
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7774] [I] [nova1] Crediting 0x3a38560b66205bB6a31Decbcb245450B2f15d4fD with 0.2 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7789] [I] [PPLNS Payment] Fetching page 0 of shares for pool nova1, block 116752
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7799] [I] [PPLNS Payment] Balance-calculation for pool nova1, block 116752 completed with accumulated score 2 (100%)
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7799] [I] [PPLNS Payment] Crediting 0x246190560c08248a010932609b5548b0c3a665f1 with 8.38933 NOVA for 156.92G (156919323630.38034) shares for block 116752
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7810] [I] [PPLNS Payment] Crediting 0x68944104c5a52a1226cf42c7ca949be539e9252f with 0.56327 NOVA for 8.59G (8589934592) shares for block 116752
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7821] [I] [PPLNS Payment] Crediting 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 with 0.8449 NOVA for 12.88G (12884901888) shares for block 116752
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7836] [I] [PPLNS Payment] Fetching page 0 of discarded shares for pool nova1, block 116752
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7850] [I] [PPLNS Payment] 75.65G (75652631340.15213) total discarded shares, block 116752
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7850] [I] [PPLNS Payment] 0x246190560c08248a010932609b5548b0c3a665f1 = 62.77G (62767729452.15214) discarded shares, block 116752
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7850] [I] [PPLNS Payment] 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 = 12.88G (12884901888) discarded shares, block 116752
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7850] [I] [PPLNS Payment] Deleting 5 discarded shares before 2026-02-06T01:14:35.8213790Z
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7856] [I] [PPLNS Payment] 178.39G (178394160110.38) shares contributed to a total payout of 9.7975 NOVA (100.00% of block reward) to 3 addresses
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7871] [I] [PayoutManager] Processing payments for pool nova1, block 116754
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7871] [I] [nova1] Crediting 0x3a38560b66205bB6a31Decbcb245450B2f15d4fD with 0.2 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7894] [I] [PPLNS Payment] Fetching page 0 of shares for pool nova1, block 116754
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7904] [I] [PPLNS Payment] Balance-calculation for pool nova1, block 116754 completed with accumulated score 2 (100%)
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7904] [I] [PPLNS Payment] Crediting 0x246190560c08248a010932609b5548b0c3a665f1 with 6.98033 NOVA for 125.54G (125535458904.30428) shares for block 116754
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7919] [I] [PPLNS Payment] Crediting 0x68944104c5a52a1226cf42c7ca949be539e9252f with 1.40872 NOVA for 21.47G (21474836480) shares for block 116754
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7936] [I] [PPLNS Payment] Crediting 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 with 1.40845 NOVA for 21.47G (21474836480) shares for block 116754
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7960] [I] [PPLNS Payment] Fetching page 0 of discarded shares for pool nova1, block 116754
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7971] [I] [PPLNS Payment] 98.45G (98446561474.22821) total discarded shares, block 116754
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7971] [I] [PPLNS Payment] 0x246190560c08248a010932609b5548b0c3a665f1 = 94.15G (94151594178.22821) discarded shares, block 116754
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7971] [I] [PPLNS Payment] 0x68944104c5a52a1226cf42c7ca949be539e9252f = 4.29G (4294967296) discarded shares, block 116754
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7971] [I] [PPLNS Payment] Deleting 4 discarded shares before 2026-02-06T01:14:43.0459510Z
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7971] [I] [PPLNS Payment] 168.49G (168485131864.30) shares contributed to a total payout of 9.7975 NOVA (100.00% of block reward) to 3 addresses
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7994] [I] [PayoutManager] Processing payments for pool nova1, block 116756
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.7994] [I] [nova1] Crediting 0x3a38560b66205bB6a31Decbcb245450B2f15d4fD with 0.2 NOVA
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8022] [I] [PPLNS Payment] Fetching page 0 of shares for pool nova1, block 116756
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8038] [I] [PPLNS Payment] Balance-calculation for pool nova1, block 116756 completed with accumulated score 2 (100%)
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8038] [I] [PPLNS Payment] Crediting 0x246190560c08248a010932609b5548b0c3a665f1 with 7.26183 NOVA for 125.54G (125535458904.30428) shares for block 116756
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8055] [I] [PPLNS Payment] Crediting 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 with 1.40858 NOVA for 21.47G (21474836480) shares for block 116756
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8066] [I] [PPLNS Payment] Crediting 0x68944104c5a52a1226cf42c7ca949be539e9252f with 1.12709 NOVA for 17.18G (17179869184) shares for block 116756
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8087] [I] [PPLNS Payment] Fetching page 0 of discarded shares for pool nova1, block 116756
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8096] [I] [PPLNS Payment] 48.56G (48563733910.076065) total discarded shares, block 116756
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8096] [I] [PPLNS Payment] 0x246190560c08248a010932609b5548b0c3a665f1 = 31.38G (31383864726.07607) discarded shares, block 116756
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8096] [I] [PPLNS Payment] 0x5117f83b4709fb3fd6f2fce882f236612ca59bd3 = 12.88G (12884901888) discarded shares, block 116756
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8096] [I] [PPLNS Payment] 0x68944104c5a52a1226cf42c7ca949be539e9252f = 4.29G (4294967296) discarded shares, block 116756
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8096] [I] [PPLNS Payment] Deleting 5 discarded shares before 2026-02-06T01:14:55.9980590Z
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8105] [I] [PPLNS Payment] 164.19G (164190164568.30) shares contributed to a total payout of 9.7975 NOVA (100.00% of block reward) to 3 addresses
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8119] [I] [PayoutManager] Processing payments for pool nova1, block 116758
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8136] [I] [PayoutManager] Processing payments for pool nova1, block 116759
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8149] [I] [PayoutManager] Processing payments for pool nova1, block 116761
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8519] [I] [PayoutManager] Processing payments for pool nova1, block 116763
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.8859] [I] [PayoutManager] Processing payments for pool nova1, block 116766
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.9165] [I] [PayoutManager] Processing payments for pool nova1, block 116767
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.9454] [I] [PayoutManager] Processing payments for pool nova1, block 116768
+Feb 05 19:18:14 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:14.9765] [I] [PayoutManager] Processing payments for pool nova1, block 116770
+Feb 05 19:18:15 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:15.0061] [I] [PayoutManager] No balances over configured minimum payout for pool nova1
+Feb 05 19:18:17 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:17.1503] [I] [nova1] [0HNJ3TC7N2IR1] Share accepted: D=1
+Feb 05 19:18:20 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:20.3961] [I] [nova1-solo] [0HNJ3TC7N2JE8] Share accepted: D=1
+Feb 05 19:18:24 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:24.8309] [I] [nova1] [0HNJ3TC7N2JDJ] Share accepted: D=7.307
+Feb 05 19:18:25 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:25.5559] [I] [nova1-solo] [0HNJ3TC7N2JDB] Share accepted: D=4.759
+Feb 05 19:18:27 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:27.2826] [I] [nova1-solo] [0HNJ3TC7N2ITJ] Share accepted: D=1
+Feb 05 19:18:27 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:27.7465] [I] [nova1-solo] Submitting block 116773
+Feb 05 19:18:27 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:27.8069] [I] [nova1-solo] Daemon accepted block 116773 submitted by 0x367ba3872ce52b4fe18265f29a85044382e53701
+Feb 05 19:18:27 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:27.8072] [I] [nova1-solo] [0HNJ3TC7N2IKK] Share accepted: D=1
+Feb 05 19:18:27 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:27.8866] [I] [nova1] New work at height 116774 and header 0x4d9a0342c09b5446c3b684d95213cea37a4ee3d984db540de69deeb787ae44e7 via [POLL]
+Feb 05 19:18:27 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:27.8866] [I] [nova1] Broadcasting job 000020cb
+Feb 05 19:18:27 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:27.9301] [I] [nova1-solo] New work at height 116774 and header 0x4d9a0342c09b5446c3b684d95213cea37a4ee3d984db540de69deeb787ae44e7 via [POLL]
+Feb 05 19:18:27 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:27.9301] [I] [nova1-solo] Broadcasting job 000020d7
+Feb 05 19:18:28 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:28.8834] [I] [nova1-solo] [0HNJ3TC7N2JBB] Share accepted: D=1
+Feb 05 19:18:29 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:29.6327] [I] [nova1] [0HNJ3TC7N2IR1] Share accepted: D=1
+Feb 05 19:18:32 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:32.5813] [I] [nova1] [0HNJ3TC7N2JCV] Share accepted: D=2.309
+Feb 05 19:18:32 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:32.7916] [I] [nova1] [0HNJ3TC7N2IR1] Share accepted: D=1
+Feb 05 19:18:33 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:33.6965] [I] [nova1] [0HNJ3TC7N2IR1] Share accepted: D=1
+Feb 05 19:18:37 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:37.1890] [I] [nova1-solo] [0HNJ3TC7N2ITJ] Share accepted: D=1
+Feb 05 19:18:41 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:41.4808] [I] [nova1] [0HNJ3TC7N2JD6] Share accepted: D=1
+Feb 05 19:18:45 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:45.0904] [I] [nova1-solo] [0HNJ3TC7N2INB] Share accepted: D=1.239
+Feb 05 19:18:45 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:45.2638] [I] [nova1-solo] [0HNJ3TC7N2JDB] Share accepted: D=4.759
+Feb 05 19:18:48 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:48.3181] [I] [nova1-solo] [0HNJ3TC7N2IKK] Share accepted: D=1
+Feb 05 19:18:53 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:53.2835] [I] [nova1-solo] [0HNJ3TC7N2IKK] Share accepted: D=1
+Feb 05 19:18:54 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:54.9447] [I] [nova1-solo] [0HNJ3TC7N2ITJ] Share accepted: D=1
+Feb 05 19:18:56 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:56.9934] [I] [nova1-solo] [0HNJ3TC7N2INB] Share accepted: D=1.239
+Feb 05 19:18:57 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:57.2569] [I] [nova1] [0HNJ3TC7N2IR1] Share accepted: D=1
+Feb 05 19:18:58 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:58.4255] [I] [nova1-solo] [0HNJ3TC7N2JDB] Share accepted: D=4.759
+Feb 05 19:18:59 vmi3027410 Miningcore[691279]: [2026-02-05 19:18:59.5204] [I] [nova1-solo] [0HNJ3TC7N2IKK] Share accepted: D=1
+Feb 05 19:19:01 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:01.8587] [I] [nova1-solo] [0HNJ3TC7N2JE8] Share accepted: D=1
+Feb 05 19:19:02 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:02.8548] [I] [nova1-solo] [0HNJ3TC7N2JDM] Share accepted: D=1
+Feb 05 19:19:02 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:02.9781] [I] [nova1] [0HNJ3TC7N2JCV] Share accepted: D=2.309
+Feb 05 19:19:03 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:03.1080] [I] [nova1-solo] [0HNJ3TC7N2JEA] Accepting connection from ::ffff:193.46.245.76:55998 ...
+Feb 05 19:19:03 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:03.1082] [I] [nova1-solo] [0HNJ3TC7N2JEA] Connection from ::ffff:193.46.245.76:55998 accepted on port 4074
+Feb 05 19:19:03 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:03.1096] [I] [nova1-solo] [0HNJ3TC7N2JEA] Authorized worker 0xe87B833D328376ee8353a08B4968148E147BEbDf
+Feb 05 19:19:03 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:03.4270] [I] [nova1-solo] [0HNJ3TC7N2JDM] Share accepted: D=1
+Feb 05 19:19:04 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:04.4605] [I] [nova1] Submitting block 116774
+Feb 05 19:19:04 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:04.5456] [I] [nova1] Daemon accepted block 116774 submitted by 0x246190560c08248a010932609b5548b0c3a665f1
+Feb 05 19:19:04 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:04.5456] [I] [nova1] [0HNJ3TC7N2JDJ] Share accepted: D=7.307
+Feb 05 19:19:04 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:04.5681] [I] [nova1-solo] New work at height 116775 and header 0x5b1799ea5c44dff78f116c8a402487cc5eaa4c16915b7bd4eab446874b95f75c via [POLL]
+Feb 05 19:19:04 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:04.5681] [I] [nova1-solo] Broadcasting job 000020d8
+Feb 05 19:19:04 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:04.6688] [I] [nova1] New work at height 116775 and header 0x5b1799ea5c44dff78f116c8a402487cc5eaa4c16915b7bd4eab446874b95f75c via [POLL]
+Feb 05 19:19:04 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:04.6688] [I] [nova1] Broadcasting job 000020cc
+Feb 05 19:19:06 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:06.6097] [I] [nova1] [0HNJ3TC7N2IR1] Share accepted: D=1
+Feb 05 19:19:08 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:08.3267] [I] [nova1] [0HNJ3TC7N2IR1] Share accepted: D=1
+Feb 05 19:19:16 vmi3027410 Miningcore[691279]: [2026-02-05 19:19:16.2536] [I] [nova1-solo] [0HNJ3TC7N2IKK] Share accepted: D=1

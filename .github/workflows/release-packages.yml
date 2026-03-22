@@ -1,0 +1,55 @@
+name: Build packages for a release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build artifacts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            artifact: ethernova-linux-amd64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            artifact: ethernova-windows-amd64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Build
+        shell: bash
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p dist
+          SUFFIX=""
+          if [ "$GOOS" = "windows" ]; then SUFFIX=".exe"; fi
+          go build -trimpath -buildvcs=false -o "dist/${{ matrix.artifact }}" ./cmd/geth
+          echo "Built dist/${{ matrix.artifact }}"
+
+      - name: Verify binary
+        if: matrix.goos == 'linux'
+        run: chmod +x dist/${{ matrix.artifact }} && dist/${{ matrix.artifact }} version
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}

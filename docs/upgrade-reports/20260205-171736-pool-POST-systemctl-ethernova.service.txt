@@ -1,0 +1,20 @@
+? ethernova.service - Ethernova CoreGeth Node
+     Loaded: loaded (/etc/systemd/system/ethernova.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-02-05 19:14:25 CST; 4min 19s ago
+   Main PID: 778467 (ethernova)
+      Tasks: 10 (limit: 9483)
+     Memory: 178.8M (peak: 514.6M)
+        CPU: 20.224s
+     CGroup: /system.slice/ethernova.service
+             ??778467 /opt/ethernova-coregeth/build/bin/ethernova --config /etc/ethernova/ethernova.toml --datadir /var/lib/ethernova --bootnodes enode://3d29733de3a9fcde5841f3550e245655895a63550a712fabf4bd4d03feaa133cc329de58cbccdfd3787d94defc62625e63887a1a79436986e2265f2fa8483a1c@207.180.230.125:30303 --miner.etherbase 0x9A3c61883E9BE792a6C32dd0dC508633a3D19026 --mine --unlock 0x9A3c61883E9BE792a6C32dd0dC508633a3D19026 --password /etc/ethernova/keystore.pass --allow-insecure-unlock
+
+Feb 05 19:18:27 vmi3027410 ethernova[778467]: INFO [02-05|19:18:27.810] Successfully sealed new block            number=116,773 sealhash=6c33b0..4de6a2 hash=ca5cfd..46b0a0 elapsed=26.970s
+Feb 05 19:18:27 vmi3027410 ethernova[778467]: INFO [02-05|19:18:27.810] "?? block reached canonical chain"     number=116,766 hash=f494b2..acde3c
+Feb 05 19:18:27 vmi3027410 ethernova[778467]: INFO [02-05|19:18:27.811] Commit new sealing work                  number=116,774 sealhash=4d9a03..ae44e7 uncles=0 txs=0 gas=0     fees=0       elapsed="848.849?s"
+Feb 05 19:18:27 vmi3027410 ethernova[778467]: INFO [02-05|19:18:27.811] "?? mined potential block"             number=116,773 hash=ca5cfd..46b0a0
+Feb 05 19:18:27 vmi3027410 ethernova[778467]: INFO [02-05|19:18:27.811] Commit new sealing work                  number=116,774 sealhash=4d9a03..ae44e7 uncles=0 txs=0 gas=0     fees=0       elapsed=1.447ms
+Feb 05 19:18:29 vmi3027410 ethernova[778467]: WARN [02-05|19:18:29.949] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:18:31 vmi3027410 ethernova[778467]: INFO [02-05|19:18:31.055] Looking for peers                        peercount=3 tried=32  static=0
+Feb 05 19:18:31 vmi3027410 ethernova[778467]: WARN [02-05|19:18:31.057] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:18:34 vmi3027410 ethernova[778467]: WARN [02-05|19:18:34.989] Served admin_peers                       conn=127.0.0.1:34530 reqid=1 duration="13.113?s" err="the method admin_peers does not exist/is not available"
+Feb 05 19:18:41 vmi3027410 ethernova[778467]: INFO [02-05|19:18:41.916] Looking for peers                        peercount=2 tried=66  static=0

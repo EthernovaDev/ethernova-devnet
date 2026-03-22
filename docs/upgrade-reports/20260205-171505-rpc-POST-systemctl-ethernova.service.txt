@@ -1,0 +1,22 @@
+? ethernova.service - Ethernova Core v1.2.7
+     Loaded: loaded (/etc/systemd/system/ethernova.service; enabled; preset: enabled)
+    Drop-In: /etc/systemd/system/ethernova.service.d
+             ??override.conf
+     Active: active (running) since Fri 2026-02-06 02:11:55 CET; 4min 18s ago
+   Main PID: 3749831 (ethernova)
+      Tasks: 14 (limit: 28792)
+     Memory: 143.7M (peak: 145.2M)
+        CPU: 15.432s
+     CGroup: /system.slice/ethernova.service
+             ??3749831 /opt/ethernova/bin/ethernova --datadir /var/lib/ethernova --networkid 121525 --http --http.addr 127.0.0.1 --http.port 8545 --http.api eth,net,web3,debug,admin,txpool --ws --ws.addr 127.0.0.1 --ws.port 8546 --port 30303 --bootnodes enode://63b423151f549437e9fee41f16dcf1e421f3aabc9c5179cc14f3746a0c6071c1727f4a006b2609da7a31476f0665caebb400e047e9c569b532e737ea155a2de5@207.180.211.179:30303,enode://110117f08ba9c19ffede29379eb6b45ff880674800097b0c27afa7a0f4b26be4397d80e249e1a21f3ca67494eed7520f370180ad301b6a563d363756d404afc7@159.195.61.39:20001 --http.vhosts localhost,rpc.ethnova.net,explorer.ethnova.net --ws.origins http://localhost,http://127.0.0.1,https://explorer.ethnova.net,https://dex.ethnova.net
+
+Feb 06 02:15:24 vmi2979962 ethernova[3749831]: WARN [02-06|02:15:24.459] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:15:32 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:32.935] Looking for peers                        peercount=1 tried=37 static=0
+Feb 06 02:15:34 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:34.849] Imported new chain segment               number=116,756 hash=76ed18..ff17ec blocks=1 txs=0 mgas=0.000 elapsed=9.752ms  mgasps=0.000 snapdiffs=16.28KiB triedirty=20.96KiB
+Feb 06 02:15:39 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:39.033] Imported new chain segment               number=116,757 hash=0cf3d1..ae600f blocks=1 txs=0 mgas=0.000 elapsed=16.988ms mgasps=0.000 snapdiffs=16.33KiB triedirty=22.36KiB
+Feb 06 02:15:43 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:43.070] Looking for peers                        peercount=1 tried=54 static=0
+Feb 06 02:15:53 vmi2979962 ethernova[3749831]: INFO [02-06|02:15:53.127] Looking for peers                        peercount=1 tried=33 static=0
+Feb 06 02:15:56 vmi2979962 ethernova[3749831]: WARN [02-06|02:15:56.249] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:15:59 vmi2979962 ethernova[3749831]: WARN [02-06|02:15:59.520] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 06 02:16:03 vmi2979962 ethernova[3749831]: INFO [02-06|02:16:03.388] Looking for peers                        peercount=1 tried=41 static=0
+Feb 06 02:16:13 vmi2979962 ethernova[3749831]: INFO [02-06|02:16:13.542] Looking for peers                        peercount=1 tried=32 static=0

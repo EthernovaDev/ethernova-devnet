@@ -1,0 +1,26 @@
+[
+    {
+        "enode":  "enode://d3c7890baf5de4d83c156391e656bb0b6dda026cf22d7a5bf9b21bffb5c625ea6bbdbafddfa9e42ecf10ba847499c049b30d95024bcea95c0c2d7eab5f62c9db@159.195.61.39:59640",
+        "name":  "Ethernova/v1.2.9/linux-amd64/go1.21.13",
+        "forkId_next":  110500,
+        "forkId_hash":  "0x540f2309"
+    },
+    {
+        "enode":  "enode://63b423151f549437e9fee41f16dcf1e421f3aabc9c5179cc14f3746a0c6071c1727f4a006b2609da7a31476f0665caebb400e047e9c569b532e737ea155a2de5@207.180.211.179:50168",
+        "name":  "Ethernova/v1.2.9/linux-amd64/go1.21.13",
+        "forkId_next":  110500,
+        "forkId_hash":  "0x540f2309"
+    },
+    {
+        "enode":  "enode://990ee988000a399f4459e9178c958c6e43ac864011f91f801b7f96e0f8f0fccd5daebbc2434a901809406e75eb5608261220370564aeb37a695d6ee6813d8f24@207.180.230.125:48724",
+        "name":  "Ethernova/v1.2.9/linux-amd64/go1.21.13",
+        "forkId_next":  110500,
+        "forkId_hash":  "0x540f2309"
+    },
+    {
+        "enode":  "enode://b4640473c9d57b7aef8276ee3b8264b99e39bd148a86095102be5c43728f6f9c7ced88b712a72ae817433c319a4f60918142fa55ce61d422e537b162d8b213e0@205.209.102.70:35836",
+        "name":  "Ethernova/v1.2.9/linux-amd64/go1.21.13",
+        "forkId_next":  110500,
+        "forkId_hash":  "0x540f2309"
+    }
+]

@@ -1,0 +1,20 @@
+? miningcore.service - Miningcore NOVA Pool
+     Loaded: loaded (/etc/systemd/system/miningcore.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-02-04 06:43:51 CST; 1 day 12h ago
+   Main PID: 691279 (Miningcore)
+      Tasks: 31 (limit: 9483)
+     Memory: 315.9M (peak: 366.6M)
+        CPU: 1h 35min 46.840s
+     CGroup: /system.slice/miningcore.service
+             ??691279 /opt/miningcore/Miningcore -c /etc/miningcore/config.json
+
+Feb 05 19:07:52 vmi3027410 Miningcore[691279]: [2026-02-05 19:07:52.5527] [I] [nova1-solo] [0HNJ3TC7N2INB] Share accepted: D=1
+Feb 05 19:07:52 vmi3027410 Miningcore[691279]: [2026-02-05 19:07:52.7834] [I] [nova1] [0HNJ3TC7N2IR1] Share accepted: D=1
+Feb 05 19:07:56 vmi3027410 Miningcore[691279]: [2026-02-05 19:07:56.3295] [I] [nova1] [0HNJ3TC7N2JCV] Share accepted: D=1
+Feb 05 19:07:58 vmi3027410 Miningcore[691279]: [2026-02-05 19:07:58.6445] [I] [nova1-solo] [0HNJ3TC7N2JDB] Share accepted: D=3.334
+Feb 05 19:07:59 vmi3027410 Miningcore[691279]: [2026-02-05 19:07:59.3254] [I] [nova1-solo] [0HNJ3TC7N2ITJ] Share accepted: D=1
+Feb 05 19:07:59 vmi3027410 Miningcore[691279]: [2026-02-05 19:07:59.5058] [I] [nova1-solo] [0HNJ3TC7N2INB] Share accepted: D=1
+Feb 05 19:08:00 vmi3027410 Miningcore[691279]: [2026-02-05 19:08:00.3735] [I] [nova1] [0HNJ3TC7N2JCV] Share accepted: D=1
+Feb 05 19:08:01 vmi3027410 Miningcore[691279]: [2026-02-05 19:08:01.3558] [I] [nova1] [0HNJ3TC7N2JCV] Share accepted: D=1
+Feb 05 19:08:02 vmi3027410 Miningcore[691279]: [2026-02-05 19:08:02.8054] [I] [nova1] [0HNJ3TC7N2JCV] Share accepted: D=1
+Feb 05 19:08:04 vmi3027410 Miningcore[691279]: [2026-02-05 19:08:04.6777] [I] [nova1-solo] [0HNJ3TC7N2JDB] Share accepted: D=3.334

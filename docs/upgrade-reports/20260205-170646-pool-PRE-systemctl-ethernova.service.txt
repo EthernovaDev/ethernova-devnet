@@ -1,0 +1,20 @@
+? ethernova.service - Ethernova CoreGeth Node
+     Loaded: loaded (/etc/systemd/system/ethernova.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-02-04 09:40:42 CST; 1 day 9h ago
+   Main PID: 695478 (ethernova)
+      Tasks: 12 (limit: 9483)
+     Memory: 983.7M (peak: 987.4M)
+        CPU: 2h 39min 41.664s
+     CGroup: /system.slice/ethernova.service
+             ??695478 /opt/ethernova-coregeth/build/bin/ethernova --config /etc/ethernova/ethernova.toml --datadir /var/lib/ethernova --bootnodes enode://3d29733de3a9fcde5841f3550e245655895a63550a712fabf4bd4d03feaa133cc329de58cbccdfd3787d94defc62625e63887a1a79436986e2265f2fa8483a1c@207.180.230.125:30303 --miner.etherbase 0x9A3c61883E9BE792a6C32dd0dC508633a3D19026 --mine --unlock 0x9A3c61883E9BE792a6C32dd0dC508633a3D19026 --password /etc/ethernova/keystore.pass --allow-insecure-unlock
+
+Feb 05 19:07:30 vmi3027410 ethernova[695478]: INFO [02-05|19:07:30.972] Looking for peers                        peercount=4 tried=37  static=0
+Feb 05 19:07:32 vmi3027410 ethernova[695478]: INFO [02-05|19:07:32.113] Successfully sealed new block            number=116,729 sealhash=049132..7f5bb8 hash=3f067c..973dde elapsed=10.457s
+Feb 05 19:07:32 vmi3027410 ethernova[695478]: INFO [02-05|19:07:32.113] "?? block reached canonical chain"     number=116,722 hash=656f64..9ac0d1
+Feb 05 19:07:32 vmi3027410 ethernova[695478]: INFO [02-05|19:07:32.113] "?? mined potential block"             number=116,729 hash=3f067c..973dde
+Feb 05 19:07:32 vmi3027410 ethernova[695478]: INFO [02-05|19:07:32.114] Commit new sealing work                  number=116,730 sealhash=fbfd01..d4fb5f uncles=0 txs=0 gas=0         fees=0              elapsed="449.467?s"
+Feb 05 19:07:32 vmi3027410 ethernova[695478]: INFO [02-05|19:07:32.114] Commit new sealing work                  number=116,730 sealhash=fbfd01..d4fb5f uncles=0 txs=0 gas=0         fees=0              elapsed="706.555?s"
+Feb 05 19:07:35 vmi3027410 ethernova[695478]: WARN [02-05|19:07:35.590] Served admin_nodeInfo                    conn=127.0.0.1:56968 reqid=1 duration="25.578?s" err="the method admin_nodeInfo does not exist/is not available"
+Feb 05 19:07:41 vmi3027410 ethernova[695478]: INFO [02-05|19:07:41.038] Looking for peers                        peercount=4 tried=51  static=0
+Feb 05 19:07:45 vmi3027410 ethernova[695478]: WARN [02-05|19:07:45.111] Served admin_peers                       conn=127.0.0.1:40480 reqid=1 duration="12.412?s" err="the method admin_peers does not exist/is not available"
+Feb 05 19:07:51 vmi3027410 ethernova[695478]: INFO [02-05|19:07:51.181] Looking for peers                        peercount=4 tried=49  static=0

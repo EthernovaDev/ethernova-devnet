@@ -1,0 +1,32 @@
+{
+  "config": {
+    "chainId": 77778,
+    "networkId": 77778,
+    "supportedProtocolVersions": [68],
+    "eip155Block": 0,
+    "eip2565FBlock": 0,
+    "eip2718FBlock": 0,
+    "eip2929FBlock": 0,
+    "eip2930FBlock": 0,
+    "eip1559FBlock": 0,
+    "baseFeeVault": "0x3a38560b66205bb6a31decbcb245450b2f15d4fd",
+    "baseFeeVaultFromBlock": 0,
+    "blockReward": {
+      "0": "0x8ac7230489e80000",
+      "2102400": "0x4563918244f40000",
+      "4204800": "0x22b1c8c1227a0000",
+      "6307200": "0x1158e460913d0000",
+      "8409600": "0xde0b6b3a7640000"
+    },
+    "ethash": {}
+  },
+  "nonce": "0x0",
+  "timestamp": "0x0",
+  "extraData": "0x4e4f564120444556",
+  "gasLimit": "0x1c9c380",
+  "difficulty": "0x1",
+  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "coinbase": "0x3a38560b66205bb6a31decbcb245450b2f15d4fd",
+  "baseFeePerGas": "0x3b9aca00",
+  "alloc": {}
+}

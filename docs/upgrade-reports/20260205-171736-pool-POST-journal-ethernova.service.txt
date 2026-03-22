@@ -1,0 +1,200 @@
+Feb 05 19:14:26 vmi3027410 ethernova[778467]: INFO [02-05|19:14:26.749] WebSocket enabled                        url=ws://127.0.0.1:8546
+Feb 05 19:14:26 vmi3027410 ethernova[778467]: INFO [02-05|19:14:26.750] WebSocket enabled                        url=ws://127.0.0.1:8551
+Feb 05 19:14:26 vmi3027410 ethernova[778467]: INFO [02-05|19:14:26.750] HTTP server started                      endpoint=127.0.0.1:8551 auth=true  prefix= cors=localhost vhosts=localhost
+Feb 05 19:14:26 vmi3027410 ethernova[778467]: WARN [02-05|19:14:26.807] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340473 duration="88.123?s" err="no mining work available yet"
+Feb 05 19:14:26 vmi3027410 ethernova[778467]: WARN [02-05|19:14:26.820] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340473 duration="65.492?s" err="no mining work available yet"
+Feb 05 19:14:26 vmi3027410 ethernova[778467]: WARN [02-05|19:14:26.926] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340466 duration="135.983?s" err="no mining work available yet"
+Feb 05 19:14:26 vmi3027410 ethernova[778467]: WARN [02-05|19:14:26.941] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340474 duration="62.516?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.047] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340472 duration="80.649?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.063] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340469 duration="93.363?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.168] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340472 duration="81.492?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.183] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340473 duration="70.962?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.290] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340471 duration="71.523?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.305] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340474 duration="79.187?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.411] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340469 duration="92.211?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.425] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340476 duration="59.681?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.533] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340470 duration="84.938?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.546] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340468 duration="68.959?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.654] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340469 duration="79.217?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.667] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340472 duration="109.032?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.774] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340471 duration="85.078?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.789] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340476 duration="75.751?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.895] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340470 duration="78.416?s" err="no mining work available yet"
+Feb 05 19:14:27 vmi3027410 ethernova[778467]: WARN [02-05|19:14:27.909] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340470 duration="79.258?s" err="no mining work available yet"
+Feb 05 19:14:28 vmi3027410 ethernova[778467]: WARN [02-05|19:14:28.017] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340472 duration="94.154?s" err="no mining work available yet"
+Feb 05 19:14:28 vmi3027410 ethernova[778467]: WARN [02-05|19:14:28.030] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340475 duration="85.269?s" err="no mining work available yet"
+Feb 05 19:14:28 vmi3027410 ethernova[778467]: WARN [02-05|19:14:28.137] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340470 duration="84.316?s" err="no mining work available yet"
+Feb 05 19:14:28 vmi3027410 ethernova[778467]: WARN [02-05|19:14:28.155] Served eth_getWork                       conn=127.0.0.1:51676 reqid=1770340471 duration="633.96?s" err="no mining work available yet"
+Feb 05 19:14:28 vmi3027410 ethernova[778467]: INFO [02-05|19:14:28.229] Unlocked account                         address=0x9A3c61883E9BE792a6C32dd0dC508633a3D19026
+Feb 05 19:14:28 vmi3027410 ethernova[778467]: INFO [02-05|19:14:28.229] Legacy pool tip threshold updated        tip=0
+Feb 05 19:14:28 vmi3027410 ethernova[778467]: INFO [02-05|19:14:28.229] Updated mining threads                   threads=0
+Feb 05 19:14:28 vmi3027410 ethernova[778467]: INFO [02-05|19:14:28.230] Legacy pool tip threshold updated        tip=1,000,000,000
+Feb 05 19:14:28 vmi3027410 ethernova[778467]: INFO [02-05|19:14:28.230] Commit new sealing work                  number=116,750 sealhash=f895e6..cc78a1 uncles=0 txs=0 gas=0 fees=0 elapsed="597.643?s"
+Feb 05 19:14:28 vmi3027410 ethernova[778467]: INFO [02-05|19:14:28.230] Commit new sealing work                  number=116,750 sealhash=f895e6..cc78a1 uncles=0 txs=0 gas=0 fees=0 elapsed="781.785?s"
+Feb 05 19:14:29 vmi3027410 ethernova[778467]: INFO [02-05|19:14:29.985] New local node record                    seq=1,768,616,083,587 id=7676c7c59b0bc552 ip=207.180.211.179 udp=30303 tcp=30303
+Feb 05 19:14:35 vmi3027410 ethernova[778467]: WARN [02-05|19:14:35.281] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:14:36 vmi3027410 ethernova[778467]: INFO [02-05|19:14:36.774] Successfully sealed new block            number=116,750 sealhash=f895e6..cc78a1 hash=6b6001..e868ad elapsed=8.543s
+Feb 05 19:14:36 vmi3027410 ethernova[778467]: INFO [02-05|19:14:36.774] "?? mined potential block"             number=116,750 hash=6b6001..e868ad
+Feb 05 19:14:36 vmi3027410 ethernova[778467]: INFO [02-05|19:14:36.774] Commit new sealing work                  number=116,751 sealhash=a6df5f..5db9b8 uncles=0 txs=0 gas=0 fees=0 elapsed="510.419?s"
+Feb 05 19:14:36 vmi3027410 ethernova[778467]: INFO [02-05|19:14:36.775] Commit new sealing work                  number=116,751 sealhash=a6df5f..5db9b8 uncles=0 txs=0 gas=0 fees=0 elapsed="791.532?s"
+Feb 05 19:14:37 vmi3027410 ethernova[778467]: INFO [02-05|19:14:37.999] Looking for peers                        peercount=1 tried=58 static=0
+Feb 05 19:14:41 vmi3027410 ethernova[778467]: INFO [02-05|19:14:41.672] Successfully sealed new block            number=116,751 sealhash=a6df5f..5db9b8 hash=e79e85..7d1a40 elapsed=4.898s
+Feb 05 19:14:41 vmi3027410 ethernova[778467]: INFO [02-05|19:14:41.672] "?? mined potential block"             number=116,751 hash=e79e85..7d1a40
+Feb 05 19:14:41 vmi3027410 ethernova[778467]: INFO [02-05|19:14:41.673] Commit new sealing work                  number=116,752 sealhash=3b8b7b..d9c0f2 uncles=0 txs=0 gas=0 fees=0 elapsed="358.697?s"
+Feb 05 19:14:41 vmi3027410 ethernova[778467]: INFO [02-05|19:14:41.673] Commit new sealing work                  number=116,752 sealhash=3b8b7b..d9c0f2 uncles=0 txs=0 gas=0 fees=0 elapsed="570.772?s"
+Feb 05 19:14:48 vmi3027410 ethernova[778467]: INFO [02-05|19:14:48.126] Looking for peers                        peercount=1 tried=61 static=0
+Feb 05 19:14:56 vmi3027410 ethernova[778467]: INFO [02-05|19:14:56.005] Successfully sealed new block            number=116,752 sealhash=3b8b7b..d9c0f2 hash=7efaa0..135399 elapsed=14.332s
+Feb 05 19:14:56 vmi3027410 ethernova[778467]: INFO [02-05|19:14:56.005] "?? mined potential block"             number=116,752 hash=7efaa0..135399
+Feb 05 19:14:56 vmi3027410 ethernova[778467]: INFO [02-05|19:14:56.006] Commit new sealing work                  number=116,753 sealhash=dfe6cf..43a4ba uncles=0 txs=0 gas=0 fees=0 elapsed="521.18?s"
+Feb 05 19:14:56 vmi3027410 ethernova[778467]: INFO [02-05|19:14:56.006] Commit new sealing work                  number=116,753 sealhash=dfe6cf..43a4ba uncles=0 txs=0 gas=0 fees=0 elapsed="745.556?s"
+Feb 05 19:14:58 vmi3027410 ethernova[778467]: INFO [02-05|19:14:58.145] Looking for peers                        peercount=3 tried=32 static=0
+Feb 05 19:15:00 vmi3027410 ethernova[778467]: WARN [02-05|19:15:00.087] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:15:08 vmi3027410 ethernova[778467]: INFO [02-05|19:15:08.604] Looking for peers                        peercount=2 tried=59 static=0
+Feb 05 19:15:16 vmi3027410 ethernova[778467]: INFO [02-05|19:15:16.153] Successfully sealed new block            number=116,753 sealhash=dfe6cf..43a4ba hash=edf42d..9c38c5 elapsed=20.146s
+Feb 05 19:15:16 vmi3027410 ethernova[778467]: INFO [02-05|19:15:16.153] "?? mined potential block"             number=116,753 hash=edf42d..9c38c5
+Feb 05 19:15:16 vmi3027410 ethernova[778467]: INFO [02-05|19:15:16.154] Commit new sealing work                  number=116,754 sealhash=c5d59b..dac074 uncles=0 txs=0 gas=0 fees=0 elapsed="627.818?s"
+Feb 05 19:15:16 vmi3027410 ethernova[778467]: INFO [02-05|19:15:16.154] Commit new sealing work                  number=116,754 sealhash=c5d59b..dac074 uncles=0 txs=0 gas=0 fees=0 elapsed="977.198?s"
+Feb 05 19:15:18 vmi3027410 ethernova[778467]: INFO [02-05|19:15:18.168] Successfully sealed new block            number=116,754 sealhash=c5d59b..dac074 hash=aa17df..faaa95 elapsed=2.014s
+Feb 05 19:15:18 vmi3027410 ethernova[778467]: INFO [02-05|19:15:18.168] "?? mined potential block"             number=116,754 hash=aa17df..faaa95
+Feb 05 19:15:18 vmi3027410 ethernova[778467]: INFO [02-05|19:15:18.169] Commit new sealing work                  number=116,755 sealhash=60e065..87bb40 uncles=0 txs=0 gas=0 fees=0 elapsed="506.613?s"
+Feb 05 19:15:18 vmi3027410 ethernova[778467]: INFO [02-05|19:15:18.169] Commit new sealing work                  number=116,755 sealhash=60e065..87bb40 uncles=0 txs=0 gas=0 fees=0 elapsed="883.284?s"
+Feb 05 19:15:18 vmi3027410 ethernova[778467]: INFO [02-05|19:15:18.800] Looking for peers                        peercount=3 tried=48 static=0
+Feb 05 19:15:22 vmi3027410 ethernova[778467]: INFO [02-05|19:15:22.056] Successfully sealed new block            number=116,755 sealhash=60e065..87bb40 hash=66c8cf..d2a65b elapsed=3.887s
+Feb 05 19:15:22 vmi3027410 ethernova[778467]: INFO [02-05|19:15:22.056] "?? mined potential block"             number=116,755 hash=66c8cf..d2a65b
+Feb 05 19:15:22 vmi3027410 ethernova[778467]: INFO [02-05|19:15:22.057] Commit new sealing work                  number=116,756 sealhash=c979a6..eb0582 uncles=0 txs=0 gas=0 fees=0 elapsed="411.075?s"
+Feb 05 19:15:22 vmi3027410 ethernova[778467]: INFO [02-05|19:15:22.057] Commit new sealing work                  number=116,756 sealhash=c979a6..eb0582 uncles=0 txs=0 gas=0 fees=0 elapsed="678.914?s"
+Feb 05 19:15:28 vmi3027410 ethernova[778467]: INFO [02-05|19:15:28.837] Looking for peers                        peercount=3 tried=43 static=0
+Feb 05 19:15:34 vmi3027410 ethernova[778467]: INFO [02-05|19:15:34.830] Successfully sealed new block            number=116,756 sealhash=c979a6..eb0582 hash=76ed18..ff17ec elapsed=12.773s
+Feb 05 19:15:34 vmi3027410 ethernova[778467]: INFO [02-05|19:15:34.830] "?? mined potential block"             number=116,756 hash=76ed18..ff17ec
+Feb 05 19:15:34 vmi3027410 ethernova[778467]: INFO [02-05|19:15:34.831] Commit new sealing work                  number=116,757 sealhash=799701..9e9d50 uncles=0 txs=0 gas=0 fees=0 elapsed="707.386?s"
+Feb 05 19:15:34 vmi3027410 ethernova[778467]: INFO [02-05|19:15:34.831] Commit new sealing work                  number=116,757 sealhash=799701..9e9d50 uncles=0 txs=0 gas=0 fees=0 elapsed=1.068ms
+Feb 05 19:15:34 vmi3027410 ethernova[778467]: WARN [02-05|19:15:34.948] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:15:35 vmi3027410 ethernova[778467]: WARN [02-05|19:15:35.235] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:15:38 vmi3027410 ethernova[778467]: INFO [02-05|19:15:38.904] Looking for peers                        peercount=2 tried=64 static=0
+Feb 05 19:15:39 vmi3027410 ethernova[778467]: INFO [02-05|19:15:39.006] Successfully sealed new block            number=116,757 sealhash=799701..9e9d50 hash=0cf3d1..ae600f elapsed=4.174s
+Feb 05 19:15:39 vmi3027410 ethernova[778467]: INFO [02-05|19:15:39.006] "?? block reached canonical chain"     number=116,750 hash=6b6001..e868ad
+Feb 05 19:15:39 vmi3027410 ethernova[778467]: INFO [02-05|19:15:39.006] "?? mined potential block"             number=116,757 hash=0cf3d1..ae600f
+Feb 05 19:15:39 vmi3027410 ethernova[778467]: INFO [02-05|19:15:39.007] Commit new sealing work                  number=116,758 sealhash=77a070..f206cc uncles=0 txs=0 gas=0 fees=0 elapsed="815.639?s"
+Feb 05 19:15:39 vmi3027410 ethernova[778467]: INFO [02-05|19:15:39.007] Commit new sealing work                  number=116,758 sealhash=77a070..f206cc uncles=0 txs=0 gas=0 fees=0 elapsed=1.213ms
+Feb 05 19:15:49 vmi3027410 ethernova[778467]: INFO [02-05|19:15:49.003] Looking for peers                        peercount=2 tried=44 static=0
+Feb 05 19:15:59 vmi3027410 ethernova[778467]: INFO [02-05|19:15:59.087] Looking for peers                        peercount=2 tried=54 static=0
+Feb 05 19:16:09 vmi3027410 ethernova[778467]: INFO [02-05|19:16:09.150] Looking for peers                        peercount=2 tried=43 static=0
+Feb 05 19:16:09 vmi3027410 ethernova[778467]: WARN [02-05|19:16:09.949] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:16:10 vmi3027410 ethernova[778467]: WARN [02-05|19:16:10.256] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:16:19 vmi3027410 ethernova[778467]: INFO [02-05|19:16:19.477] Looking for peers                        peercount=2 tried=23 static=0
+Feb 05 19:16:26 vmi3027410 ethernova[778467]: INFO [02-05|19:16:26.159] Successfully sealed new block            number=116,758 sealhash=77a070..f206cc hash=0274c1..e51a23 elapsed=47.152s
+Feb 05 19:16:26 vmi3027410 ethernova[778467]: INFO [02-05|19:16:26.160] "?? block reached canonical chain"     number=116,751 hash=e79e85..7d1a40
+Feb 05 19:16:26 vmi3027410 ethernova[778467]: INFO [02-05|19:16:26.160] "?? mined potential block"             number=116,758 hash=0274c1..e51a23
+Feb 05 19:16:26 vmi3027410 ethernova[778467]: INFO [02-05|19:16:26.161] Commit new sealing work                  number=116,759 sealhash=93ff4d..395f9f uncles=0 txs=0 gas=0 fees=0 elapsed="797.904?s"
+Feb 05 19:16:26 vmi3027410 ethernova[778467]: INFO [02-05|19:16:26.161] Commit new sealing work                  number=116,759 sealhash=93ff4d..395f9f uncles=0 txs=0 gas=0 fees=0 elapsed=1.252ms
+Feb 05 19:16:28 vmi3027410 ethernova[778467]: INFO [02-05|19:16:28.748] Successfully sealed new block            number=116,759 sealhash=93ff4d..395f9f hash=0ca2c5..37c590 elapsed=2.587s
+Feb 05 19:16:28 vmi3027410 ethernova[778467]: INFO [02-05|19:16:28.749] "?? block reached canonical chain"     number=116,752 hash=7efaa0..135399
+Feb 05 19:16:28 vmi3027410 ethernova[778467]: INFO [02-05|19:16:28.749] "?? mined potential block"             number=116,759 hash=0ca2c5..37c590
+Feb 05 19:16:28 vmi3027410 ethernova[778467]: INFO [02-05|19:16:28.749] Commit new sealing work                  number=116,760 sealhash=842df4..735f46 uncles=0 txs=0 gas=0 fees=0 elapsed="550.364?s"
+Feb 05 19:16:28 vmi3027410 ethernova[778467]: INFO [02-05|19:16:28.749] Commit new sealing work                  number=116,760 sealhash=842df4..735f46 uncles=0 txs=0 gas=0 fees=0 elapsed="760.014?s"
+Feb 05 19:16:29 vmi3027410 ethernova[778467]: INFO [02-05|19:16:29.525] Looking for peers                        peercount=2 tried=34 static=0
+Feb 05 19:16:30 vmi3027410 ethernova[778467]: INFO [02-05|19:16:30.677] Successfully sealed new block            number=116,760 sealhash=842df4..735f46 hash=dbe61c..7b1c27 elapsed=1.927s
+Feb 05 19:16:30 vmi3027410 ethernova[778467]: INFO [02-05|19:16:30.677] "?? block reached canonical chain"     number=116,753 hash=edf42d..9c38c5
+Feb 05 19:16:30 vmi3027410 ethernova[778467]: INFO [02-05|19:16:30.677] "?? mined potential block"             number=116,760 hash=dbe61c..7b1c27
+Feb 05 19:16:30 vmi3027410 ethernova[778467]: INFO [02-05|19:16:30.677] Commit new sealing work                  number=116,761 sealhash=2c6375..cc6209 uncles=0 txs=0 gas=0 fees=0 elapsed="470.104?s"
+Feb 05 19:16:30 vmi3027410 ethernova[778467]: INFO [02-05|19:16:30.678] Commit new sealing work                  number=116,761 sealhash=2c6375..cc6209 uncles=0 txs=0 gas=0 fees=0 elapsed="810.808?s"
+Feb 05 19:16:34 vmi3027410 ethernova[778467]: INFO [02-05|19:16:34.893] Setting new local account                address=0x9A3c61883E9BE792a6C32dd0dC508633a3D19026
+Feb 05 19:16:34 vmi3027410 ethernova[778467]: INFO [02-05|19:16:34.893] Submitted transaction                    hash=0x49258413bbeb6935164994f8bb7b833cd73b8a96b965fe45afc1fc1438c76eee from=0x9A3c61883E9BE792a6C32dd0dC508633a3D19026 nonce=59259 recipient=0x246190560C08248A010932609b5548B0c3a665F1 value=110,296,071,442,338,000,000
+Feb 05 19:16:36 vmi3027410 ethernova[778467]: INFO [02-05|19:16:36.680] Commit new sealing work                  number=116,761 sealhash=125a59..47e192 uncles=0 txs=1 gas=21000 fees=2.1e-05 elapsed=1.850ms
+Feb 05 19:16:39 vmi3027410 ethernova[778467]: INFO [02-05|19:16:39.978] Looking for peers                        peercount=2 tried=39 static=0
+Feb 05 19:16:44 vmi3027410 ethernova[778467]: WARN [02-05|19:16:44.950] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:16:45 vmi3027410 ethernova[778467]: WARN [02-05|19:16:45.250] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:16:50 vmi3027410 ethernova[778467]: INFO [02-05|19:16:50.100] Looking for peers                        peercount=2 tried=21 static=0
+Feb 05 19:16:53 vmi3027410 ethernova[778467]: INFO [02-05|19:16:53.645] Successfully sealed new block            number=116,761 sealhash=125a59..47e192 hash=489714..58152e elapsed=16.965s
+Feb 05 19:16:53 vmi3027410 ethernova[778467]: INFO [02-05|19:16:53.646] "?? block reached canonical chain"     number=116,754 hash=aa17df..faaa95
+Feb 05 19:16:53 vmi3027410 ethernova[778467]: INFO [02-05|19:16:53.646] "?? mined potential block"             number=116,761 hash=489714..58152e
+Feb 05 19:16:53 vmi3027410 ethernova[778467]: INFO [02-05|19:16:53.646] Commit new sealing work                  number=116,762 sealhash=1604cc..92e673 uncles=0 txs=0 gas=0     fees=0       elapsed="400.286?s"
+Feb 05 19:16:53 vmi3027410 ethernova[778467]: INFO [02-05|19:16:53.646] Commit new sealing work                  number=116,762 sealhash=1604cc..92e673 uncles=0 txs=0 gas=0     fees=0       elapsed="831.347?s"
+Feb 05 19:16:54 vmi3027410 ethernova[778467]: INFO [02-05|19:16:54.542] Successfully sealed new block            number=116,762 sealhash=1604cc..92e673 hash=d5242f..d23d38 elapsed=896.256ms
+Feb 05 19:16:54 vmi3027410 ethernova[778467]: INFO [02-05|19:16:54.542] "?? block reached canonical chain"     number=116,755 hash=66c8cf..d2a65b
+Feb 05 19:16:54 vmi3027410 ethernova[778467]: INFO [02-05|19:16:54.542] "?? mined potential block"             number=116,762 hash=d5242f..d23d38
+Feb 05 19:16:54 vmi3027410 ethernova[778467]: INFO [02-05|19:16:54.543] Commit new sealing work                  number=116,763 sealhash=d6aa0a..4f905e uncles=0 txs=0 gas=0     fees=0       elapsed="666.811?s"
+Feb 05 19:16:54 vmi3027410 ethernova[778467]: INFO [02-05|19:16:54.543] Commit new sealing work                  number=116,763 sealhash=d6aa0a..4f905e uncles=0 txs=0 gas=0     fees=0       elapsed=1.006ms
+Feb 05 19:16:59 vmi3027410 ethernova[778467]: INFO [02-05|19:16:59.024] Successfully sealed new block            number=116,763 sealhash=d6aa0a..4f905e hash=8360fe..d707cc elapsed=4.480s
+Feb 05 19:16:59 vmi3027410 ethernova[778467]: INFO [02-05|19:16:59.024] "?? block reached canonical chain"     number=116,756 hash=76ed18..ff17ec
+Feb 05 19:16:59 vmi3027410 ethernova[778467]: INFO [02-05|19:16:59.024] "?? mined potential block"             number=116,763 hash=8360fe..d707cc
+Feb 05 19:16:59 vmi3027410 ethernova[778467]: INFO [02-05|19:16:59.024] Commit new sealing work                  number=116,764 sealhash=20d77a..45de9f uncles=0 txs=0 gas=0     fees=0       elapsed="267.808?s"
+Feb 05 19:16:59 vmi3027410 ethernova[778467]: INFO [02-05|19:16:59.024] Commit new sealing work                  number=116,764 sealhash=20d77a..45de9f uncles=0 txs=0 gas=0     fees=0       elapsed="506.161?s"
+Feb 05 19:17:00 vmi3027410 ethernova[778467]: INFO [02-05|19:17:00.276] Looking for peers                        peercount=3 tried=41 static=0
+Feb 05 19:17:01 vmi3027410 ethernova[778467]: INFO [02-05|19:17:01.576] Successfully sealed new block            number=116,764 sealhash=20d77a..45de9f hash=460a05..f75844 elapsed=2.551s
+Feb 05 19:17:01 vmi3027410 ethernova[778467]: INFO [02-05|19:17:01.577] "?? block reached canonical chain"     number=116,757 hash=0cf3d1..ae600f
+Feb 05 19:17:01 vmi3027410 ethernova[778467]: INFO [02-05|19:17:01.578] Commit new sealing work                  number=116,765 sealhash=1dde43..2b1904 uncles=0 txs=0 gas=0     fees=0       elapsed=1.515ms
+Feb 05 19:17:01 vmi3027410 ethernova[778467]: INFO [02-05|19:17:01.578] Commit new sealing work                  number=116,765 sealhash=1dde43..2b1904 uncles=0 txs=0 gas=0     fees=0       elapsed=1.698ms
+Feb 05 19:17:01 vmi3027410 ethernova[778467]: INFO [02-05|19:17:01.578] "?? mined potential block"             number=116,764 hash=460a05..f75844
+Feb 05 19:17:04 vmi3027410 ethernova[778467]: INFO [02-05|19:17:04.162] Successfully sealed new block            number=116,765 sealhash=1dde43..2b1904 hash=46f195..fbceb7 elapsed=2.584s
+Feb 05 19:17:04 vmi3027410 ethernova[778467]: INFO [02-05|19:17:04.162] "?? block reached canonical chain"     number=116,758 hash=0274c1..e51a23
+Feb 05 19:17:04 vmi3027410 ethernova[778467]: INFO [02-05|19:17:04.162] "?? mined potential block"             number=116,765 hash=46f195..fbceb7
+Feb 05 19:17:04 vmi3027410 ethernova[778467]: INFO [02-05|19:17:04.162] Commit new sealing work                  number=116,766 sealhash=10e32f..cfa981 uncles=0 txs=0 gas=0     fees=0       elapsed="437.865?s"
+Feb 05 19:17:04 vmi3027410 ethernova[778467]: INFO [02-05|19:17:04.163] Commit new sealing work                  number=116,766 sealhash=10e32f..cfa981 uncles=0 txs=0 gas=0     fees=0       elapsed="679.976?s"
+Feb 05 19:17:10 vmi3027410 ethernova[778467]: INFO [02-05|19:17:10.371] Looking for peers                        peercount=2 tried=42 static=0
+Feb 05 19:17:19 vmi3027410 ethernova[778467]: WARN [02-05|19:17:19.948] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:17:20 vmi3027410 ethernova[778467]: INFO [02-05|19:17:20.372] Looking for peers                        peercount=2 tried=36 static=0
+Feb 05 19:17:20 vmi3027410 ethernova[778467]: WARN [02-05|19:17:20.950] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:17:26 vmi3027410 ethernova[778467]: INFO [02-05|19:17:26.729] Successfully sealed new block            number=116,766 sealhash=10e32f..cfa981 hash=f494b2..acde3c elapsed=22.567s
+Feb 05 19:17:26 vmi3027410 ethernova[778467]: INFO [02-05|19:17:26.730] "?? block reached canonical chain"     number=116,759 hash=0ca2c5..37c590
+Feb 05 19:17:26 vmi3027410 ethernova[778467]: INFO [02-05|19:17:26.730] "?? mined potential block"             number=116,766 hash=f494b2..acde3c
+Feb 05 19:17:26 vmi3027410 ethernova[778467]: INFO [02-05|19:17:26.730] Commit new sealing work                  number=116,767 sealhash=b92a90..a891fe uncles=0 txs=0 gas=0     fees=0       elapsed="439.138?s"
+Feb 05 19:17:26 vmi3027410 ethernova[778467]: INFO [02-05|19:17:26.730] Commit new sealing work                  number=116,767 sealhash=b92a90..a891fe uncles=0 txs=0 gas=0     fees=0       elapsed="619.062?s"
+Feb 05 19:17:27 vmi3027410 ethernova[778467]: INFO [02-05|19:17:27.282] Successfully sealed new block            number=116,767 sealhash=b92a90..a891fe hash=38b3fd..33f4db elapsed=552.101ms
+Feb 05 19:17:27 vmi3027410 ethernova[778467]: INFO [02-05|19:17:27.282] "?? block reached canonical chain"     number=116,760 hash=dbe61c..7b1c27
+Feb 05 19:17:27 vmi3027410 ethernova[778467]: INFO [02-05|19:17:27.282] "?? mined potential block"             number=116,767 hash=38b3fd..33f4db
+Feb 05 19:17:27 vmi3027410 ethernova[778467]: INFO [02-05|19:17:27.283] Commit new sealing work                  number=116,768 sealhash=814f3b..e799d0 uncles=0 txs=0 gas=0     fees=0       elapsed="477.278?s"
+Feb 05 19:17:27 vmi3027410 ethernova[778467]: INFO [02-05|19:17:27.283] Commit new sealing work                  number=116,768 sealhash=814f3b..e799d0 uncles=0 txs=0 gas=0     fees=0       elapsed="745.828?s"
+Feb 05 19:17:30 vmi3027410 ethernova[778467]: INFO [02-05|19:17:30.453] Looking for peers                        peercount=3 tried=54 static=0
+Feb 05 19:17:33 vmi3027410 ethernova[778467]: INFO [02-05|19:17:33.424] Successfully sealed new block            number=116,768 sealhash=814f3b..e799d0 hash=c9c5fe..3d792e elapsed=6.140s
+Feb 05 19:17:33 vmi3027410 ethernova[778467]: INFO [02-05|19:17:33.424] "?? block reached canonical chain"     number=116,761 hash=489714..58152e
+Feb 05 19:17:33 vmi3027410 ethernova[778467]: INFO [02-05|19:17:33.424] "?? mined potential block"             number=116,768 hash=c9c5fe..3d792e
+Feb 05 19:17:33 vmi3027410 ethernova[778467]: INFO [02-05|19:17:33.424] Commit new sealing work                  number=116,769 sealhash=4c011e..d1d249 uncles=0 txs=0 gas=0     fees=0       elapsed="317.821?s"
+Feb 05 19:17:33 vmi3027410 ethernova[778467]: INFO [02-05|19:17:33.424] Commit new sealing work                  number=116,769 sealhash=4c011e..d1d249 uncles=0 txs=0 gas=0     fees=0       elapsed="465.957?s"
+Feb 05 19:17:37 vmi3027410 ethernova[778467]: INFO [02-05|19:17:37.454] Successfully sealed new block            number=116,769 sealhash=4c011e..d1d249 hash=8b1a4a..88b4b2 elapsed=4.029s
+Feb 05 19:17:37 vmi3027410 ethernova[778467]: INFO [02-05|19:17:37.454] "?? block reached canonical chain"     number=116,762 hash=d5242f..d23d38
+Feb 05 19:17:37 vmi3027410 ethernova[778467]: INFO [02-05|19:17:37.454] "?? mined potential block"             number=116,769 hash=8b1a4a..88b4b2
+Feb 05 19:17:37 vmi3027410 ethernova[778467]: INFO [02-05|19:17:37.454] Commit new sealing work                  number=116,770 sealhash=37dcc5..936eb2 uncles=0 txs=0 gas=0     fees=0       elapsed="288.136?s"
+Feb 05 19:17:37 vmi3027410 ethernova[778467]: INFO [02-05|19:17:37.454] Commit new sealing work                  number=116,770 sealhash=37dcc5..936eb2 uncles=0 txs=0 gas=0     fees=0       elapsed="434.999?s"
+Feb 05 19:17:40 vmi3027410 ethernova[778467]: INFO [02-05|19:17:40.499] Looking for peers                        peercount=2 tried=51 static=0
+Feb 05 19:17:43 vmi3027410 ethernova[778467]: INFO [02-05|19:17:43.293] Successfully sealed new block            number=116,770 sealhash=37dcc5..936eb2 hash=eb87a2..ec0edc elapsed=5.838s
+Feb 05 19:17:43 vmi3027410 ethernova[778467]: INFO [02-05|19:17:43.293] "?? block reached canonical chain"     number=116,763 hash=8360fe..d707cc
+Feb 05 19:17:43 vmi3027410 ethernova[778467]: INFO [02-05|19:17:43.293] "?? mined potential block"             number=116,770 hash=eb87a2..ec0edc
+Feb 05 19:17:43 vmi3027410 ethernova[778467]: INFO [02-05|19:17:43.293] Commit new sealing work                  number=116,771 sealhash=182768..e16a17 uncles=0 txs=0 gas=0     fees=0       elapsed="210.742?s"
+Feb 05 19:17:43 vmi3027410 ethernova[778467]: INFO [02-05|19:17:43.293] Commit new sealing work                  number=116,771 sealhash=182768..e16a17 uncles=0 txs=0 gas=0     fees=0       elapsed="343.549?s"
+Feb 05 19:17:47 vmi3027410 ethernova[778467]: INFO [02-05|19:17:47.087] Successfully sealed new block            number=116,771 sealhash=182768..e16a17 hash=a6b65b..605761 elapsed=3.794s
+Feb 05 19:17:47 vmi3027410 ethernova[778467]: INFO [02-05|19:17:47.087] "?? block reached canonical chain"     number=116,764 hash=460a05..f75844
+Feb 05 19:17:47 vmi3027410 ethernova[778467]: INFO [02-05|19:17:47.087] "?? mined potential block"             number=116,771 hash=a6b65b..605761
+Feb 05 19:17:47 vmi3027410 ethernova[778467]: INFO [02-05|19:17:47.088] Commit new sealing work                  number=116,772 sealhash=679d32..1cdb89 uncles=0 txs=0 gas=0     fees=0       elapsed="298.925?s"
+Feb 05 19:17:47 vmi3027410 ethernova[778467]: INFO [02-05|19:17:47.088] Commit new sealing work                  number=116,772 sealhash=679d32..1cdb89 uncles=0 txs=0 gas=0     fees=0       elapsed="514.867?s"
+Feb 05 19:17:50 vmi3027410 ethernova[778467]: INFO [02-05|19:17:50.527] Looking for peers                        peercount=2 tried=34 static=0
+Feb 05 19:17:54 vmi3027410 ethernova[778467]: WARN [02-05|19:17:54.950] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:17:55 vmi3027410 ethernova[778467]: WARN [02-05|19:17:55.958] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:18:00 vmi3027410 ethernova[778467]: INFO [02-05|19:18:00.656] Looking for peers                        peercount=2 tried=28 static=0
+Feb 05 19:18:00 vmi3027410 ethernova[778467]: INFO [02-05|19:18:00.838] Successfully sealed new block            number=116,772 sealhash=679d32..1cdb89 hash=336238..0a8cb7 elapsed=13.750s
+Feb 05 19:18:00 vmi3027410 ethernova[778467]: INFO [02-05|19:18:00.839] "?? block reached canonical chain"     number=116,765 hash=46f195..fbceb7
+Feb 05 19:18:00 vmi3027410 ethernova[778467]: INFO [02-05|19:18:00.839] "?? mined potential block"             number=116,772 hash=336238..0a8cb7
+Feb 05 19:18:00 vmi3027410 ethernova[778467]: INFO [02-05|19:18:00.839] Commit new sealing work                  number=116,773 sealhash=6c33b0..4de6a2 uncles=0 txs=0 gas=0     fees=0       elapsed="434.869?s"
+Feb 05 19:18:00 vmi3027410 ethernova[778467]: INFO [02-05|19:18:00.839] Commit new sealing work                  number=116,773 sealhash=6c33b0..4de6a2 uncles=0 txs=0 gas=0     fees=0       elapsed="616.216?s"
+Feb 05 19:18:10 vmi3027410 ethernova[778467]: INFO [02-05|19:18:10.860] Looking for peers                        peercount=2 tried=111 static=0
+Feb 05 19:18:20 vmi3027410 ethernova[778467]: INFO [02-05|19:18:20.983] Looking for peers                        peercount=3 tried=16  static=0
+Feb 05 19:18:25 vmi3027410 ethernova[778467]: WARN [02-05|19:18:25.392] Served admin_nodeInfo                    conn=127.0.0.1:58468 reqid=1 duration="27.862?s" err="the method admin_nodeInfo does not exist/is not available"
+Feb 05 19:18:27 vmi3027410 ethernova[778467]: INFO [02-05|19:18:27.810] Successfully sealed new block            number=116,773 sealhash=6c33b0..4de6a2 hash=ca5cfd..46b0a0 elapsed=26.970s
+Feb 05 19:18:27 vmi3027410 ethernova[778467]: INFO [02-05|19:18:27.810] "?? block reached canonical chain"     number=116,766 hash=f494b2..acde3c
+Feb 05 19:18:27 vmi3027410 ethernova[778467]: INFO [02-05|19:18:27.811] Commit new sealing work                  number=116,774 sealhash=4d9a03..ae44e7 uncles=0 txs=0 gas=0     fees=0       elapsed="848.849?s"
+Feb 05 19:18:27 vmi3027410 ethernova[778467]: INFO [02-05|19:18:27.811] "?? mined potential block"             number=116,773 hash=ca5cfd..46b0a0
+Feb 05 19:18:27 vmi3027410 ethernova[778467]: INFO [02-05|19:18:27.811] Commit new sealing work                  number=116,774 sealhash=4d9a03..ae44e7 uncles=0 txs=0 gas=0     fees=0       elapsed=1.447ms
+Feb 05 19:18:29 vmi3027410 ethernova[778467]: WARN [02-05|19:18:29.949] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:18:31 vmi3027410 ethernova[778467]: INFO [02-05|19:18:31.055] Looking for peers                        peercount=3 tried=32  static=0
+Feb 05 19:18:31 vmi3027410 ethernova[778467]: WARN [02-05|19:18:31.057] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:18:34 vmi3027410 ethernova[778467]: WARN [02-05|19:18:34.989] Served admin_peers                       conn=127.0.0.1:34530 reqid=1 duration="13.113?s" err="the method admin_peers does not exist/is not available"
+Feb 05 19:18:41 vmi3027410 ethernova[778467]: INFO [02-05|19:18:41.916] Looking for peers                        peercount=2 tried=66  static=0
+Feb 05 19:18:51 vmi3027410 ethernova[778467]: INFO [02-05|19:18:51.917] Looking for peers                        peercount=3 tried=66  static=0
+Feb 05 19:19:01 vmi3027410 ethernova[778467]: INFO [02-05|19:19:01.974] Looking for peers                        peercount=3 tried=46  static=0
+Feb 05 19:19:04 vmi3027410 ethernova[778467]: INFO [02-05|19:19:04.549] Successfully sealed new block            number=116,774 sealhash=4d9a03..ae44e7 hash=5237ca..3cd033 elapsed=36.739s
+Feb 05 19:19:04 vmi3027410 ethernova[778467]: INFO [02-05|19:19:04.549] "?? block reached canonical chain"     number=116,767 hash=38b3fd..33f4db
+Feb 05 19:19:04 vmi3027410 ethernova[778467]: INFO [02-05|19:19:04.549] "?? mined potential block"             number=116,774 hash=5237ca..3cd033
+Feb 05 19:19:04 vmi3027410 ethernova[778467]: INFO [02-05|19:19:04.550] Commit new sealing work                  number=116,775 sealhash=5b1799..95f75c uncles=0 txs=0 gas=0     fees=0       elapsed="524.476?s"
+Feb 05 19:19:04 vmi3027410 ethernova[778467]: INFO [02-05|19:19:04.550] Commit new sealing work                  number=116,775 sealhash=5b1799..95f75c uncles=0 txs=0 gas=0     fees=0       elapsed="728.456?s"
+Feb 05 19:19:04 vmi3027410 ethernova[778467]: WARN [02-05|19:19:04.951] Rejected peer due to client version gate id=945cacf29dcc3ef2 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"
+Feb 05 19:19:06 vmi3027410 ethernova[778467]: WARN [02-05|19:19:06.143] Rejected peer due to client version gate id=213511c75a11e615 conn=inbound name=Ethernova/v1.2.9/linux-amd64/go1.21.13 err="peer version 1.2.9 < required 1.3.0"

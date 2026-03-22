@@ -1,0 +1,5 @@
+genesis_file=/root/snapshot-legacy/genesis-121525-alloc.json
+sha256=768f10bf9f77e20d5da970436e283c5a6892c9169a7af6d33c8e8ec506c9957d
+genesis_hash=0xc3812eb81498965a3f9ff3e73d2f423934e6d440578d4f4fbb6623cc61c453d9
+total_balance_wei=1765151562500000000000000
+total_supply_NOVA=1765151.5625

@@ -1,0 +1,158 @@
+# UPGRADE v1.2.9
+
+## Mandatory Upgrade Before Block 110500
+
+Ethernova v1.2.9 activates EIP-658 (receipt status) at block **110500** on chainId/networkId **121525**.
+No genesis re-init is required. Existing fork at **105000** remains unchanged.
+
+---
+
+## 1) Stop the node (generic)
+
+**Windows:**
+```
+Stop-Process -Name ethernova
+```
+
+**Linux:**
+```
+killall ethernova
+```
+
+---
+
+## 2) Replace the binary
+
+- Download the v1.2.9 binary for your OS.
+- Replace the existing `ethernova`/`ethernova.exe`.
+
+---
+
+## 3) Restart
+
+**Windows:**
+```
+ethernova.exe --datadir <your-datadir> --networkid 121525
+```
+
+**Linux:**
+```
+ethernova --datadir <your-datadir> --networkid 121525
+```
+
+---
+
+## 4) Verify
+
+Confirm:
+- `web3_clientVersion` shows `Ethernova/v1.2.9/...`
+- Fork schedule log shows `fork scheduled at 105000 (Constantinople)`
+- EIP-658 schedule log shows `EIP-658 scheduled at 110500 (receipt status)`
+
+After block **110500**, a transaction receipt should include `status`.
+
+---
+
+# VPS Runbook (RPC + Archive + Explorer) — 207.180.230.125
+
+> Uses SSH key `~/.ssh/rpcandexplorer`. Do discovery first; do not guess paths or services.
+
+## 0) Connect
+```
+ssh -i ~/.ssh/rpcandexplorer root@207.180.230.125
+```
+
+## 1) Discovery (no changes)
+```
+uname -a
+lsb_release -a || cat /etc/os-release
+systemctl list-units --type=service --all | egrep -i "ether|geth|nova|blockscout|explorer|postgres|nginx|traefik|docker|compose"
+ps aux | egrep -i "ethernova|geth|coregeth" | grep -v egrep
+command -v ethernova || true
+ls -lah /usr/local/bin | egrep -i "ethernova|geth|coregeth" || true
+```
+
+If docker is used:
+```
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" || true
+docker compose ls || docker-compose ls || true
+```
+
+If systemd is used, inspect services:
+```
+# Replace <SERVICE> with discovered service names
+systemctl cat <SERVICE>
+```
+
+## 2) Backup (safe point)
+```
+TS=$(date +%F_%H%M%S)
+BK=/root/backup-ethernova-$TS
+mkdir -p $BK
+# Replace <BIN> with the binary path from systemd or which/ls
+cp -a <BIN> $BK/
+# Save unit files
+systemctl cat <SERVICE> > $BK/<SERVICE>.service
+systemctl cat <ARCHIVE_SERVICE> > $BK/<ARCHIVE_SERVICE>.service
+# Save relevant configs if present
+cp -a /etc/ethernova* $BK/ 2>/dev/null || true
+cp -a /opt/ethernova* $BK/ 2>/dev/null || true
+```
+
+## 3) Download v1.2.9 binary
+```
+mkdir -p /root/releases/ethernova/v1.2.9
+cd /root/releases/ethernova/v1.2.9
+# Replace URL with GitHub release asset URL
+curl -L -o ethernova-v1.2.9-linux-amd64 <RELEASE_URL>
+chmod +x ethernova-v1.2.9-linux-amd64
+./ethernova-v1.2.9-linux-amd64 version
+```
+
+## 4) Swap binary + restart
+```
+# Stop services
+systemctl stop <SERVICE>
+systemctl stop <ARCHIVE_SERVICE>
+
+# Swap binary
+cp -a <BIN> <BIN>.bak.$TS
+cp -a /root/releases/ethernova/v1.2.9/ethernova-v1.2.9-linux-amd64 <BIN>
+
+# Start services
+systemctl start <SERVICE>
+systemctl start <ARCHIVE_SERVICE>
+```
+
+## 5) Verify RPC
+```
+# RPC on localhost:8545 assumed; adjust if needed
+curl -s -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","id":1,"method":"web3_clientVersion","params":[]}' http://127.0.0.1:8545
+curl -s -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' http://127.0.0.1:8545
+```
+Expected:
+- `Ethernova/v1.2.9/...`
+- `0x1dab5`
+
+## 6) Verify receipt status after block 110500
+After the chain passes block **110500**, pick a recent tx hash and verify:
+```
+curl -s -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","id":1,"method":"eth_getTransactionReceipt","params":["0x<txhash>"]}' http://127.0.0.1:8545
+```
+Expected: `status` field is present in the receipt JSON.
+
+## 7) Explorer health (Blockscout)
+```
+# Adjust ports/URL as configured
+curl -I http://127.0.0.1:4000/ | head -n 5
+curl -s http://127.0.0.1:4000/api/health || true
+```
+
+## Rollback
+```
+systemctl stop <SERVICE>
+systemctl stop <ARCHIVE_SERVICE>
+cp -a <BIN>.bak.$TS <BIN>
+systemctl start <SERVICE>
+systemctl start <ARCHIVE_SERVICE>
+```

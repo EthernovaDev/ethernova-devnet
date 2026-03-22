@@ -1,0 +1,77 @@
+name: Release Linux amd64 (VPS bundle)
+
+on:
+  push:
+    tags:
+      - "v*-nova"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  linux-amd64-vps:
+    name: Build & upload VPS bundle
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+          cache: true
+
+      - name: Build bundle (linux/amd64)
+        run: |
+          set -euo pipefail
+
+          TAG="${GITHUB_REF_NAME}"
+          OUT_DIR="dist"
+          STAGE_NAME="ethernova-${TAG}-linux-amd64-vps"
+          STAGE_DIR="${OUT_DIR}/${STAGE_NAME}"
+
+          rm -rf "${STAGE_DIR}"
+          mkdir -p "${STAGE_DIR}"
+
+          echo "Building ethernova (linux/amd64)..."
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -o "${STAGE_DIR}/ethernova" ./cmd/geth
+          chmod +x "${STAGE_DIR}/ethernova"
+
+          echo "Staging bundle files..."
+          cp -v LICENSE "${STAGE_DIR}/"
+          cp -v genesis-mainnet.json genesis-dev.json "${STAGE_DIR}/"
+          cp -rv networks "${STAGE_DIR}/"
+          cp -v bundle/vps/README.md "${STAGE_DIR}/README.md"
+          cp -rv bundle/vps/scripts "${STAGE_DIR}/"
+          chmod +x "${STAGE_DIR}/scripts/"*.sh || true
+
+          if [[ -f VERSION ]]; then
+            cp -v VERSION "${STAGE_DIR}/VERSION"
+          else
+            echo "${TAG}" > "${STAGE_DIR}/VERSION"
+          fi
+
+          mkdir -p "${OUT_DIR}"
+          ARCHIVE="ethernova-${TAG}-linux-amd64-vps.tar.gz"
+          tar -C "${OUT_DIR}" -czf "${OUT_DIR}/${ARCHIVE}" "${STAGE_NAME}"
+          sha256sum "${OUT_DIR}/${ARCHIVE}" > "${OUT_DIR}/${ARCHIVE}.sha256"
+
+          echo "Built: ${OUT_DIR}/${ARCHIVE}"
+
+      - name: Upload assets to GitHub Release (draft)
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/ethernova-*-linux-amd64-vps.tar.gz
+            dist/ethernova-*-linux-amd64-vps.tar.gz.sha256

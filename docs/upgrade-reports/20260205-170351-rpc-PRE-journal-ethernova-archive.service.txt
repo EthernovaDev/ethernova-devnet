@@ -1,0 +1,200 @@
+Feb 06 01:43:41 vmi2979962 ethernova[1577982]: INFO [02-06|01:43:41.394] Imported new chain segment               number=116,645 hash=a6213d..2fcfad blocks=1  txs=0 mgas=0.000 elapsed=15.665ms  mgasps=0.000   snapdiffs=402.70KiB triedirty=0.00B
+Feb 06 01:43:46 vmi2979962 ethernova[1577982]: INFO [02-06|01:43:46.714] Looking for peers                        peercount=3 tried=48  static=0
+Feb 06 01:43:52 vmi2979962 ethernova[1577982]: WARN [02-06|01:43:52.472] Rejected peer due to client version gate id=d2f9e46d5a2202bd conn=dyndial name=Nodecrawler/v0.0.0-45b5ec3a/linux-arm64/go1.24.10 err="unsupported client name: \"Nodecrawler/v0.0.0-45b5ec3a/linux-arm64/go1.24.10\""
+Feb 06 01:43:54 vmi2979962 ethernova[1577982]: INFO [02-06|01:43:54.751] Imported new chain segment               number=116,646 hash=80accc..348b2c blocks=1  txs=0 mgas=0.000 elapsed=17.235ms  mgasps=0.000   snapdiffs=402.75KiB triedirty=0.00B
+Feb 06 01:43:56 vmi2979962 ethernova[1577982]: INFO [02-06|01:43:56.739] Looking for peers                        peercount=3 tried=54  static=0
+Feb 06 01:44:00 vmi2979962 ethernova[1577982]: INFO [02-06|01:44:00.552] Imported new chain segment               number=116,647 hash=e8031d..be3712 blocks=1  txs=0 mgas=0.000 elapsed=12.339ms  mgasps=0.000   snapdiffs=402.79KiB triedirty=0.00B
+Feb 06 01:44:08 vmi2979962 ethernova[1577982]: INFO [02-06|01:44:08.212] Imported new chain segment               number=116,648 hash=05e5ca..727e70 blocks=1  txs=0 mgas=0.000 elapsed=17.722ms  mgasps=0.000   snapdiffs=402.84KiB triedirty=0.00B
+Feb 06 01:44:16 vmi2979962 ethernova[1577982]: INFO [02-06|01:44:16.948] Looking for peers                        peercount=3 tried=40  static=0
+Feb 06 01:44:25 vmi2979962 ethernova[1577982]: INFO [02-06|01:44:25.306] Imported new chain segment               number=116,649 hash=2126ac..21c162 blocks=1  txs=0 mgas=0.000 elapsed=14.850ms  mgasps=0.000   snapdiffs=402.89KiB triedirty=0.00B
+Feb 06 01:44:27 vmi2979962 ethernova[1577982]: INFO [02-06|01:44:27.388] Looking for peers                        peercount=3 tried=35  static=0
+Feb 06 01:44:37 vmi2979962 ethernova[1577982]: INFO [02-06|01:44:37.732] Looking for peers                        peercount=3 tried=24  static=0
+Feb 06 01:44:47 vmi2979962 ethernova[1577982]: INFO [02-06|01:44:47.745] Looking for peers                        peercount=3 tried=43  static=0
+Feb 06 01:44:52 vmi2979962 ethernova[1577982]: INFO [02-06|01:44:52.194] Imported new chain segment               number=116,650 hash=6d3134..7af1b9 blocks=1  txs=0 mgas=0.000 elapsed=17.017ms  mgasps=0.000   snapdiffs=402.94KiB triedirty=0.00B
+Feb 06 01:45:06 vmi2979962 ethernova[1577982]: INFO [02-06|01:45:06.390] Imported new chain segment               number=116,651 hash=41c0bb..06c783 blocks=1  txs=0 mgas=0.000 elapsed=18.443ms  mgasps=0.000   snapdiffs=402.99KiB triedirty=0.00B
+Feb 06 01:45:10 vmi2979962 ethernova[1577982]: INFO [02-06|01:45:10.467] Looking for peers                        peercount=3 tried=48  static=0
+Feb 06 01:45:17 vmi2979962 ethernova[1577982]: INFO [02-06|01:45:17.807] Imported new chain segment               number=116,652 hash=4255fb..ddf2b6 blocks=1  txs=0 mgas=0.000 elapsed=15.921ms  mgasps=0.000   snapdiffs=403.03KiB triedirty=0.00B
+Feb 06 01:45:20 vmi2979962 ethernova[1577982]: INFO [02-06|01:45:20.470] Looking for peers                        peercount=3 tried=63  static=0
+Feb 06 01:45:30 vmi2979962 ethernova[1577982]: INFO [02-06|01:45:30.571] Looking for peers                        peercount=4 tried=32  static=0
+Feb 06 01:45:31 vmi2979962 ethernova[1577982]: INFO [02-06|01:45:31.103] Imported new chain segment               number=116,653 hash=62719c..3db90d blocks=1  txs=0 mgas=0.000 elapsed=16.037ms  mgasps=0.000   snapdiffs=403.08KiB triedirty=0.00B
+Feb 06 01:45:40 vmi2979962 ethernova[1577982]: INFO [02-06|01:45:40.667] Looking for peers                        peercount=3 tried=47  static=0
+Feb 06 01:45:50 vmi2979962 ethernova[1577982]: INFO [02-06|01:45:50.737] Looking for peers                        peercount=3 tried=50  static=0
+Feb 06 01:46:00 vmi2979962 ethernova[1577982]: INFO [02-06|01:46:00.769] Looking for peers                        peercount=3 tried=38  static=0
+Feb 06 01:46:04 vmi2979962 ethernova[1577982]: INFO [02-06|01:46:04.075] Imported new chain segment               number=116,654 hash=4c88f1..1c005c blocks=1  txs=0 mgas=0.000 elapsed=20.313ms  mgasps=0.000   snapdiffs=403.13KiB triedirty=0.00B
+Feb 06 01:46:10 vmi2979962 ethernova[1577982]: INFO [02-06|01:46:10.784] Looking for peers                        peercount=3 tried=63  static=0
+Feb 06 01:46:20 vmi2979962 ethernova[1577982]: INFO [02-06|01:46:20.877] Looking for peers                        peercount=3 tried=37  static=0
+Feb 06 01:46:22 vmi2979962 ethernova[1577982]: INFO [02-06|01:46:22.357] Imported new chain segment               number=116,655 hash=f11655..2e0dea blocks=1  txs=0 mgas=0.000 elapsed=17.506ms  mgasps=0.000   snapdiffs=403.18KiB triedirty=0.00B
+Feb 06 01:46:31 vmi2979962 ethernova[1577982]: INFO [02-06|01:46:31.015] Looking for peers                        peercount=3 tried=32  static=0
+Feb 06 01:46:37 vmi2979962 ethernova[1577982]: INFO [02-06|01:46:37.977] Imported new chain segment               number=116,656 hash=596fcb..86fabf blocks=1  txs=0 mgas=0.000 elapsed=12.919ms  mgasps=0.000   snapdiffs=403.23KiB triedirty=0.00B
+Feb 06 01:46:41 vmi2979962 ethernova[1577982]: INFO [02-06|01:46:41.138] Looking for peers                        peercount=3 tried=85  static=0
+Feb 06 01:46:51 vmi2979962 ethernova[1577982]: INFO [02-06|01:46:51.212] Looking for peers                        peercount=3 tried=53  static=0
+Feb 06 01:46:58 vmi2979962 ethernova[1577982]: INFO [02-06|01:46:58.037] Imported new chain segment               number=116,657 hash=8ab4fe..bebc8d blocks=1  txs=0 mgas=0.000 elapsed=17.941ms  mgasps=0.000   snapdiffs=403.27KiB triedirty=0.00B
+Feb 06 01:47:01 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:01.351] Looking for peers                        peercount=3 tried=36  static=0
+Feb 06 01:47:05 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:05.531] Imported new chain segment               number=116,658 hash=45f75b..187153 blocks=1  txs=0 mgas=0.000 elapsed=16.315ms  mgasps=0.000   snapdiffs=403.32KiB triedirty=0.00B
+Feb 06 01:47:08 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:08.570] Imported new chain segment               number=116,659 hash=5d7171..a38e6c blocks=1  txs=0 mgas=0.000 elapsed=15.168ms  mgasps=0.000   snapdiffs=403.37KiB triedirty=0.00B
+Feb 06 01:47:11 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:11.373] Looking for peers                        peercount=3 tried=58  static=0
+Feb 06 01:47:12 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:12.754] Imported new chain segment               number=116,660 hash=b06dde..906d83 blocks=1  txs=0 mgas=0.000 elapsed=15.277ms  mgasps=0.000   snapdiffs=403.42KiB triedirty=0.00B
+Feb 06 01:47:21 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:21.373] Looking for peers                        peercount=3 tried=47  static=0
+Feb 06 01:47:29 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:29.390] Imported new chain segment               number=116,661 hash=eac0fa..2034e5 blocks=1  txs=0 mgas=0.000 elapsed=14.756ms  mgasps=0.000   snapdiffs=403.46KiB triedirty=0.00B
+Feb 06 01:47:31 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:31.400] Looking for peers                        peercount=3 tried=30  static=0
+Feb 06 01:47:41 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:41.734] Looking for peers                        peercount=3 tried=48  static=0
+Feb 06 01:47:43 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:43.225] Imported new chain segment               number=116,662 hash=7c3e4d..9b0bab blocks=1  txs=0 mgas=0.000 elapsed=17.832ms  mgasps=0.000   snapdiffs=403.51KiB triedirty=0.00B
+Feb 06 01:47:46 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:46.995] Imported new chain segment               number=116,663 hash=8f26a9..51f083 blocks=1  txs=0 mgas=0.000 elapsed=14.975ms  mgasps=0.000   snapdiffs=403.56KiB triedirty=0.00B
+Feb 06 01:47:52 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:52.040] Looking for peers                        peercount=3 tried=54  static=0
+Feb 06 01:47:53 vmi2979962 ethernova[1577982]: INFO [02-06|01:47:53.709] Imported new chain segment               number=116,664 hash=5ae4c3..a7398d blocks=1  txs=0 mgas=0.000 elapsed=14.314ms  mgasps=0.000   snapdiffs=403.61KiB triedirty=0.00B
+Feb 06 01:48:02 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:02.137] Looking for peers                        peercount=3 tried=28  static=0
+Feb 06 01:48:13 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:13.520] Imported new chain segment               number=116,665 hash=05fdf7..ec049a blocks=1  txs=0 mgas=0.000 elapsed=15.237ms  mgasps=0.000   snapdiffs=403.66KiB triedirty=0.00B
+Feb 06 01:48:13 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:13.627] Looking for peers                        peercount=3 tried=96  static=0
+Feb 06 01:48:22 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:22.702] Imported new chain segment               number=116,666 hash=1441cc..733f88 blocks=1  txs=1 mgas=0.021 elapsed=17.908ms  mgasps=1.173   snapdiffs=403.80KiB triedirty=0.00B
+Feb 06 01:48:23 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:23.635] Looking for peers                        peercount=3 tried=50  static=0
+Feb 06 01:48:23 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:23.971] Imported new chain segment               number=116,667 hash=0f0b26..f314bd blocks=1  txs=0 mgas=0.000 elapsed=18.388ms  mgasps=0.000   snapdiffs=403.84KiB triedirty=0.00B
+Feb 06 01:48:30 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:30.499] Imported new chain segment               number=116,668 hash=1e9827..281fde blocks=1  txs=0 mgas=0.000 elapsed=15.874ms  mgasps=0.000   snapdiffs=403.89KiB triedirty=0.00B
+Feb 06 01:48:33 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:33.701] Looking for peers                        peercount=3 tried=21  static=0
+Feb 06 01:48:44 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:44.128] Looking for peers                        peercount=3 tried=38  static=0
+Feb 06 01:48:48 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:48.315] Imported new chain segment               number=116,669 hash=3a061f..7b95e6 blocks=1  txs=0 mgas=0.000 elapsed=24.318ms  mgasps=0.000   snapdiffs=403.94KiB triedirty=0.00B
+Feb 06 01:48:54 vmi2979962 ethernova[1577982]: INFO [02-06|01:48:54.324] Looking for peers                        peercount=4 tried=32  static=0
+Feb 06 01:49:04 vmi2979962 ethernova[1577982]: INFO [02-06|01:49:04.481] Looking for peers                        peercount=3 tried=18  static=0
+Feb 06 01:49:06 vmi2979962 ethernova[1577982]: INFO [02-06|01:49:06.192] Imported new chain segment               number=116,670 hash=24c9cc..8006c3 blocks=1  txs=0 mgas=0.000 elapsed=15.471ms  mgasps=0.000   snapdiffs=403.99KiB triedirty=0.00B
+Feb 06 01:49:10 vmi2979962 ethernova[1577982]: INFO [02-06|01:49:10.585] Imported new chain segment               number=116,671 hash=d03926..c02e35 blocks=1  txs=0 mgas=0.000 elapsed=16.327ms  mgasps=0.000   snapdiffs=404.04KiB triedirty=0.00B
+Feb 06 01:49:14 vmi2979962 ethernova[1577982]: INFO [02-06|01:49:14.817] Looking for peers                        peercount=3 tried=56  static=0
+Feb 06 01:49:24 vmi2979962 ethernova[1577982]: INFO [02-06|01:49:24.819] Looking for peers                        peercount=3 tried=61  static=0
+Feb 06 01:49:35 vmi2979962 ethernova[1577982]: INFO [02-06|01:49:35.563] Looking for peers                        peercount=3 tried=32  static=0
+Feb 06 01:49:44 vmi2979962 ethernova[1577982]: INFO [02-06|01:49:44.677] Imported new chain segment               number=116,672 hash=2b58ca..fc972e blocks=1  txs=0 mgas=0.000 elapsed=14.298ms  mgasps=0.000   snapdiffs=404.08KiB triedirty=0.00B
+Feb 06 01:49:45 vmi2979962 ethernova[1577982]: INFO [02-06|01:49:45.600] Looking for peers                        peercount=3 tried=50  static=0
+Feb 06 01:49:55 vmi2979962 ethernova[1577982]: INFO [02-06|01:49:55.765] Looking for peers                        peercount=3 tried=32  static=0
+Feb 06 01:50:05 vmi2979962 ethernova[1577982]: INFO [02-06|01:50:05.838] Looking for peers                        peercount=3 tried=17  static=0
+Feb 06 01:50:16 vmi2979962 ethernova[1577982]: INFO [02-06|01:50:16.178] Looking for peers                        peercount=4 tried=63  static=0
+Feb 06 01:50:26 vmi2979962 ethernova[1577982]: INFO [02-06|01:50:26.191] Looking for peers                        peercount=3 tried=34  static=0
+Feb 06 01:50:36 vmi2979962 ethernova[1577982]: INFO [02-06|01:50:36.715] Looking for peers                        peercount=3 tried=46  static=0
+Feb 06 01:50:42 vmi2979962 ethernova[1577982]: INFO [02-06|01:50:42.556] Imported new chain segment               number=116,673 hash=bc8fab..f3344e blocks=1  txs=0 mgas=0.000 elapsed=18.112ms  mgasps=0.000   snapdiffs=404.13KiB triedirty=0.00B
+Feb 06 01:50:42 vmi2979962 ethernova[1577982]: INFO [02-06|01:50:42.765] Imported new chain segment               number=116,674 hash=7ddf6a..c391b6 blocks=1  txs=0 mgas=0.000 elapsed=16.214ms  mgasps=0.000   snapdiffs=404.18KiB triedirty=0.00B
+Feb 06 01:50:46 vmi2979962 ethernova[1577982]: INFO [02-06|01:50:46.943] Looking for peers                        peercount=3 tried=50  static=0
+Feb 06 01:50:56 vmi2979962 ethernova[1577982]: INFO [02-06|01:50:56.984] Imported new chain segment               number=116,675 hash=69e240..c3611d blocks=1  txs=0 mgas=0.000 elapsed=14.450ms  mgasps=0.000   snapdiffs=404.23KiB triedirty=0.00B
+Feb 06 01:50:57 vmi2979962 ethernova[1577982]: INFO [02-06|01:50:57.204] Looking for peers                        peercount=3 tried=14  static=0
+Feb 06 01:51:07 vmi2979962 ethernova[1577982]: INFO [02-06|01:51:07.291] Looking for peers                        peercount=3 tried=37  static=0
+Feb 06 01:51:17 vmi2979962 ethernova[1577982]: INFO [02-06|01:51:17.397] Looking for peers                        peercount=3 tried=46  static=0
+Feb 06 01:51:18 vmi2979962 ethernova[1577982]: INFO [02-06|01:51:18.452] Imported new chain segment               number=116,676 hash=885718..9b13a7 blocks=1  txs=0 mgas=0.000 elapsed=15.974ms  mgasps=0.000   snapdiffs=404.27KiB triedirty=0.00B
+Feb 06 01:51:27 vmi2979962 ethernova[1577982]: INFO [02-06|01:51:27.791] Looking for peers                        peercount=3 tried=44  static=0
+Feb 06 01:51:34 vmi2979962 ethernova[1577982]: INFO [02-06|01:51:34.336] Imported new chain segment               number=116,677 hash=056138..08d1dc blocks=1  txs=0 mgas=0.000 elapsed=16.483ms  mgasps=0.000   snapdiffs=404.32KiB triedirty=0.00B
+Feb 06 01:51:37 vmi2979962 ethernova[1577982]: INFO [02-06|01:51:37.794] Looking for peers                        peercount=3 tried=42  static=0
+Feb 06 01:51:47 vmi2979962 ethernova[1577982]: INFO [02-06|01:51:47.948] Looking for peers                        peercount=3 tried=24  static=0
+Feb 06 01:51:58 vmi2979962 ethernova[1577982]: INFO [02-06|01:51:58.630] Looking for peers                        peercount=4 tried=77  static=0
+Feb 06 01:52:08 vmi2979962 ethernova[1577982]: INFO [02-06|01:52:08.647] Looking for peers                        peercount=3 tried=53  static=0
+Feb 06 01:52:19 vmi2979962 ethernova[1577982]: INFO [02-06|01:52:19.421] Looking for peers                        peercount=4 tried=35  static=0
+Feb 06 01:52:22 vmi2979962 ethernova[1577982]: INFO [02-06|01:52:22.203] Imported new chain segment               number=116,678 hash=6212e3..de8447 blocks=1  txs=0 mgas=0.000 elapsed=17.403ms  mgasps=0.000   snapdiffs=404.37KiB triedirty=0.00B
+Feb 06 01:52:28 vmi2979962 ethernova[1577982]: INFO [02-06|01:52:28.143] Imported new chain segment               number=116,679 hash=1fdfe8..e5eb88 blocks=1  txs=0 mgas=0.000 elapsed=20.099ms  mgasps=0.000   snapdiffs=404.42KiB triedirty=0.00B
+Feb 06 01:52:29 vmi2979962 ethernova[1577982]: INFO [02-06|01:52:29.476] Looking for peers                        peercount=3 tried=34  static=0
+Feb 06 01:52:39 vmi2979962 ethernova[1577982]: INFO [02-06|01:52:39.492] Looking for peers                        peercount=3 tried=67  static=0
+Feb 06 01:52:49 vmi2979962 ethernova[1577982]: INFO [02-06|01:52:49.753] Looking for peers                        peercount=3 tried=52  static=0
+Feb 06 01:52:59 vmi2979962 ethernova[1577982]: INFO [02-06|01:52:59.774] Looking for peers                        peercount=4 tried=46  static=0
+Feb 06 01:53:06 vmi2979962 ethernova[1577982]: INFO [02-06|01:53:06.907] Imported new chain segment               number=116,680 hash=e1a30f..dc13ea blocks=1  txs=0 mgas=0.000 elapsed=16.335ms  mgasps=0.000   snapdiffs=404.47KiB triedirty=0.00B
+Feb 06 01:53:09 vmi2979962 ethernova[1577982]: INFO [02-06|01:53:09.974] Looking for peers                        peercount=4 tried=25  static=0
+Feb 06 01:53:14 vmi2979962 ethernova[1577982]: INFO [02-06|01:53:14.771] Imported new chain segment               number=116,681 hash=e9d43f..a31bb0 blocks=1  txs=0 mgas=0.000 elapsed=14.706ms  mgasps=0.000   snapdiffs=404.51KiB triedirty=0.00B
+Feb 06 01:53:16 vmi2979962 ethernova[1577982]: INFO [02-06|01:53:16.068] Imported new chain segment               number=116,682 hash=60d0db..f318b4 blocks=1  txs=0 mgas=0.000 elapsed=16.303ms  mgasps=0.000   snapdiffs=404.56KiB triedirty=0.00B
+Feb 06 01:53:17 vmi2979962 ethernova[1577982]: INFO [02-06|01:53:17.323] Imported new chain segment               number=116,683 hash=0709ab..6fdb03 blocks=1  txs=0 mgas=0.000 elapsed=16.062ms  mgasps=0.000   snapdiffs=404.61KiB triedirty=0.00B
+Feb 06 01:53:20 vmi2979962 ethernova[1577982]: INFO [02-06|01:53:20.364] Looking for peers                        peercount=3 tried=23  static=0
+Feb 06 01:53:30 vmi2979962 ethernova[1577982]: INFO [02-06|01:53:30.396] Looking for peers                        peercount=3 tried=58  static=0
+Feb 06 01:53:40 vmi2979962 ethernova[1577982]: INFO [02-06|01:53:40.400] Looking for peers                        peercount=3 tried=48  static=0
+Feb 06 01:53:50 vmi2979962 ethernova[1577982]: INFO [02-06|01:53:50.413] Looking for peers                        peercount=3 tried=46  static=0
+Feb 06 01:53:52 vmi2979962 ethernova[1577982]: INFO [02-06|01:53:52.417] Imported new chain segment               number=116,684 hash=6958ae..973c9d blocks=1  txs=0 mgas=0.000 elapsed=11.430ms  mgasps=0.000   snapdiffs=404.66KiB triedirty=0.00B
+Feb 06 01:54:00 vmi2979962 ethernova[1577982]: INFO [02-06|01:54:00.576] Looking for peers                        peercount=3 tried=24  static=0
+Feb 06 01:54:11 vmi2979962 ethernova[1577982]: INFO [02-06|01:54:11.060] Looking for peers                        peercount=3 tried=47  static=0
+Feb 06 01:54:12 vmi2979962 ethernova[1577982]: INFO [02-06|01:54:12.837] Imported new chain segment               number=116,685 hash=e71a96..6a66b2 blocks=1  txs=0 mgas=0.000 elapsed=18.979ms  mgasps=0.000   snapdiffs=404.71KiB triedirty=0.00B
+Feb 06 01:54:21 vmi2979962 ethernova[1577982]: INFO [02-06|01:54:21.194] Looking for peers                        peercount=3 tried=33  static=0
+Feb 06 01:54:31 vmi2979962 ethernova[1577982]: INFO [02-06|01:54:31.562] Looking for peers                        peercount=3 tried=59  static=0
+Feb 06 01:54:41 vmi2979962 ethernova[1577982]: INFO [02-06|01:54:41.564] Looking for peers                        peercount=3 tried=49  static=0
+Feb 06 01:54:42 vmi2979962 ethernova[1577982]: INFO [02-06|01:54:42.480] Imported new chain segment               number=116,686 hash=b78381..4c987c blocks=1  txs=0 mgas=0.000 elapsed=12.227ms  mgasps=0.000   snapdiffs=404.75KiB triedirty=0.00B
+Feb 06 01:54:51 vmi2979962 ethernova[1577982]: INFO [02-06|01:54:51.936] Looking for peers                        peercount=3 tried=76  static=0
+Feb 06 01:55:02 vmi2979962 ethernova[1577982]: INFO [02-06|01:55:02.052] Looking for peers                        peercount=4 tried=36  static=0
+Feb 06 01:55:12 vmi2979962 ethernova[1577982]: INFO [02-06|01:55:12.075] Looking for peers                        peercount=3 tried=27  static=0
+Feb 06 01:55:21 vmi2979962 ethernova[1577982]: INFO [02-06|01:55:21.356] Imported new chain segment               number=116,687 hash=95d3fd..04a0ca blocks=1  txs=1 mgas=0.021 elapsed=16.395ms  mgasps=1.281   snapdiffs=404.89KiB triedirty=0.00B
+Feb 06 01:55:22 vmi2979962 ethernova[1577982]: INFO [02-06|01:55:22.201] Looking for peers                        peercount=3 tried=58  static=0
+Feb 06 01:55:32 vmi2979962 ethernova[1577982]: INFO [02-06|01:55:32.235] Looking for peers                        peercount=3 tried=37  static=0
+Feb 06 01:55:40 vmi2979962 ethernova[1577982]: INFO [02-06|01:55:40.616] Imported new chain segment               number=116,688 hash=e5b1c3..3a7109 blocks=1  txs=0 mgas=0.000 elapsed=13.187ms  mgasps=0.000   snapdiffs=404.94KiB triedirty=0.00B
+Feb 06 01:55:42 vmi2979962 ethernova[1577982]: INFO [02-06|01:55:42.289] Looking for peers                        peercount=3 tried=37  static=0
+Feb 06 01:55:43 vmi2979962 ethernova[1577982]: INFO [02-06|01:55:43.868] Imported new chain segment               number=116,689 hash=f2320a..bb950b blocks=1  txs=0 mgas=0.000 elapsed=13.452ms  mgasps=0.000   snapdiffs=404.99KiB triedirty=0.00B
+Feb 06 01:56:02 vmi2979962 ethernova[1577982]: INFO [02-06|01:56:02.324] Looking for peers                        peercount=3 tried=31  static=0
+Feb 06 01:56:12 vmi2979962 ethernova[1577982]: INFO [02-06|01:56:12.868] Looking for peers                        peercount=3 tried=40  static=0
+Feb 06 01:56:22 vmi2979962 ethernova[1577982]: INFO [02-06|01:56:22.936] Looking for peers                        peercount=3 tried=23  static=0
+Feb 06 01:56:32 vmi2979962 ethernova[1577982]: INFO [02-06|01:56:32.937] Looking for peers                        peercount=3 tried=40  static=0
+Feb 06 01:56:42 vmi2979962 ethernova[1577982]: INFO [02-06|01:56:42.951] Looking for peers                        peercount=3 tried=49  static=0
+Feb 06 01:56:53 vmi2979962 ethernova[1577982]: INFO [02-06|01:56:53.338] Looking for peers                        peercount=3 tried=39  static=0
+Feb 06 01:56:57 vmi2979962 ethernova[1577982]: INFO [02-06|01:56:57.189] Imported new chain segment               number=116,690 hash=a0de1f..f69fed blocks=1  txs=1 mgas=0.021 elapsed=18.619ms  mgasps=1.128   age=1m14s   snapdiffs=405.13KiB triedirty=0.00B
+Feb 06 01:57:03 vmi2979962 ethernova[1577982]: INFO [02-06|01:57:03.363] Looking for peers                        peercount=3 tried=34  static=0
+Feb 06 01:57:13 vmi2979962 ethernova[1577982]: INFO [02-06|01:57:13.407] Looking for peers                        peercount=3 tried=19  static=0
+Feb 06 01:57:23 vmi2979962 ethernova[1577982]: INFO [02-06|01:57:23.533] Looking for peers                        peercount=3 tried=74  static=0
+Feb 06 01:57:26 vmi2979962 ethernova[1577982]: INFO [02-06|01:57:26.927] Imported new chain segment               number=116,691 hash=1f4b51..298b0b blocks=1  txs=0 mgas=0.000 elapsed=14.724ms  mgasps=0.000   snapdiffs=405.18KiB triedirty=0.00B
+Feb 06 01:57:27 vmi2979962 ethernova[1577982]: INFO [02-06|01:57:27.186] Imported new chain segment               number=116,692 hash=108217..35b39a blocks=1  txs=0 mgas=0.000 elapsed=14.162ms  mgasps=0.000   snapdiffs=405.22KiB triedirty=0.00B
+Feb 06 01:57:33 vmi2979962 ethernova[1577982]: INFO [02-06|01:57:33.683] Looking for peers                        peercount=3 tried=44  static=0
+Feb 06 01:57:39 vmi2979962 ethernova[1577982]: INFO [02-06|01:57:39.130] Imported new chain segment               number=116,693 hash=0bd172..af5251 blocks=1  txs=0 mgas=0.000 elapsed=16.554ms  mgasps=0.000   snapdiffs=405.27KiB triedirty=0.00B
+Feb 06 01:57:43 vmi2979962 ethernova[1577982]: INFO [02-06|01:57:43.978] Looking for peers                        peercount=3 tried=56  static=0
+Feb 06 01:57:54 vmi2979962 ethernova[1577982]: INFO [02-06|01:57:54.348] Looking for peers                        peercount=3 tried=62  static=0
+Feb 06 01:58:04 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:04.585] Looking for peers                        peercount=3 tried=34  static=0
+Feb 06 01:58:14 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:14.423] Imported new chain segment               number=116,694 hash=443430..b2815a blocks=1  txs=0 mgas=0.000 elapsed=16.850ms  mgasps=0.000   snapdiffs=405.32KiB triedirty=0.00B
+Feb 06 01:58:15 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:15.943] Looking for peers                        peercount=3 tried=45  static=0
+Feb 06 01:58:21 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:21.109] Imported new chain segment               number=116,695 hash=c256b8..0a0b68 blocks=1  txs=0 mgas=0.000 elapsed=16.113ms  mgasps=0.000   snapdiffs=405.37KiB triedirty=0.00B
+Feb 06 01:58:26 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:26.135] Looking for peers                        peercount=3 tried=59  static=0
+Feb 06 01:58:36 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:36.169] Looking for peers                        peercount=3 tried=55  static=0
+Feb 06 01:58:45 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:45.465] Imported new chain segment               number=116,696 hash=2aa2d1..41840b blocks=1  txs=0 mgas=0.000 elapsed=17.875ms  mgasps=0.000   snapdiffs=405.42KiB triedirty=0.00B
+Feb 06 01:58:46 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:46.700] Looking for peers                        peercount=3 tried=30  static=0
+Feb 06 01:58:46 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:46.766] Imported new chain segment               number=116,697 hash=c92dc6..7a8191 blocks=1  txs=0 mgas=0.000 elapsed=15.557ms  mgasps=0.000   snapdiffs=405.46KiB triedirty=0.00B
+Feb 06 01:58:56 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:56.707] Looking for peers                        peercount=3 tried=46  static=0
+Feb 06 01:58:58 vmi2979962 ethernova[1577982]: INFO [02-06|01:58:58.633] Imported new chain segment               number=116,698 hash=2d713d..e9f89d blocks=1  txs=0 mgas=0.000 elapsed=16.270ms  mgasps=0.000   snapdiffs=405.51KiB triedirty=0.00B
+Feb 06 01:59:06 vmi2979962 ethernova[1577982]: INFO [02-06|01:59:06.810] Looking for peers                        peercount=3 tried=56  static=0
+Feb 06 01:59:16 vmi2979962 ethernova[1577982]: INFO [02-06|01:59:16.936] Looking for peers                        peercount=3 tried=37  static=0
+Feb 06 01:59:19 vmi2979962 ethernova[1577982]: INFO [02-06|01:59:19.603] Imported new chain segment               number=116,699 hash=f3337b..310320 blocks=1  txs=0 mgas=0.000 elapsed=17.900ms  mgasps=0.000   snapdiffs=405.56KiB triedirty=0.00B
+Feb 06 01:59:35 vmi2979962 ethernova[1577982]: INFO [02-06|01:59:35.744] Imported new chain segment               number=116,700 hash=62dd7f..156594 blocks=1  txs=0 mgas=0.000 elapsed=15.968ms  mgasps=0.000   snapdiffs=405.61KiB triedirty=0.00B
+Feb 06 01:59:47 vmi2979962 ethernova[1577982]: INFO [02-06|01:59:47.090] Looking for peers                        peercount=4 tried=60  static=0
+Feb 06 01:59:57 vmi2979962 ethernova[1577982]: INFO [02-06|01:59:57.349] Looking for peers                        peercount=3 tried=55  static=0
+Feb 06 01:59:57 vmi2979962 ethernova[1577982]: INFO [02-06|01:59:57.815] Imported new chain segment               number=116,701 hash=9598b5..3b112a blocks=1  txs=0 mgas=0.000 elapsed=18.350ms  mgasps=0.000   snapdiffs=405.65KiB triedirty=0.00B
+Feb 06 02:00:01 vmi2979962 ethernova[1577982]: INFO [02-06|02:00:01.551] Imported new chain segment               number=116,702 hash=e57058..ff1218 blocks=1  txs=0 mgas=0.000 elapsed=29.726ms  mgasps=0.000   snapdiffs=405.70KiB triedirty=0.00B
+Feb 06 02:00:07 vmi2979962 ethernova[1577982]: INFO [02-06|02:00:07.543] Looking for peers                        peercount=3 tried=48  static=0
+Feb 06 02:00:17 vmi2979962 ethernova[1577982]: INFO [02-06|02:00:17.695] Looking for peers                        peercount=3 tried=55  static=0
+Feb 06 02:00:27 vmi2979962 ethernova[1577982]: INFO [02-06|02:00:27.753] Looking for peers                        peercount=3 tried=25  static=0
+Feb 06 02:00:37 vmi2979962 ethernova[1577982]: INFO [02-06|02:00:37.512] Imported new chain segment               number=116,703 hash=305e40..11433e blocks=1  txs=0 mgas=0.000 elapsed=15.066ms  mgasps=0.000   snapdiffs=405.75KiB triedirty=0.00B
+Feb 06 02:00:37 vmi2979962 ethernova[1577982]: INFO [02-06|02:00:37.911] Looking for peers                        peercount=3 tried=64  static=0
+Feb 06 02:00:47 vmi2979962 ethernova[1577982]: INFO [02-06|02:00:47.497] Imported new chain segment               number=116,704 hash=c844b0..0d7147 blocks=1  txs=0 mgas=0.000 elapsed=17.730ms  mgasps=0.000   snapdiffs=405.80KiB triedirty=0.00B
+Feb 06 02:00:47 vmi2979962 ethernova[1577982]: INFO [02-06|02:00:47.948] Looking for peers                        peercount=3 tried=33  static=0
+Feb 06 02:00:54 vmi2979962 ethernova[1577982]: INFO [02-06|02:00:54.631] Imported new chain segment               number=116,705 hash=6df898..9e3ec6 blocks=1  txs=0 mgas=0.000 elapsed=16.199ms  mgasps=0.000   snapdiffs=405.85KiB triedirty=0.00B
+Feb 06 02:00:58 vmi2979962 ethernova[1577982]: INFO [02-06|02:00:58.419] Looking for peers                        peercount=3 tried=19  static=0
+Feb 06 02:01:08 vmi2979962 ethernova[1577982]: INFO [02-06|02:01:08.585] Looking for peers                        peercount=3 tried=37  static=0
+Feb 06 02:01:18 vmi2979962 ethernova[1577982]: INFO [02-06|02:01:18.921] Looking for peers                        peercount=4 tried=35  static=0
+Feb 06 02:01:27 vmi2979962 ethernova[1577982]: INFO [02-06|02:01:27.947] Imported new chain segment               number=116,706 hash=2c0e1e..62a996 blocks=1  txs=0 mgas=0.000 elapsed=17.525ms  mgasps=0.000   snapdiffs=405.89KiB triedirty=0.00B
+Feb 06 02:01:29 vmi2979962 ethernova[1577982]: INFO [02-06|02:01:29.212] Looking for peers                        peercount=3 tried=29  static=0
+Feb 06 02:01:39 vmi2979962 ethernova[1577982]: INFO [02-06|02:01:39.214] Looking for peers                        peercount=3 tried=34  static=0
+Feb 06 02:01:41 vmi2979962 ethernova[1577982]: INFO [02-06|02:01:41.104] Imported new chain segment               number=116,707 hash=a8d03e..5c2ceb blocks=1  txs=0 mgas=0.000 elapsed=15.925ms  mgasps=0.000   snapdiffs=405.94KiB triedirty=0.00B
+Feb 06 02:01:46 vmi2979962 ethernova[1577982]: INFO [02-06|02:01:46.633] Imported new chain segment               number=116,708 hash=77f76f..0f3d54 blocks=1  txs=0 mgas=0.000 elapsed=29.889ms  mgasps=0.000   snapdiffs=405.99KiB triedirty=0.00B
+Feb 06 02:01:47 vmi2979962 ethernova[1577982]: INFO [02-06|02:01:47.495] Imported new chain segment               number=116,709 hash=133350..f90844 blocks=1  txs=0 mgas=0.000 elapsed=16.423ms  mgasps=0.000   snapdiffs=406.04KiB triedirty=0.00B
+Feb 06 02:01:59 vmi2979962 ethernova[1577982]: INFO [02-06|02:01:59.414] Looking for peers                        peercount=4 tried=47  static=0
+Feb 06 02:02:03 vmi2979962 ethernova[1577982]: INFO [02-06|02:02:03.484] Imported new chain segment               number=116,710 hash=e0714f..8c7357 blocks=1  txs=0 mgas=0.000 elapsed=22.142ms  mgasps=0.000   snapdiffs=406.08KiB triedirty=0.00B
+Feb 06 02:02:09 vmi2979962 ethernova[1577982]: INFO [02-06|02:02:09.447] Looking for peers                        peercount=3 tried=60  static=0
+Feb 06 02:02:19 vmi2979962 ethernova[1577982]: INFO [02-06|02:02:19.653] Looking for peers                        peercount=3 tried=48  static=0
+Feb 06 02:02:29 vmi2979962 ethernova[1577982]: INFO [02-06|02:02:29.289] Imported new chain segment               number=116,711 hash=ac867c..8b583a blocks=1  txs=0 mgas=0.000 elapsed=17.198ms  mgasps=0.000   snapdiffs=406.13KiB triedirty=0.00B
+Feb 06 02:02:29 vmi2979962 ethernova[1577982]: INFO [02-06|02:02:29.710] Looking for peers                        peercount=3 tried=54  static=0
+Feb 06 02:02:31 vmi2979962 ethernova[1577982]: INFO [02-06|02:02:31.090] Imported new chain segment               number=116,712 hash=48f144..a6b8ba blocks=1  txs=0 mgas=0.000 elapsed=12.630ms  mgasps=0.000   snapdiffs=406.18KiB triedirty=0.00B
+Feb 06 02:02:39 vmi2979962 ethernova[1577982]: INFO [02-06|02:02:39.841] Looking for peers                        peercount=3 tried=31  static=0
+Feb 06 02:02:49 vmi2979962 ethernova[1577982]: INFO [02-06|02:02:49.923] Looking for peers                        peercount=3 tried=39  static=0
+Feb 06 02:02:56 vmi2979962 ethernova[1577982]: INFO [02-06|02:02:56.362] Imported new chain segment               number=116,713 hash=eb5843..03c5dc blocks=1  txs=0 mgas=0.000 elapsed=17.594ms  mgasps=0.000   snapdiffs=406.23KiB triedirty=0.00B
+Feb 06 02:03:00 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:00.502] Looking for peers                        peercount=3 tried=46  static=0
+Feb 06 02:03:09 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:09.575] Imported new chain segment               number=116,714 hash=85c5f9..bd69cc blocks=1  txs=0 mgas=0.000 elapsed=14.669ms  mgasps=0.000   snapdiffs=406.28KiB triedirty=0.00B
+Feb 06 02:03:11 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:11.982] Looking for peers                        peercount=3 tried=21  static=0
+Feb 06 02:03:22 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:22.138] Looking for peers                        peercount=3 tried=76  static=0
+Feb 06 02:03:32 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:32.429] Looking for peers                        peercount=4 tried=42  static=0
+Feb 06 02:03:42 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:42.520] Looking for peers                        peercount=3 tried=30  static=0
+Feb 06 02:03:47 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:47.622] Imported new chain segment               number=116,715 hash=927ed9..550df6 blocks=1  txs=1 mgas=0.021 elapsed=21.350ms  mgasps=0.984   snapdiffs=406.42KiB triedirty=0.00B
+Feb 06 02:03:47 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:47.756] Chain reorg detected                     number=116,714 hash=85c5f9..bd69cc drop=1 dropfrom=927ed9..550df6 add=1 addfrom=20d5a3..201220
+Feb 06 02:03:47 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:47.762] Imported new chain segment               number=116,715 hash=20d5a3..201220 blocks=1  txs=1 mgas=0.021 elapsed=26.116ms  mgasps=0.804   snapdiffs=406.42KiB triedirty=0.00B
+Feb 06 02:03:52 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:52.625] Looking for peers                        peercount=3 tried=43  static=0
+Feb 06 02:03:56 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:56.602] Chain reorg detected                     number=116,714 hash=85c5f9..bd69cc drop=1 dropfrom=20d5a3..201220 add=2 addfrom=666fb8..797dda
+Feb 06 02:03:56 vmi2979962 ethernova[1577982]: INFO [02-06|02:03:56.605] Imported new chain segment               number=116,716 hash=666fb8..797dda blocks=1  txs=0 mgas=0.000 elapsed=25.265ms  mgasps=0.000   snapdiffs=406.46KiB triedirty=0.00B
+Feb 06 02:04:02 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:02.804] Looking for peers                        peercount=3 tried=38  static=0
+Feb 06 02:04:12 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:12.807] Looking for peers                        peercount=3 tried=42  static=0
+Feb 06 02:04:23 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:23.200] Looking for peers                        peercount=3 tried=52  static=0
+Feb 06 02:04:33 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:33.217] Looking for peers                        peercount=3 tried=47  static=0
+Feb 06 02:04:43 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:43.410] Looking for peers                        peercount=3 tried=34  static=0
+Feb 06 02:04:49 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:49.093] Imported new chain segment               number=116,717 hash=6abfa8..c5d206 blocks=1  txs=0 mgas=0.000 elapsed=15.515ms  mgasps=0.000   snapdiffs=406.51KiB triedirty=0.00B
+Feb 06 02:04:53 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:53.665] Looking for peers                        peercount=3 tried=41  static=0
+Feb 06 02:04:56 vmi2979962 ethernova[1577982]: INFO [02-06|02:04:56.484] Imported new chain segment               number=116,718 hash=06c5a8..0b551f blocks=1  txs=2 mgas=0.042 elapsed=17.360ms  mgasps=2.419   snapdiffs=406.70KiB triedirty=0.00B
+Feb 06 02:05:03 vmi2979962 ethernova[1577982]: INFO [02-06|02:05:03.811] Looking for peers                        peercount=3 tried=64  static=0
+Feb 06 02:05:14 vmi2979962 ethernova[1577982]: INFO [02-06|02:05:14.111] Looking for peers                        peercount=3 tried=32  static=0
+Feb 06 02:05:24 vmi2979962 ethernova[1577982]: INFO [02-06|02:05:24.142] Looking for peers                        peercount=3 tried=53  static=0

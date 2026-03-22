@@ -1,0 +1,4 @@
+# Ethernova bootnodes (one enode per line).
+# Replace placeholders with real bootnodes before release.
+# Example:
+# enode://<nodeid>@<ip-or-dns>:30303
