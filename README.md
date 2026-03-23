@@ -70,6 +70,26 @@ The devnet is actively mined and maintained with the following infrastructure:
 | Auto-Tuner | Enabled | Adjusts gas parameters every 100 blocks based on network data |
 | Custom Precompiles | Active | novaBatchHash (0x20) and novaBatchVerify (0x21) |
 
+### Live Benchmark Results
+
+Real data from deployed contracts on the devnet:
+
+| Contract | Address | Deploy Gas | Calls | Pure % | Gas Effect |
+|----------|---------|-----------|-------|--------|------------|
+| NovaToken (ERC-20) | `0xd6Dc5b3E...` | 456,654 | 11+ | **99%** | **-25% discount** |
+| NovaNFT (ERC-721) | `0xa407ABC4...` | 556,378 | 1+ | 100% | qualifying... |
+| NovaMultiSig | `0x24fcDc40...` | 918,331 | 1+ | 99% | qualifying... |
+
+**Optimizer Performance:**
+- 94 redundant opcode patterns detected
+- 104 gas refunded from pattern elimination
+- Patterns: PUSH+POP, DUP1+POP, ISZERO+ISZERO, duplicate PUSHes
+
+**Profiling Stats:**
+- 2,569+ opcodes executed and tracked
+- 18,216+ gas tracked across all contracts
+- Real-time per-contract opcode classification
+
 ### Gas Savings Model
 
 | Contract Type | Pattern | Gas Effect | Example |
@@ -237,19 +257,27 @@ Requires: Go 1.21+, GCC, Make
 - [x] Hardhat developer config with Ethernova Devnet network ready to use
 - [x] Gas benchmark and stress test scripts
 
-## Smart Contract Test Suite
+## Deployed Contracts
 
-Ready-to-deploy contracts for testing the adaptive gas system with real DeFi patterns:
+Live contracts on the devnet for testing and benchmarking:
 
-| Contract | Type | Expected Gas Pattern | File |
-|----------|------|---------------------|------|
-| `NovaToken` | ERC-20 | Pure (discount eligible) | `devnet/contracts/NovaToken.sol` |
-| `NovaNFT` | ERC-721 | Mixed (neutral) | `devnet/contracts/NovaNFT.sol` |
-| `NovaDEX` | AMM/Swap Pool | Storage-heavy (penalty) | `devnet/contracts/NovaDEX.sol` |
-| `NovaMultiSig` | Multi-Signature Wallet | Moderate storage | `devnet/contracts/NovaMultiSig.sol` |
-| `TestProfiler` | Opcode Generator | Configurable | `devnet/contracts/TestProfiler.sol` |
+| Contract | Type | Address | Deploy Gas | Gas Pattern |
+|----------|------|---------|-----------|-------------|
+| NovaToken | ERC-20 | [`0xd6Dc5b3E9CEF3c4117fFd32F138717bBc0f8d91c`](https://devexplorer.ethnova.net/address/0xd6Dc5b3E9CEF3c4117fFd32F138717bBc0f8d91c) | 456,654 | 99% pure → **25% discount** |
+| NovaNFT | ERC-721 | [`0xa407ABC46D71A56fb4fAc2Ae9CA1F599A2270C2a`](https://devexplorer.ethnova.net/address/0xa407ABC46D71A56fb4fAc2Ae9CA1F599A2270C2a) | 556,378 | 100% pure |
+| NovaMultiSig | MultiSig Wallet | [`0x24fcDc40BFa6e8Fce87ACF50da1e69a36019083f`](https://devexplorer.ethnova.net/address/0x24fcDc40BFa6e8Fce87ACF50da1e69a36019083f) | 918,331 | 99% pure |
 
-These contracts are designed to demonstrate how adaptive gas treats different execution patterns differently, rewarding efficient code with lower gas costs.
+### Source Code
+
+| Contract | Description | File |
+|----------|-------------|------|
+| `NovaToken` | Standard ERC-20 token (1M supply) | `devnet/contracts/NovaToken.sol` |
+| `NovaNFT` | Minimal ERC-721 with mint/transfer | `devnet/contracts/NovaNFT.sol` |
+| `NovaDEX` | Constant-product AMM swap pool | `devnet/contracts/NovaDEX.sol` |
+| `NovaMultiSig` | Multi-owner transaction wallet | `devnet/contracts/NovaMultiSig.sol` |
+| `TestProfiler` | Configurable opcode generator | `devnet/contracts/TestProfiler.sol` |
+
+These contracts demonstrate how adaptive gas treats different execution patterns — pure computation gets cheaper, storage-heavy operations pay more.
 
 ## Custom Precompiles
 
