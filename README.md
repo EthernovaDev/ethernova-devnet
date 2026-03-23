@@ -68,9 +68,12 @@ curl -s -X POST -H "Content-Type: application/json" \
 - [x] Deploy test contracts and collect profiling data
 
 ### Phase 2: Adaptive Gas (current)
-- [ ] Gas discounts for optimized/predictable execution patterns
+- [x] Gas discounts for optimized/predictable execution patterns
+- [x] Contract pattern tracker (pure vs impure opcode classification)
+- [x] `ethernova_adaptiveGas` RPC endpoints (toggle, setDiscount, reset)
+- [x] Validate consensus across all nodes with adaptive gas enabled
 - [ ] Complex non-parallelizable workloads cost more
-- [ ] Validate consensus across all nodes with new gas rules
+- [ ] Stress test with high tx volume
 
 ### Phase 3: Execution Modes
 - [ ] Standard mode: full EVM compatibility (default)
