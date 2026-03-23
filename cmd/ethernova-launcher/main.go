@@ -3,15 +3,17 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -21,8 +23,11 @@ const (
 	fallbackHTTP    = 8547
 	fallbackWS      = 8548
 
-	mainnetNetworkID = "121525"
-	genesisHashExp   = "0xc3812eb81498965a3f9ff3e73d2f423934e6d440578d4f4fbb6623cc61c453d9"
+	devnetNetworkID  = "121526"
+	devnetChainIDHex = "0x1dab6"
+	genesisHashExp   = "0x2b6206a40fd6cf3c9afcb410eff7811c0eef0f8dbd3bac4f39547ffe9f0ec050"
+
+	bootstrapEnode = "enode://6d6f8341c08058a8f966d4e0d75e1cf7009bbe8647741e105e5ef2edd929baf3157292dcb31a1e1bd6cbb9161fe7bfde8e15539bef801ace55950e2e23f92a88@192.168.1.15:30301?discport=0"
 )
 
 type rpcReq struct {
@@ -43,134 +48,186 @@ type rpcErrorResponse struct {
 }
 
 func main() {
-	fmt.Println("EthernovaNode launcher (Windows, portable)")
+	fmt.Println("==========================================================")
+	fmt.Println("  ETHERNOVA DEVNET NODE - One Click Launcher")
+	fmt.Println("  Chain ID: 121526 | Network: Devnet | Consensus: Ethash")
+	fmt.Println("==========================================================")
+	fmt.Println()
 
 	exePath, err := os.Executable()
-	checkFatal(err, "resolve executable path")
+	if err != nil {
+		fatalWait("Cannot resolve executable path: %v", err)
+	}
 	exeDir := filepath.Dir(exePath)
-	checkFatal(os.Chdir(exeDir), "chdir to executable directory")
-
-	paths := struct {
-		bin       string
-		genesis   string
-		dataDir   string
-		logsDir   string
-		initLog   string
-		initErr   string
-		nodeLog   string
-		nodeErr   string
-		ipcPath   string
-		pidPath   string
-		httpPort  int
-		wsPort    int
-		networkID string
-	}{
-		bin:       filepath.Join(exeDir, "ethernova.exe"),
-		genesis:   filepath.Join(exeDir, "genesis-mainnet.json"),
-		dataDir:   filepath.Join(exeDir, "data-mainnet"),
-		logsDir:   filepath.Join(exeDir, "logs"),
-		initLog:   filepath.Join(exeDir, "logs", "init.log"),
-		initErr:   filepath.Join(exeDir, "logs", "init.err.log"),
-		nodeLog:   filepath.Join(exeDir, "logs", "mainnet-node.log"),
-		nodeErr:   filepath.Join(exeDir, "logs", "mainnet-node.err.log"),
-		ipcPath:   filepath.Join(exeDir, "data-mainnet", "ethernova.ipc"),
-		pidPath:   filepath.Join(exeDir, "logs", "mainnet-node.pid"),
-		httpPort:  defaultHTTPPort,
-		wsPort:    defaultWSPort,
-		networkID: mainnetNetworkID,
+	if err := os.Chdir(exeDir); err != nil {
+		fatalWait("Cannot change to executable directory: %v", err)
 	}
 
-	printlnPath("Binary", paths.bin)
-	printlnPath("Genesis", paths.genesis)
-	printlnPath("DataDir", paths.dataDir)
-	printlnPath("LogsDir", paths.logsDir)
+	// Find the geth binary - try multiple names
+	gethBin := findGethBinary(exeDir)
+	if gethBin == "" {
+		fatalWait("Cannot find geth binary.\nPlace one of these next to this launcher:\n  - geth.exe (Windows) / geth (Linux)\n  - geth-windows-amd64.exe\n  - ethernova-devnet.exe\n\nDirectory: %s", exeDir)
+	}
+	fmt.Printf("  Geth binary: %s\n", gethBin)
 
-	ensureFile(paths.bin, "ethernova.exe not found next to launcher")
-	ensureFile(paths.genesis, "genesis-mainnet.json not found next to launcher")
-	ensureDir(paths.logsDir)
-	ensureDir(paths.dataDir)
+	// Setup directories
+	dataDir := filepath.Join(exeDir, "devnet-data")
+	logsDir := filepath.Join(exeDir, "logs")
+	ensureDir(dataDir)
+	ensureDir(logsDir)
+	fmt.Printf("  Data dir:    %s\n", dataDir)
+	fmt.Printf("  Logs dir:    %s\n", logsDir)
+	fmt.Println()
 
-	initNeeded := needsInit(paths.dataDir)
-	fmt.Printf("Init needed: %v\n", initNeeded)
+	// Choose ports
+	httpPort, wsPort := choosePorts(defaultHTTPPort, defaultWSPort, fallbackHTTP, fallbackWS)
+	fmt.Printf("  HTTP RPC:    http://127.0.0.1:%d\n", httpPort)
+	fmt.Printf("  WS RPC:      ws://127.0.0.1:%d\n", wsPort)
+	fmt.Println()
 
-	if initNeeded {
-		runInit(paths.bin, paths.dataDir, paths.genesis, paths.initLog, paths.initErr)
+	// Start the node - geth handles genesis init automatically with embedded genesis
+	fmt.Println("Starting Ethernova Devnet node...")
+	nodeLog := filepath.Join(logsDir, "devnet-node.log")
+	nodeErr := filepath.Join(logsDir, "devnet-node.err.log")
+
+	outFile, err := os.Create(nodeLog)
+	if err != nil {
+		fatalWait("Cannot create log file: %v", err)
+	}
+	errFile, err := os.Create(nodeErr)
+	if err != nil {
+		fatalWait("Cannot create error log file: %v", err)
 	}
 
-	paths.httpPort, paths.wsPort = choosePorts(defaultHTTPPort, defaultWSPort, fallbackHTTP, fallbackWS)
-	fmt.Printf("HTTP RPC: http://127.0.0.1:%d\n", paths.httpPort)
-	fmt.Printf("WS RPC:   ws://127.0.0.1:%d\n", paths.wsPort)
+	apiList := "eth,net,web3,txpool,admin,ethernova"
+	args := []string{
+		"--datadir", dataDir,
+		"--networkid", devnetNetworkID,
+		"--port", "30303",
+		"--http", "--http.addr", "0.0.0.0", "--http.port", fmt.Sprintf("%d", httpPort),
+		"--http.api", apiList,
+		"--http.corsdomain", "*",
+		"--http.vhosts", "*",
+		"--ws", "--ws.addr", "0.0.0.0", "--ws.port", fmt.Sprintf("%d", wsPort),
+		"--ws.api", apiList,
+		"--ws.origins", "*",
+		"--nodiscover",
+		"--verbosity", "3",
+	}
 
-	proc := startNode(paths)
-	fmt.Printf("Node started (pid=%d). Logs: %s / %s\n", proc.Process.Pid, paths.nodeLog, paths.nodeErr)
+	cmd := exec.Command(gethBin, args...)
+	cmd.Stdout = outFile
+	cmd.Stderr = errFile
 
-	checkRPC(paths.httpPort)
+	if err := cmd.Start(); err != nil {
+		fatalWait("Failed to start node: %v", err)
+	}
+	fmt.Printf("  Node PID:    %d\n", cmd.Process.Pid)
+	fmt.Println()
 
-	fmt.Println("Press Enter to stop the node...")
-	_, _ = fmt.Scanln()
+	// Wait for RPC to be ready and verify
+	fmt.Println("Waiting for node to start...")
+	rpcURL := fmt.Sprintf("http://127.0.0.1:%d", httpPort)
+	if waitForRPC(rpcURL, 15*time.Second) {
+		fmt.Println("  [OK] RPC is responding")
+		verifyChainID(rpcURL)
+		// Auto-connect to bootstrap peer
+		connectBootstrap(rpcURL)
+	} else {
+		fmt.Println("  [WARN] RPC not responding yet - check logs for errors")
+		fmt.Printf("         Log: %s\n", nodeErr)
+	}
 
-	stopNode(proc)
-	fmt.Println("Node stopped. Bye.")
+	fmt.Println()
+	fmt.Println("==========================================================")
+	fmt.Printf("  Node is running! RPC: http://127.0.0.1:%d\n", httpPort)
+	fmt.Println()
+	fmt.Println("  MetaMask Setup:")
+	fmt.Println("    Network Name:  Ethernova Devnet")
+	fmt.Printf("    RPC URL:       http://127.0.0.1:%d\n", httpPort)
+	fmt.Println("    Chain ID:      121526")
+	fmt.Println("    Symbol:        NOVA")
+	fmt.Println("==========================================================")
+	fmt.Println()
+	fmt.Println("Press Ctrl+C or close this window to stop the node.")
+	fmt.Println()
+
+	// Wait for interrupt signal or process exit
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	doneCh := make(chan error, 1)
+	go func() { doneCh <- cmd.Wait() }()
+
+	select {
+	case sig := <-sigCh:
+		fmt.Printf("\nReceived %s, stopping node...\n", sig)
+		stopNode(cmd)
+	case err := <-doneCh:
+		if err != nil {
+			fmt.Printf("\nNode exited with error: %v\n", err)
+			fmt.Printf("Check logs: %s\n", nodeErr)
+		} else {
+			fmt.Println("\nNode exited.")
+		}
+	}
+
+	fmt.Println()
+	pauseBeforeExit()
 }
 
-func printlnPath(label, path string) {
-	fmt.Printf("%s: %s\n", label, path)
-}
-
-func ensureFile(path, msg string) {
-	st, err := os.Stat(path)
-	if err != nil || st.IsDir() {
-		fatalf("%s (%s)", msg, path)
+func findGethBinary(dir string) string {
+	var candidates []string
+	if runtime.GOOS == "windows" {
+		candidates = []string{
+			"geth.exe",
+			"geth-windows-amd64.exe",
+			"ethernova-devnet.exe",
+			"ethernova.exe",
+		}
+	} else {
+		candidates = []string{
+			"geth",
+			"geth-linux-amd64",
+			"ethernova-devnet",
+			"ethernova",
+		}
 	}
+
+	for _, name := range candidates {
+		path := filepath.Join(dir, name)
+		// Don't match ourselves
+		if exe, err := os.Executable(); err == nil {
+			if abs1, err1 := filepath.Abs(path); err1 == nil {
+				if abs2, err2 := filepath.Abs(exe); err2 == nil {
+					if strings.EqualFold(abs1, abs2) {
+						continue
+					}
+				}
+			}
+		}
+		if st, err := os.Stat(path); err == nil && !st.IsDir() {
+			return path
+		}
+	}
+	return ""
 }
 
 func ensureDir(path string) {
 	if err := os.MkdirAll(path, 0o755); err != nil {
-		fatalf("cannot create directory %s: %v", path, err)
+		fatalWait("Cannot create directory %s: %v", path, err)
 	}
-}
-
-func needsInit(dataDir string) bool {
-	paths := []string{
-		filepath.Join(dataDir, "geth", "chaindata"),
-		filepath.Join(dataDir, "geth", "LOCK"),
-		filepath.Join(dataDir, "geth", "ancient", "chain"),
-	}
-	for _, p := range paths {
-		if _, err := os.Stat(p); err == nil {
-			return false
-		}
-	}
-	return true
-}
-
-func runInit(binary, dataDir, genesis, logOut, logErr string) {
-	fmt.Println("Initializing genesis...")
-	outFile, err := os.Create(logOut)
-	checkFatal(err, "open init log")
-	defer outFile.Close()
-	errFile, err := os.Create(logErr)
-	checkFatal(err, "open init err log")
-	defer errFile.Close()
-
-	cmd := exec.Command(binary, "--datadir", dataDir, "init", genesis)
-	cmd.Stdout = outFile
-	cmd.Stderr = errFile
-	if err := cmd.Run(); err != nil {
-		fatalf("genesis init failed (see %s / %s): %v", logOut, logErr, err)
-	}
-	fmt.Println("Genesis init OK.")
 }
 
 func choosePorts(primaryHTTP, primaryWS, fallbackHTTP, fallbackWS int) (int, int) {
 	if portFree(primaryHTTP) && portFree(primaryWS) {
 		return primaryHTTP, primaryWS
 	}
-	fmt.Printf("Port %d or %d busy, falling back to %d/%d\n", primaryHTTP, primaryWS, fallbackHTTP, fallbackWS)
-	if !portFree(fallbackHTTP) || !portFree(fallbackWS) {
-		fatalf("fallback ports %d/%d are busy; stop other services or choose a free port", fallbackHTTP, fallbackWS)
+	fmt.Printf("  Ports %d/%d busy, trying %d/%d...\n", primaryHTTP, primaryWS, fallbackHTTP, fallbackWS)
+	if portFree(fallbackHTTP) && portFree(fallbackWS) {
+		return fallbackHTTP, fallbackWS
 	}
-	return fallbackHTTP, fallbackWS
+	fatalWait("No free ports available for RPC. Stop other services or try later.")
+	return 0, 0
 }
 
 func portFree(port int) bool {
@@ -182,50 +239,47 @@ func portFree(port int) bool {
 	return true
 }
 
-func startNode(paths struct {
-	bin       string
-	genesis   string
-	dataDir   string
-	logsDir   string
-	initLog   string
-	initErr   string
-	nodeLog   string
-	nodeErr   string
-	ipcPath   string
-	pidPath   string
-	httpPort  int
-	wsPort    int
-	networkID string
-}) *exec.Cmd {
-	outFile, err := os.Create(paths.nodeLog)
-	checkFatal(err, "open node log")
-	errFile, err := os.Create(paths.nodeErr)
-	checkFatal(err, "open node err log")
-
-	args := []string{
-		"--datadir", paths.dataDir,
-		"--networkid", paths.networkID,
-		"--port", "30303",
-		"--http", "--http.addr", "127.0.0.1", "--http.port", fmt.Sprintf("%d", paths.httpPort),
-		"--http.api", "eth,net,web3,txpool",
-		"--ws", "--ws.addr", "127.0.0.1", "--ws.port", fmt.Sprintf("%d", paths.wsPort),
-		"--ws.api", "eth,net,web3,txpool",
-		"--ipcpath", paths.ipcPath,
-		"--authrpc.addr", "127.0.0.1", "--authrpc.port", "8551",
-		"--verbosity", "3",
+func waitForRPC(url string, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		_, err := doRPC(url, "net_version", nil)
+		if err == nil {
+			return true
+		}
+		time.Sleep(1 * time.Second)
 	}
+	return false
+}
 
-	cmd := exec.Command(paths.bin, args...)
-	cmd.Stdout = outFile
-	cmd.Stderr = errFile
-
-	if err := cmd.Start(); err != nil {
-		fatalf("failed to start node: %v", err)
+func verifyChainID(url string) {
+	resp, err := doRPC(url, "eth_chainId", nil)
+	if err != nil {
+		fmt.Printf("  [WARN] Cannot verify chainId: %v\n", err)
+		return
 	}
+	chainID := strings.Trim(string(resp.Result), "\"")
+	if strings.EqualFold(chainID, devnetChainIDHex) {
+		fmt.Println("  [OK] Chain ID: 121526 (devnet)")
+	} else {
+		fmt.Printf("  [WARN] Unexpected chainId: %s (expected %s)\n", chainID, devnetChainIDHex)
+	}
+}
 
-	// write pid file best-effort
-	_ = os.WriteFile(paths.pidPath, []byte(fmt.Sprintf("%d", cmd.Process.Pid)), 0o644)
-	return cmd
+func connectBootstrap(url string) {
+	fmt.Println("  Connecting to devnet bootstrap peer...")
+	params := []interface{}{bootstrapEnode}
+	_, err := doRPC(url, "admin_addPeer", params)
+	if err != nil {
+		fmt.Printf("  [WARN] Cannot add bootstrap peer: %v\n", err)
+		return
+	}
+	// Wait a moment and check peer count
+	time.Sleep(3 * time.Second)
+	resp, err := doRPC(url, "net_peerCount", nil)
+	if err == nil {
+		peerCount := strings.Trim(string(resp.Result), "\"")
+		fmt.Printf("  [OK] Connected peers: %s\n", peerCount)
+	}
 }
 
 func stopNode(cmd *exec.Cmd) {
@@ -233,67 +287,22 @@ func stopNode(cmd *exec.Cmd) {
 		return
 	}
 	if err := cmd.Process.Signal(os.Interrupt); err != nil {
-		fmt.Printf("interrupt failed, killing: %v\n", err)
+		fmt.Println("Sending kill signal...")
 		_ = cmd.Process.Kill()
 	}
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 	select {
-	case <-time.After(5 * time.Second):
-		fmt.Println("node did not exit in time, killing...")
+	case <-time.After(10 * time.Second):
+		fmt.Println("Node did not exit in time, killing...")
 		_ = cmd.Process.Kill()
 	case err := <-done:
 		if err != nil {
-			fmt.Printf("node exited with error: %v\n", err)
+			fmt.Printf("Node exited: %v\n", err)
+		} else {
+			fmt.Println("Node stopped cleanly.")
 		}
 	}
-}
-
-func checkRPC(port int) {
-	time.Sleep(3 * time.Second)
-	url := fmt.Sprintf("http://127.0.0.1:%d", port)
-	chainID, err := rpcChainID(url)
-	if err != nil {
-		fmt.Printf("WARN: RPC not reachable yet (%v). Check logs.\n", err)
-		return
-	}
-	if strings.EqualFold(chainID, "0x1dab5") {
-		fmt.Println("RPC OK (chainId=121525)")
-	} else {
-		fmt.Printf("WARN: RPC chainId unexpected: %s\n", chainID)
-	}
-	hash, err := rpcBlock0Hash(url)
-	if err == nil && strings.EqualFold(hash, genesisHashExp) {
-		fmt.Println("Genesis hash matches expected.")
-	} else if err == nil {
-		fmt.Printf("WARN: Genesis hash differs: %s (expected %s)\n", hash, genesisHashExp)
-	}
-}
-
-func rpcChainID(url string) (string, error) {
-	resp, err := doRPC(url, "eth_chainId", nil)
-	if err != nil {
-		return "", err
-	}
-	return string(resp.Result), nil
-}
-
-func rpcBlock0Hash(url string) (string, error) {
-	params := []interface{}{"0x0", false}
-	resp, err := doRPC(url, "eth_getBlockByNumber", params)
-	if err != nil {
-		return "", err
-	}
-	if len(resp.Result) == 0 {
-		return "", errors.New("empty result")
-	}
-	var parsed struct {
-		Hash string `json:"hash"`
-	}
-	if err := json.Unmarshal(resp.Result, &parsed); err != nil {
-		return "", err
-	}
-	return parsed.Hash, nil
 }
 
 func doRPC(url, method string, params []interface{}) (*rpcResp, error) {
@@ -327,13 +336,15 @@ func doRPC(url, method string, params []interface{}) (*rpcResp, error) {
 	return &resp, nil
 }
 
-func checkFatal(err error, context string) {
-	if err != nil {
-		fatalf("%s: %v", context, err)
-	}
+func fatalWait(format string, a ...interface{}) {
+	fmt.Printf("\nERROR: "+format+"\n", a...)
+	fmt.Println()
+	pauseBeforeExit()
+	os.Exit(1)
 }
 
-func fatalf(format string, a ...interface{}) {
-	fmt.Printf("ERROR: "+format+"\n", a...)
-	os.Exit(1)
+func pauseBeforeExit() {
+	fmt.Println("Press Enter to exit...")
+	buf := make([]byte, 1)
+	os.Stdin.Read(buf)
 }

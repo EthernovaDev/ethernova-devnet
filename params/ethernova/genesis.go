@@ -10,14 +10,14 @@ import (
 	"github.com/ethereum/go-ethereum/params/types/genesisT"
 )
 
-const ExpectedGenesisHashHex = "0xc3812eb81498965a3f9ff3e73d2f423934e6d440578d4f4fbb6623cc61c453d9"
+const ExpectedGenesisHashHex = "0x2b6206a40fd6cf3c9afcb410eff7811c0eef0f8dbd3bac4f39547ffe9f0ec050"
 
 var ExpectedGenesisHash = common.HexToHash(ExpectedGenesisHashHex)
 
-//go:embed genesis-121525-alloc.json
+//go:embed genesis-121526-devnet.json
 var genesisJSON []byte
 
-// EmbeddedGenesisJSON returns the embedded Ethernova mainnet genesis JSON.
+// EmbeddedGenesisJSON returns the embedded Ethernova devnet genesis JSON.
 func EmbeddedGenesisJSON() []byte {
 	return genesisJSON
 }
@@ -28,7 +28,7 @@ func EmbeddedGenesisSHA256Hex() string {
 	return hex.EncodeToString(sum[:])
 }
 
-// MustGenesis returns the embedded Ethernova genesis or panics if invalid.
+// MustGenesis returns the embedded Ethernova devnet genesis or panics if invalid.
 func MustGenesis() *genesisT.Genesis {
 	genesis := new(genesisT.Genesis)
 	if err := genesis.UnmarshalJSON(genesisJSON); err != nil {

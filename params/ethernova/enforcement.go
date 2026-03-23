@@ -37,11 +37,11 @@ func ForkEnforcementDecision(chainID *big.Int, genesis common.Hash) EnforcementD
 
 	if chainID != nil && chainID.Cmp(NewChainIDBig) == 0 {
 		decision.Block = EVMCompatibilityForkBlock
-		decision.Reason = "chain=121525"
+		decision.Reason = "chain=121526"
 		if genesis != (common.Hash{}) && genesis != ExpectedGenesisHash {
-			decision.Warning = fmt.Sprintf("chainId=121525 but genesis mismatch (got %s want %s); using enforcement %d",
+			decision.Warning = fmt.Sprintf("chainId=121526 but genesis mismatch (got %s want %s); using enforcement %d",
 				genesis.Hex(), ExpectedGenesisHash.Hex(), decision.Block)
-			decision.Reason = "chain=121525 (genesis mismatch)"
+			decision.Reason = "chain=121526 (genesis mismatch)"
 		}
 		return decision
 	}

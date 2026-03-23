@@ -3,7 +3,7 @@ package ethernova
 import "math/big"
 
 const (
-	NewChainID uint64 = 121525
+	NewChainID uint64 = 121526
 )
 
 var (

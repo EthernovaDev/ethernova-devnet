@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	ethernovaGenesisFilename = "genesis-121525-alloc.json"
+	ethernovaGenesisFilename = "genesis-121526-devnet.json"
 	ethernovaLockFilename    = "ethernova.lock.json"
 )
 
@@ -113,11 +113,20 @@ func applyEthernovaDefaults(ctx *cli.Context) (*ethernovaPaths, error) {
 	return paths, nil
 }
 
+const devnetBootnodes = "enode://7c7ebab7a6a1c541f9c131b5a4b5bb1bf8ab167d156b1e33653f2517cacdf9bb542be3acefbdeba427bf6b2479098272902b9466e1504a579d8891618cf04079@207.180.230.125:30301,enode://6d6f8341c08058a8f966d4e0d75e1cf7009bbe8647741e105e5ef2edd929baf3157292dcb31a1e1bd6cbb9161fe7bfde8e15539bef801ace55950e2e23f92a88@75.86.96.101:30301"
+
 func applyEthernovaOneClickDefaults(ctx *cli.Context) (uint64, error) {
 	if len(os.Args) > 1 {
 		return 0, nil
 	}
 	apiList := "eth,net,web3,debug,txpool,ethernova"
+
+	// Set devnet bootnodes for auto-peer discovery
+	if !ctx.IsSet(utils.BootnodesFlag.Name) {
+		if err := ctx.Set(utils.BootnodesFlag.Name, devnetBootnodes); err != nil {
+			return 0, err
+		}
+	}
 
 	if !ctx.IsSet(utils.HTTPEnabledFlag.Name) {
 		if err := ctx.Set(utils.HTTPEnabledFlag.Name, "true"); err != nil {
@@ -311,23 +320,30 @@ func genesisPathUsed(info *ethernovaGenesisInfo) string {
 }
 
 func printEthernovaStartup(info *ethernovaGenesisInfo) {
-	fmt.Println("==========================================================")
-	fmt.Println("  ETHERNOVA NODE v" + params.Version)
-	fmt.Println("  PoW (Ethash) | Chain ID: 121525 | Network ID: 121525")
-	fmt.Println("==========================================================")
+	fmt.Println()
+	fmt.Println("  ######  ######## ##     ## ######## ########  ##    ##  #######  ##     ##    ###")
+	fmt.Println("  ##         ##    ##     ## ##       ##     ## ###   ## ##     ## ##     ##   ## ##")
+	fmt.Println("  ##         ##    ##     ## ##       ##     ## ####  ## ##     ## ##     ##  ##   ##")
+	fmt.Println("  ######     ##    ######### ######   ########  ## ## ## ##     ## ##     ## ##     ##")
+	fmt.Println("  ##         ##    ##     ## ##       ##   ##   ##  #### ##     ##  ##   ##  #########")
+	fmt.Println("  ##         ##    ##     ## ##       ##    ##  ##   ### ##     ##   ## ##   ##     ##")
+	fmt.Println("  ######     ##    ##     ## ######## ##     ## ##    ##  #######     ###    ##     ##")
+	fmt.Println()
+	fmt.Println("                         D E V N E T   N O D E")
+	fmt.Println()
+	fmt.Printf("  Version:    v%s\n", params.VersionWithMeta)
+	fmt.Printf("  Chain ID:   %d\n", info.ChainID)
+	fmt.Printf("  Network ID: %d\n", info.NetworkID)
+	fmt.Printf("  Consensus:  Ethash (Proof of Work)\n")
 	fmt.Println()
 	fmt.Printf("  Datadir:    %s\n", info.Paths.DataDir)
 	fmt.Printf("  Genesis:    %s\n", genesisPathUsed(info))
 	fmt.Printf("  Hash:       %s\n", info.GenesisHash.Hex())
 	fmt.Println()
-	fmt.Println("  Fork Schedule:")
-	fmt.Printf("    Constantinople/Petersburg/Istanbul .. block %s\n", ethernova.FormatBlockWithCommas(ethernova.EVMCompatibilityForkBlock))
-	fmt.Printf("    EIP-658 (Receipt Status) ........... block %s\n", ethernova.FormatBlockWithCommas(ethernova.EIP658ForkBlock))
-	fmt.Printf("    MegaFork (Historical EVM) .......... block %s\n", ethernova.FormatBlockWithCommas(ethernova.MegaForkBlock))
-	fmt.Printf("    Legacy Chain Enforcement ........... block %s\n", ethernova.FormatBlockWithCommas(ethernova.LegacyForkEnforcementBlock))
+	fmt.Println("  RPC Endpoints: ethernova_forkStatus, ethernova_chainConfig,")
+	fmt.Println("                 ethernova_nodeHealth, ethernova_evmProfile,")
+	fmt.Println("                 ethernova_adaptiveGas, ethernova_executionMode")
 	fmt.Println()
-	fmt.Println("  RPC: ethernova_forkStatus, ethernova_chainConfig, ethernova_nodeHealth")
-	fmt.Println("==========================================================")
 }
 func validateEthernovaGenesisInfo(info *ethernovaGenesisInfo) error {
 	// Devnet: skip strict mainnet validation to allow custom genesis/chainId

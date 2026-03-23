@@ -69,7 +69,9 @@ func enforcePeerVersion(name string) error {
 	if params.VersionName == "" {
 		return nil
 	}
-	if !strings.Contains(strings.ToLower(name), strings.ToLower(params.VersionName)) {
+	// Accept peers with "Ethernova" in their name (covers both mainnet and devnet variants)
+	nameLower := strings.ToLower(name)
+	if !strings.Contains(nameLower, "ethernova") {
 		return fmt.Errorf("unsupported client name: %q", name)
 	}
 	peerVersion, ok := parseNodeVersion(name)
