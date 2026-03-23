@@ -231,3 +231,27 @@ func (api *EthernovaAPI) AdaptiveGasReset() bool {
 	vm.GlobalPatternTracker.Reset()
 	return true
 }
+
+// ExecutionModeResult holds execution mode status.
+type ExecutionModeResult struct {
+	Mode            string              `json:"mode"`
+	FastExecutions  uint64              `json:"fastExecutions"`
+	SkippedChecks   uint64              `json:"skippedChecks"`
+	VerifiedContracts []vm.VerifiedStats `json:"verifiedContracts"`
+}
+
+// ExecutionMode returns the current execution mode and stats.
+func (api *EthernovaAPI) ExecutionMode() ExecutionModeResult {
+	return ExecutionModeResult{
+		Mode:              vm.GlobalExecutionMode.GetMode().String(),
+		FastExecutions:    vm.GlobalFastModeStats.FastExecutions.Load(),
+		SkippedChecks:     vm.GlobalFastModeStats.SkippedChecks.Load(),
+		VerifiedContracts: vm.GlobalContractVerifier.GetAllVerified(),
+	}
+}
+
+// ExecutionModeSet sets the execution mode: 0=standard, 1=fast, 2=parallel.
+func (api *EthernovaAPI) ExecutionModeSet(mode uint64) string {
+	vm.GlobalExecutionMode.SetMode(vm.ExecutionMode(mode))
+	return vm.GlobalExecutionMode.GetMode().String()
+}

@@ -127,6 +127,10 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// Ethernova: record contract call for adaptive gas pattern tracking
 	GlobalPatternTracker.RecordCall(contract.Address())
 
+	// Ethernova: analyze contract for fast-mode eligibility
+	GlobalContractVerifier.AnalyzeCode(contract.Address(), contract.Code, in.evm.Context.BlockNumber.Uint64())
+	fastMode := GlobalContractVerifier.IsFastEligible(contract.Address())
+
 	var (
 		op          OpCode        // current opcode
 		mem         = NewMemory() // bound memory
@@ -148,6 +152,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		res     []byte // result of the opcode execution function
 		debug   = in.evm.Config.Tracer != nil
 	)
+	if fastMode {
+		GlobalFastModeStats.FastExecutions.Add(1)
+	}
 	// Don't move this deferred function, it's placed before the capturestate-deferred method,
 	// so that it gets executed _after_: the capturestate needs the stacks before
 	// they are returned to the pools
@@ -191,10 +198,15 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Ethernova: record opcode for adaptive gas pattern analysis
 		GlobalPatternTracker.RecordOp(contract.Address(), op)
 		// Validate stack
-		if sLen := stack.len(); sLen < operation.minStack {
-			return nil, &ErrStackUnderflow{stackLen: sLen, required: operation.minStack}
-		} else if sLen > operation.maxStack {
-			return nil, &ErrStackOverflow{stackLen: sLen, limit: operation.maxStack}
+		// Ethernova fast mode: skip stack bounds check for verified contracts
+		if !fastMode {
+			if sLen := stack.len(); sLen < operation.minStack {
+				return nil, &ErrStackUnderflow{stackLen: sLen, required: operation.minStack}
+			} else if sLen > operation.maxStack {
+				return nil, &ErrStackOverflow{stackLen: sLen, limit: operation.maxStack}
+			}
+		} else {
+			GlobalFastModeStats.SkippedChecks.Add(1)
 		}
 		// Ethernova: apply adaptive gas discount/penalty
 		if cost > 0 {
