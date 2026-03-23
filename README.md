@@ -258,6 +258,25 @@ Requires: Go 1.21+, GCC, Make
 - [x] Gas benchmark and stress test scripts
 - [x] **Full feature validation: 47/47 tests passed** (Noven Fork readiness confirmed)
 
+## Stress Test Results
+
+1,000 mixed transactions across 5 synchronized nodes:
+
+| Metric | Result |
+|--------|--------|
+| **Total Transactions** | 1,000 |
+| **Transaction Mix** | 500 ETH transfers, 300 ERC-20, 100 NFT mints, 100 MultiSig |
+| **Time to Process** | 68 seconds |
+| **Throughput** | **14.7 TPS** |
+| **Average Block Time** | **4 seconds** |
+| **Blocks Used** | 14 |
+| **Consensus** | **5/5 nodes synced** (4 local + 1 VPS) |
+| **Errors** | 0 |
+| **Optimizer Patterns Found** | 94 (104 gas refunded) |
+| **NovaToken Gas Pattern** | 99% pure → **25% discount active** |
+
+All nodes (including public VPS) maintained perfect consensus throughout the stress test.
+
 ## Noven Fork Readiness
 
 All features have been validated on the devnet and are ready for mainnet deployment via the **Noven Fork** - a planned hard fork that will activate these features on the Ethernova mainnet (chainId 121525) without a chain reset.
