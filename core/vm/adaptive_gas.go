@@ -157,6 +157,11 @@ func (pt *PatternTracker) GetAllPatterns() []PatternStats {
 		if cp.totalOps > 0 {
 			purePercent = (cp.pureOps * 100) / cp.totalOps
 		}
+		// Calculate discount inline to avoid deadlock
+		var discount uint64
+		if cp.callCount >= 10 && cp.totalOps >= 100 && cp.patternScore >= 70 {
+			discount = GlobalAdaptiveGas.DiscountPercent
+		}
 		stats = append(stats, PatternStats{
 			Address:      addr.Hex(),
 			CallCount:    cp.callCount,
@@ -164,7 +169,7 @@ func (pt *PatternTracker) GetAllPatterns() []PatternStats {
 			PureOps:      cp.pureOps,
 			PurePercent:  purePercent,
 			PatternScore: cp.patternScore,
-			Discount:     pt.GetDiscount(addr),
+			Discount:     discount,
 		})
 		cp.mu.Unlock()
 	}
