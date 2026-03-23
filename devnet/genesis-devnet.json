@@ -2,15 +2,29 @@
   "config": {
     "chainId": 121526,
     "networkId": 121526,
-    "homesteadBlock": 0,
+    "eip2FBlock": 0,
+    "eip7FBlock": 0,
     "eip150Block": 0,
     "eip155Block": 0,
-    "eip158Block": 0,
-    "byzantiumBlock": 0,
+    "eip160FBlock": 0,
+    "eip161FBlock": 0,
+    "eip170FBlock": 0,
+    "eip100FBlock": 0,
+    "eip140FBlock": 0,
+    "eip198FBlock": 0,
+    "eip211FBlock": 0,
+    "eip212FBlock": 0,
+    "eip213FBlock": 0,
+    "eip214FBlock": 0,
+    "eip658FBlock": 0,
+    "eip1706FBlock": 0,
     "constantinopleBlock": 0,
     "petersburgBlock": 0,
     "istanbulBlock": 0,
-    "ethash": {}
+    "ethash": {},
+    "blockReward": {
+      "0": "0x8ac7230489e80000"
+    }
   },
   "difficulty": "0x400",
   "gasLimit": "0x1000000",
