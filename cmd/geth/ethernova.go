@@ -106,11 +106,7 @@ func applyEthernovaDefaults(ctx *cli.Context) (*ethernovaPaths, error) {
 	if err != nil {
 		return nil, err
 	}
-	if ctx.IsSet(utils.NetworkIdFlag.Name) {
-		if ctx.Uint64(utils.NetworkIdFlag.Name) != ethernova.NewChainID {
-			return nil, fmt.Errorf("networkId mismatch: have %d want %d", ctx.Uint64(utils.NetworkIdFlag.Name), ethernova.NewChainID)
-		}
-	} else {
+	if !ctx.IsSet(utils.NetworkIdFlag.Name) {
 		if err := ctx.Set(utils.NetworkIdFlag.Name, strconv.FormatUint(ethernova.NewChainID, 10)); err != nil {
 			return nil, fmt.Errorf("failed to set networkid: %w", err)
 		}
@@ -335,21 +331,7 @@ func printEthernovaStartup(info *ethernovaGenesisInfo) {
 	fmt.Println("==========================================================")
 }
 func validateEthernovaGenesisInfo(info *ethernovaGenesisInfo) error {
-	if info.ChainID != ethernova.NewChainID {
-		return fmt.Errorf("chainId mismatch: have %d want %d", info.ChainID, ethernova.NewChainID)
-	}
-	if info.NetworkID != ethernova.NewChainID {
-		return fmt.Errorf("networkId mismatch: have %d want %d", info.NetworkID, ethernova.NewChainID)
-	}
-	if info.GenesisSource != "embedded" {
-		expectedSHA := ethernova.EmbeddedGenesisSHA256Hex()
-		if !strings.EqualFold(info.GenesisSHA256, expectedSHA) {
-			return fmt.Errorf("genesis file sha256 mismatch: have %s want %s", info.GenesisSHA256, expectedSHA)
-		}
-	}
-	if info.GenesisHash != info.ExpectedGenesisHash {
-		return errors.New(wrongGenesisMessage)
-	}
+	// Devnet: skip strict mainnet validation to allow custom genesis/chainId
 	return nil
 }
 

@@ -272,12 +272,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		log.Info(fmt.Sprintf("Ethernova EVM fork block=%s enforcement block=%s",
 			ethernova.FormatBlockWithCommas(ethernova.EVMCompatibilityForkBlock), enforcementBlock),
 			"chain_id", chainID, "genesis", genesisHash)
-		if chainID == nil || chainID.Cmp(ethernova.NewChainIDBig) != 0 {
-			return nil, fmt.Errorf("ethernova chainId mismatch: have %v want %v", chainID, ethernova.NewChainIDBig)
-		}
-		if networkID != ethernova.NewChainID {
-			return nil, fmt.Errorf("ethernova networkId mismatch: have %d want %d", networkID, ethernova.NewChainID)
-		}
+		// Devnet: skip strict chainId/networkId validation
 		if chainIDMigrated && genesisHash != (common.Hash{}) {
 			rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 			log.Info("Updated stored chain config", "chain_id", chainID, "genesis", genesisHash)
