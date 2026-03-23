@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/holiman/uint256"
 )
 
 // ParallelExecutor handles speculative parallel execution of transactions.
@@ -138,14 +139,18 @@ func (pe *ParallelExecutor) ExecuteParallel(
 
 			// Deduct gas cost
 			mgval := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
-			if snapshot.GetBalance(sender).Cmp(new(big.Int).Add(tx.Value(), mgval)) < 0 {
+			totalCost := new(big.Int).Add(tx.Value(), mgval)
+			balance := snapshot.GetBalance(sender)
+			totalCostU, _ := uint256.FromBig(totalCost)
+			if balance.Cmp(totalCostU) < 0 {
 				results[idx] = &ParallelResult{Tx: tx, Err: ErrInsufficientFunds}
 				return
 			}
 
 			// Simple transfer execution
-			snapshot.SubBalance(sender, new(big.Int).Add(tx.Value(), mgval))
-			snapshot.AddBalance(*tx.To(), tx.Value())
+			snapshot.SubBalance(sender, totalCostU)
+			valueU, _ := uint256.FromBig(tx.Value())
+			snapshot.AddBalance(*tx.To(), valueU)
 			snapshot.SetNonce(sender, nonce+1)
 
 			// Refund unused gas (simple transfer uses exactly 21000)
@@ -154,7 +159,8 @@ func (pe *ParallelExecutor) ExecuteParallel(
 				new(big.Int).SetUint64(tx.Gas()-gasUsed),
 				tx.GasPrice(),
 			)
-			snapshot.AddBalance(sender, refund)
+			refundU, _ := uint256.FromBig(refund)
+			snapshot.AddBalance(sender, refundU)
 
 			results[idx] = &ParallelResult{
 				Tx:      tx,
@@ -207,12 +213,11 @@ func (pe *ParallelExecutor) MergeResults(
 		to := *r.Tx.To()
 
 		// Apply balance changes to main state
-		// Verify no conflict: check that balances haven't changed since snapshot
-		expectedSenderBalance := r.State.GetBalance(sender)
-		expectedRecipientBalance := r.State.GetBalance(to)
+		senderBal := r.State.GetBalance(sender)
+		recipientBal := r.State.GetBalance(to)
 
-		mainState.SetBalance(sender, expectedSenderBalance)
-		mainState.SetBalance(to, expectedRecipientBalance)
+		mainState.SetBalance(sender, senderBal)
+		mainState.SetBalance(to, recipientBal)
 		mainState.SetNonce(sender, r.State.GetNonce(sender))
 
 		merged++
