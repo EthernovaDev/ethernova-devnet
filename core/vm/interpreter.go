@@ -221,6 +221,10 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		} else {
 			GlobalFastModeStats.SkippedChecks.Add(1)
 		}
+		// Ethernova: opcode sequence optimizer — refund redundant ops
+		if refund := GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost); refund > 0 {
+			contract.Gas += refund // refund gas for redundant operations
+		}
 		// Ethernova: apply adaptive gas discount/penalty
 		if cost > 0 {
 			if discount := GlobalPatternTracker.GetDiscount(contract.Address()); discount > 0 {

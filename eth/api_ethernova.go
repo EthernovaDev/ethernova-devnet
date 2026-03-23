@@ -282,3 +282,31 @@ func (api *EthernovaAPI) CallCacheReset() bool {
 func (api *EthernovaAPI) BytecodeAnalysis() map[string]*vm.BytecodeAnalysis {
 	return vm.GlobalBytecodeAnalyzer.GetAllAnalysis()
 }
+
+// Optimizer returns opcode sequence optimizer stats.
+func (api *EthernovaAPI) Optimizer() vm.OptimizerStats {
+	return vm.GlobalOpcodeOptimizer.Stats()
+}
+
+// OptimizerToggle enables or disables the opcode optimizer.
+func (api *EthernovaAPI) OptimizerToggle(enabled bool) bool {
+	vm.GlobalOpcodeOptimizer.SetEnabled(enabled)
+	return vm.GlobalOpcodeOptimizer.IsEnabled()
+}
+
+// OptimizerReset clears optimizer state.
+func (api *EthernovaAPI) OptimizerReset() bool {
+	vm.GlobalOpcodeOptimizer.Reset()
+	return true
+}
+
+// AutoTuner returns the auto-tuner status.
+func (api *EthernovaAPI) AutoTuner() vm.AutoTunerStats {
+	return vm.GlobalAutoTuner.Stats()
+}
+
+// AutoTunerToggle enables or disables auto-tuning.
+func (api *EthernovaAPI) AutoTunerToggle(enabled bool) bool {
+	vm.GlobalAutoTuner.SetEnabled(enabled)
+	return vm.GlobalAutoTuner.IsEnabled()
+}

@@ -1,0 +1,58 @@
+name: Devnet CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build geth
+        run: CGO_ENABLED=0 go build -o ./build/bin/geth ./cmd/geth
+      - name: Verify version
+        run: ./build/bin/geth version 2>&1 | head -5
+
+  test-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test EVM profiler
+        run: go test ./core/vm/ -run "TestOpcode|TestProfile" -v -timeout 60s
+      - name: Test fork migration
+        run: go test ./core/ -run "TestMegaFork|TestEIP658|TestAllForks|TestNoUpdate" -v -timeout 60s
+      - name: Test signing
+        run: go test ./core/types/ -run "TestEIP155|TestSigning|TestNilSigner" -v -timeout 60s
+
+  test-ethernova:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test ethernova params
+        run: go test ./params/ethernova/ -v -timeout 60s
+      - name: Test forkid
+        run: go test ./core/forkid/ -run "Ethernova" -v -timeout 60s
+      - name: Test VM runtime
+        run: go test ./core/vm/runtime/ -run "Ethernova" -v -timeout 60s
+
+  vet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Go vet
+        run: go vet ./core/vm/ ./eth/ ./core/ ./params/ethernova/

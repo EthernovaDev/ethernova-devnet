@@ -71,7 +71,7 @@ patternScore = (pure opcodes / total opcodes) x 100
 |---------------|--------|---------|
 | >= 70% pure   | **25% gas discount** | Math libraries, pure computation |
 | 30-70% pure   | Normal gas (no change) | Typical contracts |
-| < 30% pure    | **5% gas surcharge** | Storage-heavy contracts |
+| < 30% pure    | **10% gas surcharge** | Storage-heavy contracts |
 
 This incentivizes developers to write efficient code — the network rewards optimization.
 
@@ -115,6 +115,15 @@ This incentivizes developers to write efficient code — the network rewards opt
 | `ethernova_callCacheReset` | Clear cached results |
 | `ethernova_bytecodeAnalysis` | Static bytecode analysis for all contracts |
 
+### Optimizer & Auto-Tuner (Phase 5)
+| Method | Description |
+|--------|-------------|
+| `ethernova_optimizer` | Opcode sequence optimizer stats (redundant ops, gas refunded) |
+| `ethernova_optimizerToggle(bool)` | Enable/disable sequence optimizer |
+| `ethernova_optimizerReset` | Clear optimizer state |
+| `ethernova_autoTuner` | Auto-tuner status (ranges, last tuned block) |
+| `ethernova_autoTunerToggle(bool)` | Enable/disable auto-tuning of gas percentages |
+
 ### Example
 
 ```bash
@@ -152,7 +161,7 @@ curl -s -X POST -H "Content-Type: application/json" \
 
 ### Phase 2: Adaptive Gas (completed)
 - [x] Gas discount (25%) for optimized/predictable execution patterns
-- [x] Gas penalty (5%) for complex non-parallelizable workloads
+- [x] Gas penalty (10%) for complex non-parallelizable workloads
 - [x] Contract pattern tracker (pure vs impure opcode classification)
 - [x] `ethernova_adaptiveGas` RPC endpoints (toggle, setDiscount, setPenalty, reset)
 - [x] Validate consensus across all 4 nodes with adaptive gas enabled
@@ -171,6 +180,16 @@ curl -s -X POST -H "Content-Type: application/json" \
 - [x] Cache results for pure contract calls (same input = same output)
 - [x] Dynamic bytecode analysis at deploy time (loop detection, opcode groups, cacheability)
 - [x] `ethernova_callCache` / `ethernova_bytecodeAnalysis` RPC endpoints
+
+### Phase 5: Polish & Infrastructure (completed)
+- [x] Opcode sequence optimizer (detect PUSH+POP, DUP+POP, ISZERO+ISZERO, etc.)
+- [x] Auto-tuning: adaptive gas percentages adjust based on real network data
+- [x] Devnet dashboard (web UI on port 8081, auto-refreshes every 5s)
+- [x] Faucet (web UI on port 8080, 10 ETH per request, 5min cooldown)
+- [x] CI/CD: GitHub Actions (build, test core, test ethernova, go vet)
+- [x] Security audit script (bounds checks, consensus, RPC health)
+- [x] Benchmark script (gas savings vs standard EVM)
+- [ ] Devnet explorer (Blockscout for chainId 121526) — requires Docker setup
 
 ## Principles
 

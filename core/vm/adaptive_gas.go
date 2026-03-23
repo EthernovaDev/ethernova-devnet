@@ -22,7 +22,7 @@ var GlobalAdaptiveGas = &AdaptiveGasConfig{}
 func init() {
 	GlobalAdaptiveGas.Enabled.Store(false) // disabled by default, enable via RPC
 	GlobalAdaptiveGas.DiscountPercent = 25 // 25% discount for optimized patterns
-	GlobalAdaptiveGas.PenaltyPercent = 5   // 5% surcharge for complex patterns
+	GlobalAdaptiveGas.PenaltyPercent = 10  // 10% surcharge for complex patterns
 }
 
 // ContractPattern tracks execution patterns for a contract address.
