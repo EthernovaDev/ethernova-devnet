@@ -15,14 +15,37 @@ The goal is to build an **adaptive, self-optimizing EVM** where:
 
 4 VMs on ESXi (Dell PowerEdge, 128GB RAM):
 
-| Node | Role     | IP             | P2P Port | RPC Port |
-|------|----------|----------------|----------|----------|
-| 1    | Miner    | 192.168.1.15   | 30301    | 8545     |
-| 2    | Observer | 192.168.1.34   | 30302    | 8552     |
-| 3    | Observer | 192.168.1.134  | 30303    | 8553     |
-| 4    | Observer | 192.168.1.16   | 30304    | 8554     |
+| Node | Role     | IP             | P2P Port | RPC Port | Extra |
+|------|----------|----------------|----------|----------|-------|
+| 1    | Miner    | 192.168.1.15   | 30301    | 9545     | Stratum proxy :8888 |
+| 2    | Observer | 192.168.1.34   | 30302    | 8552     | Explorer :3000, API :4000 |
+| 3    | Observer | 192.168.1.134  | 30303    | 8553     | |
+| 4    | Observer | 192.168.1.16   | 30304    | 8554     | |
 
 GPU mining via T-Rex (RTX 3080 Ti) through stratum proxy on port 8888.
+
+### External Access (for collaborators)
+
+Open these ports on your router to allow external access:
+
+| Port | Service | Description |
+|------|---------|-------------|
+| 9545 | RPC HTTP | JSON-RPC endpoint (MetaMask, scripts) |
+| 9546 | RPC WebSocket | Real-time subscriptions |
+| 3000 | Explorer UI | Blockscout frontend |
+| 4000 | Explorer API | Blockscout API |
+| 8080 | Faucet | Get free devnet NOVA |
+| 8081 | Dashboard | Devnet stats dashboard |
+
+### MetaMask Setup
+
+```
+Network Name:    Ethernova Devnet
+RPC URL:         http://<YOUR_PUBLIC_IP>:9545
+Chain ID:        121526
+Currency Symbol: NOVA
+Explorer URL:    http://<YOUR_PUBLIC_IP>:3000
+```
 
 ### Quick Start
 
@@ -189,7 +212,8 @@ curl -s -X POST -H "Content-Type: application/json" \
 - [x] CI/CD: GitHub Actions (build, test core, test ethernova, go vet)
 - [x] Security audit script (bounds checks, consensus, RPC health)
 - [x] Benchmark script (gas savings vs standard EVM)
-- [ ] Devnet explorer (Blockscout for chainId 121526) — requires Docker setup
+- [x] Devnet explorer (Blockscout on Node 2, port 3000/4000)
+- [x] Public RPC endpoint on port 9545 for MetaMask / external access
 
 ## Principles
 
