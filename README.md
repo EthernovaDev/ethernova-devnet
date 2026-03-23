@@ -64,7 +64,7 @@ curl -s -X POST -H "Content-Type: application/json" \
 - [x] EVM opcode profiler (global + per-contract)
 - [x] `ethernova_evmProfile` RPC endpoints
 - [x] Devnet genesis, scripts, and topology
-- [ ] Deploy on ESXi VMs (4 nodes)
+- [x] Deploy on ESXi VMs (4 nodes)
 - [ ] Deploy test contracts and collect profiling data
 
 ### Phase 2: Adaptive Gas
