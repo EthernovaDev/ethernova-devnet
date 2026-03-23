@@ -106,6 +106,10 @@ func PrecompiledContractsForConfig(config ctypes.ChainConfigurator, bn *big.Int,
 		precompileds[common.BytesToAddress([]byte{0x0a})] = &kzgPointEvaluation{}
 	}
 
+	// Ethernova custom precompiles (always active on devnet)
+	precompileds[common.BytesToAddress([]byte{0x20})] = &novaBatchHash{}
+	precompileds[common.BytesToAddress([]byte{0x21})] = &novaBatchVerify{}
+
 	return precompileds
 }
 

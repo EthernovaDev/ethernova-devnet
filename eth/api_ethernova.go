@@ -310,3 +310,29 @@ func (api *EthernovaAPI) AutoTunerToggle(enabled bool) bool {
 	vm.GlobalAutoTuner.SetEnabled(enabled)
 	return vm.GlobalAutoTuner.IsEnabled()
 }
+
+// PrecompileInfo describes a custom Ethernova precompiled contract.
+type PrecompileInfo struct {
+	Address     string `json:"address"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	GasModel    string `json:"gasModel"`
+}
+
+// Precompiles returns information about Ethernova custom precompiled contracts.
+func (api *EthernovaAPI) Precompiles() []PrecompileInfo {
+	return []PrecompileInfo{
+		{
+			Address:     "0x0000000000000000000000000000000000000020",
+			Name:        "novaBatchHash",
+			Description: "Batch keccak256 hashing - hash multiple 32-byte items in one call",
+			GasModel:    "30 gas per 32-byte item",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000021",
+			Name:        "novaBatchVerify",
+			Description: "Batch ecrecover - verify multiple signatures in one call",
+			GasModel:    "2000 gas per signature (vs 3000 for individual ecrecover)",
+		},
+	}
+}

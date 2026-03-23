@@ -197,6 +197,68 @@ Requires: Go 1.21+, GCC, Make
 - [x] Public HTTPS RPC at https://devrpc.ethnova.net
 - [x] One-click binary with embedded genesis and auto-peer discovery
 
+### Phase 6: DApp Validation & Public Testing (completed)
+- [x] Public faucet at https://faucet.ethnova.net (10 NOVA per request)
+- [x] Smart contract test suite: ERC-20 (NovaToken), ERC-721 (NovaNFT), DEX (NovaDEX), MultiSig
+- [x] Custom precompiled contracts: `novaBatchHash` (0x20) and `novaBatchVerify` (0x21)
+- [x] `ethernova_precompiles` RPC endpoint
+- [x] Hardhat developer config with Ethernova Devnet network ready to use
+- [x] Gas benchmark and stress test scripts
+
+## Custom Precompiles
+
+Ethernova Devnet includes two custom precompiled contracts not found on any other EVM chain:
+
+| Address | Name | Description | Gas |
+|---------|------|-------------|-----|
+| `0x20` | `novaBatchHash` | Batch keccak256 - hash multiple 32-byte items in one call | 30 per item |
+| `0x21` | `novaBatchVerify` | Batch ecrecover - verify multiple signatures in one call | 2,000 per sig (vs 3,000 standard) |
+
+### Using novaBatchHash from Solidity
+
+```solidity
+// Hash 3 items in one call (costs 90 gas vs ~108 in pure Solidity)
+(bool ok, bytes memory result) = address(0x20).staticcall(
+    abi.encodePacked(item1, item2, item3)
+);
+// result contains 3 concatenated 32-byte hashes
+```
+
+### Using novaBatchVerify from Solidity
+
+```solidity
+// Verify 2 signatures in one call (costs 4,000 gas vs 6,000 with ecrecover)
+bytes memory input = abi.encodePacked(hash1, r1, s1, v1, hash2, r2, s2, v2);
+(bool ok, bytes memory result) = address(0x21).staticcall(input);
+// result contains 2 left-padded 32-byte addresses
+```
+
+## Faucet
+
+Get free NOVA tokens for testing: **https://faucet.ethnova.net**
+
+- 10 NOVA per request
+- 5-minute cooldown per address/IP
+- Tokens are devnet-only with no real value
+
+## Developer Quick Start (Hardhat)
+
+```bash
+# Clone and setup
+git clone https://github.com/EthernovaDev/ethernova-devnet.git
+cd ethernova-devnet/devnet
+
+# Install Hardhat
+npm init -y && npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+
+# Copy config
+cp hardhat.config.js ../hardhat.config.js
+cp .env.example ../.env
+
+# Edit .env with your private key, then deploy
+npx hardhat run scripts/deploy.js --network ethernova_devnet
+```
+
 ## Upstream
 
 Fork of [EthernovaDev/ethernova-coregeth](https://github.com/EthernovaDev/ethernova-coregeth), downstream of CoreGeth / go-ethereum.
