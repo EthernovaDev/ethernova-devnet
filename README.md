@@ -67,15 +67,15 @@ curl -s -X POST -H "Content-Type: application/json" \
 - [x] Deploy on ESXi VMs (4 nodes)
 - [x] Deploy test contracts and collect profiling data
 
-### Phase 2: Adaptive Gas (current)
+### Phase 2: Adaptive Gas (completed)
 - [x] Gas discounts for optimized/predictable execution patterns
 - [x] Contract pattern tracker (pure vs impure opcode classification)
 - [x] `ethernova_adaptiveGas` RPC endpoints (toggle, setDiscount, reset)
 - [x] Validate consensus across all nodes with adaptive gas enabled
-- [ ] Complex non-parallelizable workloads cost more
-- [ ] Stress test with high tx volume
+- [x] Complex non-parallelizable workloads cost more (15% penalty for <30% pure ops)
+- [x] Stress test with high tx volume (200 txs, 4 nodes in consensus)
 
-### Phase 3: Execution Modes
+### Phase 3: Execution Modes (next)
 - [ ] Standard mode: full EVM compatibility (default)
 - [ ] Fast mode: reduced overhead for verified contracts
 - [ ] Parallel mode: speculative parallel execution of independent txs with rollback on conflict
