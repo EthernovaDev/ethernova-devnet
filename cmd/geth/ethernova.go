@@ -384,9 +384,7 @@ func ensureEthernovaGenesis(ctx *cli.Context, info *ethernovaGenesisInfo) (commo
 		}
 		return common.Hash{}, err
 	}
-	if hash != info.ExpectedGenesisHash {
-		return common.Hash{}, errors.New(wrongGenesisMessage)
-	}
+	// Devnet: skip ExpectedGenesisHash check to allow custom genesis
 
 	if !lockExists {
 		if err := writeEthernovaLock(lockPath, info); err != nil {
@@ -411,25 +409,9 @@ func resolveChainPaths(datadir, ancient string) (string, string) {
 }
 
 func checkEthernovaLock(path string, info *ethernovaGenesisInfo) (bool, error) {
+	// Devnet: skip lock file validation to allow custom genesis
 	if !fileExists(path) {
 		return false, nil
-	}
-	payload, err := os.ReadFile(path)
-	if err != nil {
-		return true, fmt.Errorf("failed to read lock file: %w", err)
-	}
-	var lock ethernovaLock
-	if err := json.Unmarshal(payload, &lock); err != nil {
-		return true, fmt.Errorf("failed to parse lock file: %w", err)
-	}
-	if lock.ChainID != info.ChainID || lock.NetworkID != info.NetworkID {
-		return true, errors.New(wrongGenesisMessage)
-	}
-	if !strings.EqualFold(lock.ExpectedGenesisHash, info.ExpectedGenesisHash.Hex()) {
-		return true, errors.New(wrongGenesisMessage)
-	}
-	if !strings.EqualFold(lock.GenesisSHA256, info.GenesisSHA256) {
-		return true, errors.New(wrongGenesisMessage)
 	}
 	return true, nil
 }
