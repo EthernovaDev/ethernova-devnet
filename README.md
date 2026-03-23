@@ -36,6 +36,7 @@ The node will:
 |---------|-----|
 | **Explorer** | https://devexplorer.ethnova.net |
 | **RPC (HTTPS)** | https://devrpc.ethnova.net |
+| **Faucet** | https://faucet.ethnova.net |
 | **RPC (HTTP)** | http://localhost:8545 (local node) |
 
 ## MetaMask Setup
@@ -47,6 +48,37 @@ The node will:
 | Chain ID | 121526 |
 | Currency Symbol | NOVA |
 | Block Explorer | https://devexplorer.ethnova.net |
+
+## Network Status
+
+The devnet is actively mined and maintained with the following infrastructure:
+
+- **5 nodes** (4 local ESXi VMs + 1 public VPS)
+- **GPU mining** (RTX 3080 Ti) + CPU mining
+- **~5s average block time**
+- **3,000+ blocks** mined
+- **Archive node** on VPS for full state history
+
+### Active Features
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Adaptive Gas | Enabled | 25% discount for pure contracts, 10% penalty for storage-heavy |
+| EVM Profiler | Enabled | Real-time opcode tracking per contract |
+| Opcode Optimizer | Enabled | Detects redundant patterns (PUSH+POP, DUP+POP, etc.) |
+| Call Cache | Enabled | Caches pure function results (10,000 entry LRU) |
+| Auto-Tuner | Enabled | Adjusts gas parameters every 100 blocks based on network data |
+| Custom Precompiles | Active | novaBatchHash (0x20) and novaBatchVerify (0x21) |
+
+### Gas Savings Model
+
+| Contract Type | Pattern | Gas Effect | Example |
+|--------------|---------|------------|---------|
+| Math/Pure Logic | ≥70% pure opcodes | **-25% gas** | ERC-20 transfers, hash computation |
+| Mixed Operations | 30-70% pure | Standard gas | Token mints, typical DeFi |
+| Storage Heavy | <30% pure opcodes | **+10% gas** | DEX swaps, heavy SSTORE patterns |
+| Batch Hash (precompile) | Native | **30 gas/item** vs ~36 in Solidity | Multi-item hashing |
+| Batch Verify (precompile) | Native | **2,000 gas/sig** vs 3,000 standard | Multi-sig verification |
 
 ## What is this?
 
@@ -204,6 +236,20 @@ Requires: Go 1.21+, GCC, Make
 - [x] `ethernova_precompiles` RPC endpoint
 - [x] Hardhat developer config with Ethernova Devnet network ready to use
 - [x] Gas benchmark and stress test scripts
+
+## Smart Contract Test Suite
+
+Ready-to-deploy contracts for testing the adaptive gas system with real DeFi patterns:
+
+| Contract | Type | Expected Gas Pattern | File |
+|----------|------|---------------------|------|
+| `NovaToken` | ERC-20 | Pure (discount eligible) | `devnet/contracts/NovaToken.sol` |
+| `NovaNFT` | ERC-721 | Mixed (neutral) | `devnet/contracts/NovaNFT.sol` |
+| `NovaDEX` | AMM/Swap Pool | Storage-heavy (penalty) | `devnet/contracts/NovaDEX.sol` |
+| `NovaMultiSig` | Multi-Signature Wallet | Moderate storage | `devnet/contracts/NovaMultiSig.sol` |
+| `TestProfiler` | Opcode Generator | Configurable | `devnet/contracts/TestProfiler.sol` |
+
+These contracts are designed to demonstrate how adaptive gas treats different execution patterns differently, rewarding efficient code with lower gas costs.
 
 ## Custom Precompiles
 
