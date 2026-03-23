@@ -124,6 +124,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		return nil, nil
 	}
 
+	// Ethernova: record contract call for adaptive gas pattern tracking
+	GlobalPatternTracker.RecordCall(contract.Address())
+
 	var (
 		op          OpCode        // current opcode
 		mem         = NewMemory() // bound memory
@@ -185,11 +188,20 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 		// Ethernova: record opcode execution for profiling
 		GlobalProfiler.Record(op, cost)
+		// Ethernova: record opcode for adaptive gas pattern analysis
+		GlobalPatternTracker.RecordOp(contract.Address(), op)
 		// Validate stack
 		if sLen := stack.len(); sLen < operation.minStack {
 			return nil, &ErrStackUnderflow{stackLen: sLen, required: operation.minStack}
 		} else if sLen > operation.maxStack {
 			return nil, &ErrStackOverflow{stackLen: sLen, limit: operation.maxStack}
+		}
+		// Ethernova: apply adaptive gas discount for optimized contracts
+		if discount := GlobalPatternTracker.GetDiscount(contract.Address()); discount > 0 && cost > 0 {
+			reduction := cost * discount / 100
+			if reduction > 0 && cost > reduction {
+				cost -= reduction
+			}
 		}
 		// Static portion of gas
 		if !contract.UseGas(cost) {

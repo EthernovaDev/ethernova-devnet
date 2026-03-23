@@ -183,3 +183,40 @@ func (api *EthernovaAPI) EvmProfileToggle(enabled bool) bool {
 	vm.GlobalContractProfiler.SetEnabled(enabled)
 	return vm.GlobalProfiler.IsEnabled()
 }
+
+// AdaptiveGasResult holds the adaptive gas system status.
+type AdaptiveGasResult struct {
+	Enabled         bool                `json:"enabled"`
+	DiscountPercent uint64              `json:"discountPercent"`
+	Contracts       []vm.PatternStats   `json:"contracts"`
+}
+
+// AdaptiveGas returns the current adaptive gas configuration and contract patterns.
+func (api *EthernovaAPI) AdaptiveGas() AdaptiveGasResult {
+	return AdaptiveGasResult{
+		Enabled:         vm.GlobalAdaptiveGas.Enabled.Load(),
+		DiscountPercent: vm.GlobalAdaptiveGas.DiscountPercent,
+		Contracts:       vm.GlobalPatternTracker.GetAllPatterns(),
+	}
+}
+
+// AdaptiveGasToggle enables or disables the adaptive gas system.
+func (api *EthernovaAPI) AdaptiveGasToggle(enabled bool) bool {
+	vm.GlobalAdaptiveGas.Enabled.Store(enabled)
+	return vm.GlobalAdaptiveGas.Enabled.Load()
+}
+
+// AdaptiveGasSetDiscount sets the discount percentage (0-50).
+func (api *EthernovaAPI) AdaptiveGasSetDiscount(percent uint64) uint64 {
+	if percent > 50 {
+		percent = 50
+	}
+	vm.GlobalAdaptiveGas.DiscountPercent = percent
+	return vm.GlobalAdaptiveGas.DiscountPercent
+}
+
+// AdaptiveGasReset clears all pattern tracking data.
+func (api *EthernovaAPI) AdaptiveGasReset() bool {
+	vm.GlobalPatternTracker.Reset()
+	return true
+}

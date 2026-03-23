@@ -60,14 +60,14 @@ curl -s -X POST -H "Content-Type: application/json" \
 
 ## Roadmap
 
-### Phase 1: Profiling (current)
+### Phase 1: Profiling (completed)
 - [x] EVM opcode profiler (global + per-contract)
 - [x] `ethernova_evmProfile` RPC endpoints
 - [x] Devnet genesis, scripts, and topology
 - [x] Deploy on ESXi VMs (4 nodes)
-- [ ] Deploy test contracts and collect profiling data
+- [x] Deploy test contracts and collect profiling data
 
-### Phase 2: Adaptive Gas
+### Phase 2: Adaptive Gas (current)
 - [ ] Gas discounts for optimized/predictable execution patterns
 - [ ] Complex non-parallelizable workloads cost more
 - [ ] Validate consensus across all nodes with new gas rules
