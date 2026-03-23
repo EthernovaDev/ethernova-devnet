@@ -1,6 +1,52 @@
 # Ethernova Devnet
 
-Private development environment for experimental EVM features. Based on Ethernova v1.3.2 (core-geth fork).
+Public development network for experimental EVM features. Based on Ethernova v1.3.2 (core-geth fork).
+
+## Quick Start
+
+Download `EthernovaDevnet.exe` (Windows) or `EthernovaDevnet-linux-amd64` (Linux) from [Releases](https://github.com/EthernovaDev/ethernova-devnet/releases) and run it. That's it — genesis, peers, and RPC are configured automatically.
+
+```bash
+# Linux
+chmod +x EthernovaDevnet-linux-amd64
+./EthernovaDevnet-linux-amd64
+
+# Windows - just double-click EthernovaDevnet.exe
+```
+
+The node will:
+1. Initialize the devnet genesis automatically (embedded, chainId 121526)
+2. Connect to public bootnodes
+3. Start syncing the chain
+4. Open RPC on `http://127.0.0.1:8545`
+
+## Network Info
+
+| | |
+|---|---|
+| **Chain ID** | 121526 |
+| **Network ID** | 121526 |
+| **Consensus** | Ethash (Proof of Work) |
+| **Block Reward** | 10 NOVA |
+| **Currency** | NOVA |
+
+## Public Endpoints
+
+| Service | URL |
+|---------|-----|
+| **Explorer** | https://devexplorer.ethnova.net |
+| **RPC (HTTPS)** | https://devrpc.ethnova.net |
+| **RPC (HTTP)** | http://localhost:8545 (local node) |
+
+## MetaMask Setup
+
+| Field | Value |
+|-------|-------|
+| Network Name | Ethernova Devnet |
+| RPC URL | https://devrpc.ethnova.net |
+| Chain ID | 121526 |
+| Currency Symbol | NOVA |
+| Block Explorer | https://devexplorer.ethnova.net |
 
 ## What is this?
 
@@ -8,61 +54,8 @@ Ethernova mainnet is a PoW Ethash EVM chain (chainId 121525). This devnet (chain
 
 The goal is to build an **adaptive, self-optimizing EVM** where:
 - Efficient contracts pay **less gas** (25% discount)
-- Heavy/complex contracts pay **slightly more** (5% surcharge)
+- Heavy/complex contracts pay **slightly more** (10% surcharge)
 - The protocol learns from execution patterns and rewards optimization
-
-## Devnet Infrastructure
-
-4 VMs on ESXi (Dell PowerEdge, 128GB RAM):
-
-| Node | Role     | IP             | P2P Port | RPC Port | Extra |
-|------|----------|----------------|----------|----------|-------|
-| 1    | Miner    | 192.168.1.15   | 30301    | 9545     | Stratum proxy :8888 |
-| 2    | Observer | 192.168.1.34   | 30302    | 8552     | Explorer :3000, API :4000 |
-| 3    | Observer | 192.168.1.134  | 30303    | 8553     | |
-| 4    | Observer | 192.168.1.16   | 30304    | 8554     | |
-
-GPU mining via T-Rex (RTX 3080 Ti) through stratum proxy on port 8888.
-
-### External Access (for collaborators)
-
-| Service | URL |
-|---------|-----|
-| RPC HTTP | http://orionpool.net:9545 |
-| RPC WebSocket | ws://orionpool.net:9546 |
-| Explorer | http://orionpool.net:3000 |
-| Explorer API | http://orionpool.net:4000 |
-| Faucet | http://orionpool.net:8080 |
-| Dashboard | http://orionpool.net:8081 |
-
-### MetaMask Setup
-
-```
-Network Name:    Ethernova Devnet
-RPC URL:         http://orionpool.net:9545
-Chain ID:        121526
-Currency Symbol: NOVA
-Explorer URL:    http://orionpool.net:3000
-```
-
-### Quick Start
-
-```bash
-# Build
-make geth
-
-# Start all 4 nodes
-./devnet/start-all.sh
-
-# Check consensus
-./devnet/check-consensus.sh
-
-# Run stress test
-./devnet/stress-test.sh 200
-
-# Stop all
-./devnet/stop-all.sh
-```
 
 ## How Adaptive Gas Works
 
@@ -98,7 +91,7 @@ This incentivizes developers to write efficient code — the network rewards opt
 
 ## Custom RPC Endpoints
 
-### Core (from mainnet v1.3.2)
+### Core
 | Method | Description |
 |--------|-------------|
 | `ethernova_forkStatus` | Status of all forks |
@@ -128,7 +121,7 @@ This incentivizes developers to write efficient code — the network rewards opt
 | `ethernova_executionModeSet(uint)` | Set mode: 0=standard, 1=fast, 2=parallel |
 | `ethernova_parallelStats` | Parallel execution statistics |
 
-### Runtime Optimization (Phase 4)
+### Runtime Optimization
 | Method | Description |
 |--------|-------------|
 | `ethernova_callCache` | Call cache stats (hits, misses, hit rate) |
@@ -136,90 +129,43 @@ This incentivizes developers to write efficient code — the network rewards opt
 | `ethernova_callCacheReset` | Clear cached results |
 | `ethernova_bytecodeAnalysis` | Static bytecode analysis for all contracts |
 
-### Optimizer & Auto-Tuner (Phase 5)
+### Optimizer & Auto-Tuner
 | Method | Description |
 |--------|-------------|
-| `ethernova_optimizer` | Opcode sequence optimizer stats (redundant ops, gas refunded) |
+| `ethernova_optimizer` | Opcode sequence optimizer stats |
 | `ethernova_optimizerToggle(bool)` | Enable/disable sequence optimizer |
-| `ethernova_optimizerReset` | Clear optimizer state |
 | `ethernova_autoTuner` | Auto-tuner status (ranges, last tuned block) |
 | `ethernova_autoTunerToggle(bool)` | Enable/disable auto-tuning of gas percentages |
 
 ### Example
 
 ```bash
-# Check adaptive gas status and contract patterns
 curl -s -X POST -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"ethernova_adaptiveGas","params":[],"id":1}' \
-  http://localhost:8545
-
-# Response:
-# {
-#   "enabled": true,
-#   "discountPercent": 25,
-#   "penaltyPercent": 5,
-#   "contracts": [{
-#     "address": "0x740D...",
-#     "callCount": 118,
-#     "totalOps": 4212,
-#     "pureOps": 4212,
-#     "purePercent": 100,
-#     "patternScore": 100,
-#     "discountPercent": 25,
-#     "penaltyPercent": 0
-#   }]
-# }
+  https://devrpc.ethnova.net
 ```
 
-## Roadmap
+## Build from Source
 
-### Phase 1: Profiling (completed)
-- [x] EVM opcode profiler (global + per-contract)
-- [x] `ethernova_evmProfile` RPC endpoints
-- [x] Devnet genesis (chainId 121526), scripts, and topology
-- [x] Deploy on ESXi VMs (4 nodes, GPU mining)
-- [x] Deploy test contracts and collect profiling data
+```bash
+git clone https://github.com/EthernovaDev/ethernova-devnet.git
+cd ethernova-devnet
+make geth
+# Binary at ./build/bin/geth
+```
 
-### Phase 2: Adaptive Gas (completed)
-- [x] Gas discount (25%) for optimized/predictable execution patterns
-- [x] Gas penalty (10%) for complex non-parallelizable workloads
-- [x] Contract pattern tracker (pure vs impure opcode classification)
-- [x] `ethernova_adaptiveGas` RPC endpoints (toggle, setDiscount, setPenalty, reset)
-- [x] Validate consensus across all 4 nodes with adaptive gas enabled
-- [x] Stress test: 200 txs, 4 nodes in consensus, 0 errors
+Requires: Go 1.21+, GCC, Make
 
-### Phase 3: Execution Modes (completed)
-- [x] Standard mode: full EVM compatibility (default)
-- [x] Fast mode: skip redundant checks for verified contracts
-- [x] Contract verifier: bytecode analysis for SELFDESTRUCT, DELEGATECALL, CREATE
-- [x] `ethernova_executionMode` / `ethernova_executionModeSet` RPC endpoints
-- [x] Parallel mode: conservative speculative execution (simple transfers only)
-- [x] Transaction classifier: separate parallel-safe txs from sequential
-- [x] State snapshot + merge with conflict detection
+## Completed Features
 
-### Phase 4: Runtime Optimization (completed)
-- [x] Cache results for pure contract calls (same input = same output)
-- [x] Dynamic bytecode analysis at deploy time (loop detection, opcode groups, cacheability)
-- [x] `ethernova_callCache` / `ethernova_bytecodeAnalysis` RPC endpoints
-
-### Phase 5: Polish & Infrastructure (completed)
-- [x] Opcode sequence optimizer (detect PUSH+POP, DUP+POP, ISZERO+ISZERO, etc.)
-- [x] Auto-tuning: adaptive gas percentages adjust based on real network data
-- [x] Devnet dashboard (web UI on port 8081, auto-refreshes every 5s)
-- [x] Faucet (web UI on port 8080, 10 ETH per request, 5min cooldown)
-- [x] CI/CD: GitHub Actions (build, test core, test ethernova, go vet)
-- [x] Security audit script (bounds checks, consensus, RPC health)
-- [x] Benchmark script (gas savings vs standard EVM)
-- [x] Devnet explorer (Blockscout on Node 2, port 3000/4000)
-- [x] Public RPC endpoint on port 9545 for MetaMask / external access
-
-## Principles
-
-1. **Determinism first** — Every optimization must produce identical state transitions on all nodes
-2. **Devnet before mainnet** — Nothing goes to mainnet without full devnet validation
-3. **Incremental** — Each phase builds on the previous
-4. **Measure before optimize** — Profile first, then decide what to optimize
-5. **Developer-friendly** — Make gas as cheap as possible for efficient code
+- EVM opcode profiler (global + per-contract)
+- Adaptive gas system (25% discount / 10% penalty)
+- Execution modes (standard, fast, parallel)
+- Call result caching for pure contracts
+- Bytecode static analysis at deploy time
+- Opcode sequence optimizer
+- Auto-tuner for gas parameters
+- Public explorer and HTTPS RPC
 
 ## Upstream
 

@@ -192,10 +192,10 @@ To connect MetaMask to the devnet:
 | Field | Value |
 |-------|-------|
 | Network Name | Ethernova Devnet |
-| RPC URL | http://YOUR_NODE_IP:8545 |
+| RPC URL | https://devrpc.ethnova.net |
 | Chain ID | 121526 |
 | Currency Symbol | NOVA |
-| Block Explorer | http://192.168.1.34:3000 |
+| Block Explorer | https://devexplorer.ethnova.net |
 
 ---
 
@@ -203,10 +203,9 @@ To connect MetaMask to the devnet:
 
 | Service | URL |
 |---------|-----|
-| RPC (HTTP) | http://192.168.1.15:9545 |
-| RPC (WebSocket) | ws://192.168.1.15:9546 |
-| Explorer | http://192.168.1.34:3000 |
-| Explorer API | http://192.168.1.34:4000 |
+| RPC (HTTPS) | https://devrpc.ethnova.net |
+| Explorer | https://devexplorer.ethnova.net |
+| Local RPC | http://localhost:8545 (when running your own node) |
 
 ---
 
