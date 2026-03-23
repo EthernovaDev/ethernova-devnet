@@ -188,6 +188,7 @@ func (api *EthernovaAPI) EvmProfileToggle(enabled bool) bool {
 type AdaptiveGasResult struct {
 	Enabled         bool                `json:"enabled"`
 	DiscountPercent uint64              `json:"discountPercent"`
+	PenaltyPercent  uint64              `json:"penaltyPercent"`
 	Contracts       []vm.PatternStats   `json:"contracts"`
 }
 
@@ -196,6 +197,7 @@ func (api *EthernovaAPI) AdaptiveGas() AdaptiveGasResult {
 	return AdaptiveGasResult{
 		Enabled:         vm.GlobalAdaptiveGas.Enabled.Load(),
 		DiscountPercent: vm.GlobalAdaptiveGas.DiscountPercent,
+		PenaltyPercent:  vm.GlobalAdaptiveGas.PenaltyPercent,
 		Contracts:       vm.GlobalPatternTracker.GetAllPatterns(),
 	}
 }
@@ -213,6 +215,15 @@ func (api *EthernovaAPI) AdaptiveGasSetDiscount(percent uint64) uint64 {
 	}
 	vm.GlobalAdaptiveGas.DiscountPercent = percent
 	return vm.GlobalAdaptiveGas.DiscountPercent
+}
+
+// AdaptiveGasSetPenalty sets the penalty percentage for complex contracts (0-50).
+func (api *EthernovaAPI) AdaptiveGasSetPenalty(percent uint64) uint64 {
+	if percent > 50 {
+		percent = 50
+	}
+	vm.GlobalAdaptiveGas.PenaltyPercent = percent
+	return vm.GlobalAdaptiveGas.PenaltyPercent
 }
 
 // AdaptiveGasReset clears all pattern tracking data.

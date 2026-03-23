@@ -196,11 +196,16 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		} else if sLen > operation.maxStack {
 			return nil, &ErrStackOverflow{stackLen: sLen, limit: operation.maxStack}
 		}
-		// Ethernova: apply adaptive gas discount for optimized contracts
-		if discount := GlobalPatternTracker.GetDiscount(contract.Address()); discount > 0 && cost > 0 {
-			reduction := cost * discount / 100
-			if reduction > 0 && cost > reduction {
-				cost -= reduction
+		// Ethernova: apply adaptive gas discount/penalty
+		if cost > 0 {
+			if discount := GlobalPatternTracker.GetDiscount(contract.Address()); discount > 0 {
+				reduction := cost * discount / 100
+				if reduction > 0 && cost > reduction {
+					cost -= reduction
+				}
+			} else if penalty := GlobalPatternTracker.GetPenalty(contract.Address()); penalty > 0 {
+				surcharge := cost * penalty / 100
+				cost += surcharge
 			}
 		}
 		// Static portion of gas

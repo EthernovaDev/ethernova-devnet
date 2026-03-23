@@ -10,9 +10,11 @@ import (
 // AdaptiveGasConfig controls the adaptive gas pricing system.
 // When enabled, contracts that exhibit predictable, repetitive execution
 // patterns receive a gas discount, incentivizing efficient code.
+// Contracts with heavy storage/external call usage pay a penalty.
 type AdaptiveGasConfig struct {
 	Enabled         atomic.Bool
-	DiscountPercent uint64 // e.g. 10 = 10% discount
+	DiscountPercent uint64 // e.g. 10 = 10% discount for optimized contracts
+	PenaltyPercent  uint64 // e.g. 15 = 15% surcharge for complex contracts
 }
 
 var GlobalAdaptiveGas = &AdaptiveGasConfig{}
@@ -20,6 +22,7 @@ var GlobalAdaptiveGas = &AdaptiveGasConfig{}
 func init() {
 	GlobalAdaptiveGas.Enabled.Store(false) // disabled by default, enable via RPC
 	GlobalAdaptiveGas.DiscountPercent = 10 // 10% discount for optimized patterns
+	GlobalAdaptiveGas.PenaltyPercent = 15  // 15% surcharge for complex patterns
 }
 
 // ContractPattern tracks execution patterns for a contract address.
@@ -134,6 +137,38 @@ func (pt *PatternTracker) GetDiscount(addr common.Address) uint64 {
 	return 0
 }
 
+// GetPenalty returns the gas penalty percentage for a contract (0-PenaltyPercent).
+// A contract is penalized if:
+// 1. It has been called at least 10 times
+// 2. Less than 30% of its opcodes are "pure" (heavy storage/external state usage)
+func (pt *PatternTracker) GetPenalty(addr common.Address) uint64 {
+	if !GlobalAdaptiveGas.Enabled.Load() {
+		return 0
+	}
+
+	pt.mu.RLock()
+	cp, ok := pt.contracts[addr]
+	pt.mu.RUnlock()
+
+	if !ok {
+		return 0
+	}
+
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+
+	if cp.callCount < 10 || cp.totalOps < 100 {
+		return 0
+	}
+
+	// If less than 30% pure ops, this contract is heavy on state
+	if cp.patternScore < 30 {
+		return GlobalAdaptiveGas.PenaltyPercent
+	}
+
+	return 0
+}
+
 // PatternStats holds pattern analysis for RPC reporting.
 type PatternStats struct {
 	Address      string `json:"address"`
@@ -143,6 +178,7 @@ type PatternStats struct {
 	PurePercent  uint64 `json:"purePercent"`
 	PatternScore uint64 `json:"patternScore"`
 	Discount     uint64 `json:"discountPercent"`
+	Penalty      uint64 `json:"penaltyPercent"`
 }
 
 // GetAllPatterns returns pattern data for all tracked contracts.
@@ -157,10 +193,14 @@ func (pt *PatternTracker) GetAllPatterns() []PatternStats {
 		if cp.totalOps > 0 {
 			purePercent = (cp.pureOps * 100) / cp.totalOps
 		}
-		// Calculate discount inline to avoid deadlock
-		var discount uint64
-		if cp.callCount >= 10 && cp.totalOps >= 100 && cp.patternScore >= 70 {
-			discount = GlobalAdaptiveGas.DiscountPercent
+		// Calculate discount/penalty inline to avoid deadlock
+		var discount, penalty uint64
+		if cp.callCount >= 10 && cp.totalOps >= 100 {
+			if cp.patternScore >= 70 {
+				discount = GlobalAdaptiveGas.DiscountPercent
+			} else if cp.patternScore < 30 {
+				penalty = GlobalAdaptiveGas.PenaltyPercent
+			}
 		}
 		stats = append(stats, PatternStats{
 			Address:      addr.Hex(),
@@ -170,6 +210,7 @@ func (pt *PatternTracker) GetAllPatterns() []PatternStats {
 			PurePercent:  purePercent,
 			PatternScore: cp.patternScore,
 			Discount:     discount,
+			Penalty:      penalty,
 		})
 		cp.mu.Unlock()
 	}
