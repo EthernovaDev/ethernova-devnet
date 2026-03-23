@@ -180,6 +180,6 @@ func (api *EthernovaAPI) EvmProfileReset() bool {
 // EvmProfileToggle enables or disables profiling.
 func (api *EthernovaAPI) EvmProfileToggle(enabled bool) bool {
 	vm.GlobalProfiler.SetEnabled(enabled)
-	vm.GlobalContractProfiler.enabled.Store(enabled)
+	vm.GlobalContractProfiler.SetEnabled(enabled)
 	return vm.GlobalProfiler.IsEnabled()
 }

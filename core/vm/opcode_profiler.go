@@ -121,6 +121,11 @@ var GlobalContractProfiler = &ContractProfiler{
 	contracts: make(map[string]*contractProfile),
 }
 
+// SetEnabled enables or disables contract profiling.
+func (cp *ContractProfiler) SetEnabled(v bool) {
+	cp.enabled.Store(v)
+}
+
 // Record records an opcode execution for a specific contract address.
 func (cp *ContractProfiler) Record(addr string, op OpCode, gas uint64) {
 	if !cp.enabled.Load() {
