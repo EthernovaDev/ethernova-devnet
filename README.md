@@ -156,16 +156,46 @@ make geth
 
 Requires: Go 1.21+, GCC, Make
 
-## Completed Features
+## Roadmap
 
-- EVM opcode profiler (global + per-contract)
-- Adaptive gas system (25% discount / 10% penalty)
-- Execution modes (standard, fast, parallel)
-- Call result caching for pure contracts
-- Bytecode static analysis at deploy time
-- Opcode sequence optimizer
-- Auto-tuner for gas parameters
-- Public explorer and HTTPS RPC
+### Phase 1: Profiling (completed)
+- [x] EVM opcode profiler (global + per-contract)
+- [x] `ethernova_evmProfile` RPC endpoints
+- [x] Devnet genesis (chainId 121526), scripts, and topology
+- [x] Deploy on ESXi VMs (4 nodes, GPU mining)
+- [x] Deploy test contracts and collect profiling data
+
+### Phase 2: Adaptive Gas (completed)
+- [x] Gas discount (25%) for optimized/predictable execution patterns
+- [x] Gas penalty (10%) for complex non-parallelizable workloads
+- [x] Contract pattern tracker (pure vs impure opcode classification)
+- [x] `ethernova_adaptiveGas` RPC endpoints (toggle, setDiscount, setPenalty, reset)
+- [x] Validate consensus across all 4 nodes with adaptive gas enabled
+- [x] Stress test: 200 txs, 4 nodes in consensus, 0 errors
+
+### Phase 3: Execution Modes (completed)
+- [x] Standard mode: full EVM compatibility (default)
+- [x] Fast mode: skip redundant checks for verified contracts
+- [x] Contract verifier: bytecode analysis for SELFDESTRUCT, DELEGATECALL, CREATE
+- [x] `ethernova_executionMode` / `ethernova_executionModeSet` RPC endpoints
+- [x] Parallel mode: conservative speculative execution (simple transfers only)
+- [x] Transaction classifier: separate parallel-safe txs from sequential
+- [x] State snapshot + merge with conflict detection
+
+### Phase 4: Runtime Optimization (completed)
+- [x] Cache results for pure contract calls (same input = same output)
+- [x] Dynamic bytecode analysis at deploy time (loop detection, opcode groups, cacheability)
+- [x] `ethernova_callCache` / `ethernova_bytecodeAnalysis` RPC endpoints
+
+### Phase 5: Polish & Infrastructure (completed)
+- [x] Opcode sequence optimizer (detect PUSH+POP, DUP+POP, ISZERO+ISZERO, etc.)
+- [x] Auto-tuning: adaptive gas percentages adjust based on real network data
+- [x] Devnet dashboard and faucet
+- [x] CI/CD: GitHub Actions (build, test core, test ethernova, go vet)
+- [x] Security audit script and benchmark script
+- [x] Public explorer at https://devexplorer.ethnova.net
+- [x] Public HTTPS RPC at https://devrpc.ethnova.net
+- [x] One-click binary with embedded genesis and auto-peer discovery
 
 ## Upstream
 
