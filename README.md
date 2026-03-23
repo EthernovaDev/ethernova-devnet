@@ -144,8 +144,10 @@ curl -s -X POST -H "Content-Type: application/json" \
 - [x] Stress test: 200 txs, 4 nodes in consensus, 0 errors
 
 ### Phase 3: Execution Modes (current)
-- [ ] Standard mode: full EVM compatibility (default)
-- [ ] Fast mode: skip redundant checks for verified contracts
+- [x] Standard mode: full EVM compatibility (default)
+- [x] Fast mode: skip redundant checks for verified contracts
+- [x] Contract verifier: bytecode analysis for SELFDESTRUCT, DELEGATECALL, CREATE
+- [x] `ethernova_executionMode` / `ethernova_executionModeSet` RPC endpoints
 - [ ] Parallel mode: speculative parallel execution of independent txs
 - [ ] Automatic rollback on state conflict in parallel mode
 
