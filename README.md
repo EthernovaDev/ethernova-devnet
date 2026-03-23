@@ -26,25 +26,23 @@ GPU mining via T-Rex (RTX 3080 Ti) through stratum proxy on port 8888.
 
 ### External Access (for collaborators)
 
-Open these ports on your router to allow external access:
-
-| Port | Service | Description |
-|------|---------|-------------|
-| 9545 | RPC HTTP | JSON-RPC endpoint (MetaMask, scripts) |
-| 9546 | RPC WebSocket | Real-time subscriptions |
-| 3000 | Explorer UI | Blockscout frontend |
-| 4000 | Explorer API | Blockscout API |
-| 8080 | Faucet | Get free devnet NOVA |
-| 8081 | Dashboard | Devnet stats dashboard |
+| Service | URL |
+|---------|-----|
+| RPC HTTP | http://orionpool.net:9545 |
+| RPC WebSocket | ws://orionpool.net:9546 |
+| Explorer | http://orionpool.net:3000 |
+| Explorer API | http://orionpool.net:4000 |
+| Faucet | http://orionpool.net:8080 |
+| Dashboard | http://orionpool.net:8081 |
 
 ### MetaMask Setup
 
 ```
 Network Name:    Ethernova Devnet
-RPC URL:         http://<YOUR_PUBLIC_IP>:9545
+RPC URL:         http://orionpool.net:9545
 Chain ID:        121526
 Currency Symbol: NOVA
-Explorer URL:    http://<YOUR_PUBLIC_IP>:3000
+Explorer URL:    http://orionpool.net:3000
 ```
 
 ### Quick Start
