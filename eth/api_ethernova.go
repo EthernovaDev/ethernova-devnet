@@ -255,3 +255,30 @@ func (api *EthernovaAPI) ExecutionModeSet(mode uint64) string {
 	vm.GlobalExecutionMode.SetMode(vm.ExecutionMode(mode))
 	return vm.GlobalExecutionMode.GetMode().String()
 }
+
+// ParallelStats returns parallel execution statistics.
+func (api *EthernovaAPI) ParallelStats() core.ParallelStats {
+	return core.GetParallelStats()
+}
+
+// CallCache returns the call result cache statistics.
+func (api *EthernovaAPI) CallCache() vm.CacheStats {
+	return vm.GlobalCallCache.Stats()
+}
+
+// CallCacheToggle enables or disables the call result cache.
+func (api *EthernovaAPI) CallCacheToggle(enabled bool) bool {
+	vm.GlobalCallCache.SetEnabled(enabled)
+	return vm.GlobalCallCache.IsEnabled()
+}
+
+// CallCacheReset clears all cached call results.
+func (api *EthernovaAPI) CallCacheReset() bool {
+	vm.GlobalCallCache.Reset()
+	return true
+}
+
+// BytecodeAnalysis returns static analysis data for all deployed contracts.
+func (api *EthernovaAPI) BytecodeAnalysis() map[string]*vm.BytecodeAnalysis {
+	return vm.GlobalBytecodeAnalyzer.GetAllAnalysis()
+}

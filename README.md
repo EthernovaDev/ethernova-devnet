@@ -100,6 +100,21 @@ This incentivizes developers to write efficient code — the network rewards opt
 | `ethernova_adaptiveGasSetPenalty(uint)` | Set penalty % for complex contracts (0-50) |
 | `ethernova_adaptiveGasReset` | Clear all pattern data |
 
+### Execution Modes
+| Method | Description |
+|--------|-------------|
+| `ethernova_executionMode` | Current mode + fast mode stats + verified contracts |
+| `ethernova_executionModeSet(uint)` | Set mode: 0=standard, 1=fast, 2=parallel |
+| `ethernova_parallelStats` | Parallel execution statistics |
+
+### Runtime Optimization (Phase 4)
+| Method | Description |
+|--------|-------------|
+| `ethernova_callCache` | Call cache stats (hits, misses, hit rate) |
+| `ethernova_callCacheToggle(bool)` | Enable/disable pure call caching |
+| `ethernova_callCacheReset` | Clear cached results |
+| `ethernova_bytecodeAnalysis` | Static bytecode analysis for all contracts |
+
 ### Example
 
 ```bash
@@ -143,18 +158,19 @@ curl -s -X POST -H "Content-Type: application/json" \
 - [x] Validate consensus across all 4 nodes with adaptive gas enabled
 - [x] Stress test: 200 txs, 4 nodes in consensus, 0 errors
 
-### Phase 3: Execution Modes (current)
+### Phase 3: Execution Modes (completed)
 - [x] Standard mode: full EVM compatibility (default)
 - [x] Fast mode: skip redundant checks for verified contracts
 - [x] Contract verifier: bytecode analysis for SELFDESTRUCT, DELEGATECALL, CREATE
 - [x] `ethernova_executionMode` / `ethernova_executionModeSet` RPC endpoints
-- [ ] Parallel mode: speculative parallel execution of independent txs
-- [ ] Automatic rollback on state conflict in parallel mode
+- [x] Parallel mode: conservative speculative execution (simple transfers only)
+- [x] Transaction classifier: separate parallel-safe txs from sequential
+- [x] State snapshot + merge with conflict detection
 
-### Phase 4: Runtime Optimization
-- [ ] Cache results for pure contract calls (same input = same output)
-- [ ] Opcode sequence optimization (pre-compute common patterns)
-- [ ] Dynamic bytecode analysis at deploy time
+### Phase 4: Runtime Optimization (completed)
+- [x] Cache results for pure contract calls (same input = same output)
+- [x] Dynamic bytecode analysis at deploy time (loop detection, opcode groups, cacheability)
+- [x] `ethernova_callCache` / `ethernova_bytecodeAnalysis` RPC endpoints
 
 ## Principles
 

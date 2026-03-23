@@ -131,6 +131,19 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	GlobalContractVerifier.AnalyzeCode(contract.Address(), contract.Code, in.evm.Context.BlockNumber.Uint64())
 	fastMode := GlobalContractVerifier.IsFastEligible(contract.Address())
 
+	// Ethernova Phase 4: bytecode analysis at first encounter
+	GlobalBytecodeAnalyzer.Analyze(contract.Address(), contract.Code)
+
+	// Ethernova Phase 4: check call cache for pure contracts
+	if GlobalCallCache.IsEnabled() && readOnly {
+		analysis := GlobalBytecodeAnalyzer.GetAnalysis(contract.Address())
+		if analysis != nil && analysis.IsCacheable {
+			if cached, ok := GlobalCallCache.Get(contract.Address(), input); ok {
+				return cached.Result, nil
+			}
+		}
+	}
+
 	var (
 		op          OpCode        // current opcode
 		mem         = NewMemory() // bound memory
@@ -274,6 +287,14 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 	if err == errStopToken {
 		err = nil // clear stop token error
+	}
+
+	// Ethernova Phase 4: cache result for pure read-only calls
+	if err == nil && readOnly && GlobalCallCache.IsEnabled() {
+		analysis := GlobalBytecodeAnalyzer.GetAnalysis(contract.Address())
+		if analysis != nil && analysis.IsCacheable {
+			GlobalCallCache.Put(contract.Address(), input, res, 0)
+		}
 	}
 
 	return res, err
