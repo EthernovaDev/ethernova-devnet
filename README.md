@@ -260,22 +260,47 @@ Requires: Go 1.21+, GCC, Make
 
 ## Stress Test Results
 
-1,000 mixed transactions across 5 synchronized nodes:
+### Test 1: 1,000 Mixed Transactions (Local Network)
 
 | Metric | Result |
 |--------|--------|
-| **Total Transactions** | 1,000 |
-| **Transaction Mix** | 500 ETH transfers, 300 ERC-20, 100 NFT mints, 100 MultiSig |
-| **Time to Process** | 68 seconds |
+| **Transactions** | 1,000 (500 ETH, 300 ERC-20, 100 NFT, 100 MultiSig) |
+| **Time** | 68 seconds |
 | **Throughput** | **14.7 TPS** |
-| **Average Block Time** | **4 seconds** |
-| **Blocks Used** | 14 |
-| **Consensus** | **5/5 nodes synced** (4 local + 1 VPS) |
+| **Block Time** | **4 seconds avg** |
+| **Consensus** | **5/5 nodes synced** |
 | **Errors** | 0 |
-| **Optimizer Patterns Found** | 94 (104 gas refunded) |
-| **NovaToken Gas Pattern** | 99% pure → **25% discount active** |
 
-All nodes (including public VPS) maintained perfect consensus throughout the stress test.
+### Test 2: 5,000 Mixed Transactions (VPS → Miner)
+
+| Metric | Result |
+|--------|--------|
+| **Transactions Submitted** | 4,995 (2500 ETH, 1500 ERC-20, 500 NFT, 500 MultiSig) |
+| **Submission Rate** | **64 tx/s** |
+| **Failed to Submit** | 5 |
+| **Block Time** | **~5 seconds avg** (CPU mining) |
+
+### Deploy Gas Costs (measured)
+
+| Contract | Deploy Gas | Type |
+|----------|-----------|------|
+| NovaToken (ERC-20) | 456,654 | Pure computation (99%) → **25% discount eligible** |
+| NovaNFT (ERC-721) | 556,378 | Pure computation (100%) |
+| NovaMultiSig | 918,331 | Pure computation (99%) |
+
+### Adaptive Gas Results
+
+| Contract | Calls | Pure Opcodes | Gas Effect |
+|----------|-------|-------------|------------|
+| NovaToken | 11+ | **99%** | **-25% discount active** |
+| NovaNFT | 1+ | 100% | Qualifying (need 10+ calls) |
+| NovaMultiSig | 1+ | 99% | Qualifying (need 10+ calls) |
+
+### Optimizer Results
+- **94 redundant opcode patterns** detected across all contracts
+- **104 gas refunded** from pattern elimination (PUSH+POP, DUP+POP, etc.)
+
+All 5 nodes (4 local + 1 VPS) maintained consensus throughout all tests.
 
 ## Noven Fork Readiness
 
