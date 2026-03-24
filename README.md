@@ -59,16 +59,18 @@ The devnet is actively mined and maintained with the following infrastructure:
 - **3,000+ blocks** mined
 - **Archive node** on VPS for full state history
 
-### Active Features
+### Active Features (v1.0.2)
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| Adaptive Gas | Enabled | 25% discount for pure contracts, 10% penalty for storage-heavy |
+| Adaptive Gas | **Monitoring** | Tracks contract purity patterns. Gas modifications disabled for consensus safety (v1.0.2) |
 | EVM Profiler | Enabled | Real-time opcode tracking per contract |
-| Opcode Optimizer | Enabled | Detects redundant patterns (PUSH+POP, DUP+POP, etc.) |
-| Call Cache | Enabled | Caches pure function results (10,000 entry LRU) |
-| Auto-Tuner | Enabled | Adjusts gas parameters every 100 blocks based on network data |
+| Opcode Optimizer | **Monitoring** | Detects redundant patterns. Gas refunds disabled for consensus safety (v1.0.2) |
+| Call Cache | **Monitoring** | Tracks pure function calls. Cache returns disabled for consensus safety (v1.0.2) |
+| Auto-Tuner | **Monitoring** | Tracks network patterns. Auto-adjustment disabled for consensus safety (v1.0.2) |
 | Custom Precompiles | Active | novaBatchHash (0x20) and novaBatchVerify (0x21) |
+
+> **Note on v1.0.2:** Gas-modifying features (adaptive gas discount/penalty, optimizer refunds, call cache returns) were disabled because they used node-local profiling data to modify gas costs, causing 4-17 gas divergence between nodes and BAD BLOCK errors. All features still collect data accessible via RPC. The Noven Fork for mainnet will use deterministic contract classification (static analysis at deploy time) instead of runtime profiling.
 
 ### Live Benchmark Results
 
@@ -301,6 +303,22 @@ Requires: Go 1.21+, GCC, Make
 - **104 gas refunded** from pattern elimination (PUSH+POP, DUP+POP, etc.)
 
 All 5 nodes (4 local + 1 VPS) maintained consensus throughout all tests.
+
+## Known Issues & Lessons Learned
+
+### v1.0.0/v1.0.1: Consensus Bug (FIXED in v1.0.2)
+
+**Problem:** Nodes without custom precompiles computed different gas for contract deployments (4 gas difference), causing BAD BLOCK errors and chain splits.
+
+**Root cause:** The adaptive gas system, opcode optimizer, and call cache modified gas costs during EVM execution using node-local profiling data. Each node builds different profiling data depending on transaction history, so gas calculations diverged by 4-17 units.
+
+**Fix:** All gas-modifying features disabled during block execution (v1.0.2). Features still collect data for monitoring via RPC but no longer affect consensus-critical calculations.
+
+**Key lesson for Noven Fork (mainnet):**
+1. Any feature that modifies gas MUST be deterministic across all nodes
+2. Runtime profiling-based gas changes are inherently non-deterministic
+3. Future implementation will use static analysis at contract deploy time
+4. Hard fork upgrades MUST be mandatory - all nodes must upgrade before activation block
 
 ## Noven Fork Readiness
 
