@@ -41,7 +41,7 @@ import (
 
 // Register adds the engine API to the full node.
 func Register(stack *node.Node, backend *eth.Ethereum) error {
-	log.Warn("Engine API enabled", "protocol", "eth")
+	// Ethernova: suppress beacon/merge warnings (PoW chain, no merge)
 	stack.RegisterAPIs([]rpc.API{
 		{
 			Namespace:     "engine",
@@ -147,7 +147,7 @@ func NewConsensusAPI(eth *eth.Ethereum) *ConsensusAPI {
 // newConsensusAPIWithoutHeartbeat creates a new consensus api for the SimulatedBeacon Node.
 func newConsensusAPIWithoutHeartbeat(eth *eth.Ethereum) *ConsensusAPI {
 	if eth.BlockChain().Config().GetEthashTerminalTotalDifficulty() == nil {
-		log.Warn("Engine API started but chain not configured for merge yet")
+		// Ethernova: PoW chain, merge not applicable
 	}
 	api := &ConsensusAPI{
 		eth:               eth,
