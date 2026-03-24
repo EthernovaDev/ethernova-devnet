@@ -276,6 +276,51 @@ Requires: Go 1.21+, GCC, Make
 - [x] v1.0.0 and v1.0.1 marked as deprecated
 - [x] **Key lesson for Noven Fork**: Any feature modifying gas must use deterministic contract classification (static analysis at deploy time, not runtime profiling). Hard fork upgrades must be mandatory — all nodes upgrade before activation block.
 
+### v1.0.2 Consensus Verification Results
+
+Full test suite run on 2026-03-24:
+
+```
+================================================================
+  ETHERNOVA DEVNET v1.0.2 - FULL CONSENSUS TEST SUITE
+================================================================
+
+TEST 1: Contract Call (NovaToken.balanceOf)
+  Node1: OK | VPS: OK
+
+TEST 2: Precompile novaBatchHash (0x20)
+  Node1: 0x2cefe4e59877c202...
+  Node4: 0x2cefe4e59877c202...  (IDENTICAL)
+  VPS:   0x2cefe4e59877c202...  (IDENTICAL)
+
+TEST 3: Precompile novaBatchVerify (0x21)
+  Node1: 0x0000000000000000...
+  Node4: 0x0000000000000000...  (IDENTICAL)
+  VPS:   0x0000000000000000...  (IDENTICAL)
+
+TEST 4: Custom RPC Endpoints: 11/11 OK
+
+TEST 5: Consensus - 10 block hash verification (3 nodes)
+  Block 16747: 0x35d283e5cdd641d4 [MATCH]
+  Block 16746: 0xcf9c38ee596f7289 [MATCH]
+  Block 16745: 0x744e7f854bb1f7fe [MATCH]
+  Block 16744: 0x245373d4c77a2c93 [MATCH]
+  Block 16743: 0x0928f04d7a397ce3 [MATCH]
+  Block 16742: 0xf1f43f8a343a874a [MATCH]
+  Block 16741: 0x9b89feff25b46207 [MATCH]
+  Block 16740: 0xb4a5710a3303917b [MATCH]
+  Block 16739: 0xc2a3493ea35f4620 [MATCH]
+  Block 16738: 0xa3438ab5a8d9eec0 [MATCH]
+
+RESULTS: 10/10 consensus | 11/11 RPC | 0 BAD BLOCK errors
+>>> v1.0.2 FULLY VERIFIED <<<
+```
+
+Run the test yourself:
+```bash
+bash devnet/v102-consensus-test.sh
+```
+
 ## Stress Test Results
 
 ### Test 1: 1,000 Mixed Transactions (Local Network)
