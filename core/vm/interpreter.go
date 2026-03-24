@@ -129,20 +129,17 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 	// Ethernova: analyze contract for fast-mode eligibility
 	GlobalContractVerifier.AnalyzeCode(contract.Address(), contract.Code, in.evm.Context.BlockNumber.Uint64())
-	fastMode := GlobalContractVerifier.IsFastEligible(contract.Address())
+	// Fast mode DISABLED for consensus safety (v1.0.2) - skipping stack
+	// checks caused non-deterministic execution across nodes.
+	fastMode := false
+	_ = GlobalContractVerifier.IsFastEligible(contract.Address())
 
 	// Ethernova Phase 4: bytecode analysis at first encounter
 	GlobalBytecodeAnalyzer.Analyze(contract.Address(), contract.Code)
 
-	// Ethernova Phase 4: check call cache for pure contracts
-	if GlobalCallCache.IsEnabled() && readOnly {
-		analysis := GlobalBytecodeAnalyzer.GetAnalysis(contract.Address())
-		if analysis != nil && analysis.IsCacheable {
-			if cached, ok := GlobalCallCache.Get(contract.Address(), input); ok {
-				return cached.Result, nil
-			}
-		}
-	}
+	// Ethernova Phase 4: call cache DISABLED for consensus safety (v1.0.2)
+	// Cache hits/misses differ per node causing execution divergence.
+	// Bytecode analysis still runs for RPC reporting.
 
 	var (
 		op          OpCode        // current opcode
@@ -222,21 +219,13 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			GlobalFastModeStats.SkippedChecks.Add(1)
 		}
 		// Ethernova: opcode sequence optimizer — refund redundant ops
-		if refund := GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost); refund > 0 {
-			contract.Gas += refund // refund gas for redundant operations
-		}
-		// Ethernova: apply adaptive gas discount/penalty
-		if cost > 0 {
-			if discount := GlobalPatternTracker.GetDiscount(contract.Address()); discount > 0 {
-				reduction := cost * discount / 100
-				if reduction > 0 && cost > reduction {
-					cost -= reduction
-				}
-			} else if penalty := GlobalPatternTracker.GetPenalty(contract.Address()); penalty > 0 {
-				surcharge := cost * penalty / 100
-				cost += surcharge
-			}
-		}
+		// Ethernova: optimizer pattern detection (monitoring only, v1.0.2)
+		// Gas refunds DISABLED - caused non-deterministic gas across nodes.
+		GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost)
+		// Ethernova: adaptive gas tracking (monitoring only, v1.0.2)
+		// Gas discount/penalty DISABLED - each node has different profiling
+		// data causing 4-17 gas divergence and BAD BLOCK errors.
+		// Data still available via ethernova_adaptiveGas RPC.
 		// Static portion of gas
 		if !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
