@@ -260,6 +260,22 @@ Requires: Go 1.21+, GCC, Make
 - [x] Gas benchmark and stress test scripts
 - [x] **Full feature validation: 47/47 tests passed** (Noven Fork readiness confirmed)
 
+### Phase 7: Consensus Hardening & Determinism Fix (completed)
+- [x] **Found critical consensus bug**: adaptive gas, optimizer, call cache modified gas using node-local profiling data, causing 4-17 gas divergence and BAD BLOCK errors across nodes
+- [x] **Root cause**: Runtime profiling-based gas changes are inherently non-deterministic — each node has different execution history
+- [x] **Fix (v1.0.2)**: All gas-modifying features switched to monitoring-only mode. Profiling data still collected and available via RPC but no longer affects block execution
+- [x] Removed beacon/merge warnings (Ethernova is PoW, not applicable)
+- [x] Version bumped to v1.0.2-devnet across all binaries
+- [x] All 5 nodes updated and verified running v1.0.2
+- [x] **Consensus verification tests**:
+  - Contract deployment: block hash identical across Node 1, Node 4, VPS (gas=2,097,152 on all)
+  - Faucet transactions: block hashes matched across all synced nodes
+  - 5 consecutive blocks verified: hash match on 3 nodes
+  - Zero BAD BLOCK errors after fix
+- [x] v1.0.2 release published with Windows + Linux binaries
+- [x] v1.0.0 and v1.0.1 marked as deprecated
+- [x] **Key lesson for Noven Fork**: Any feature modifying gas must use deterministic contract classification (static analysis at deploy time, not runtime profiling). Hard fork upgrades must be mandatory — all nodes upgrade before activation block.
+
 ## Stress Test Results
 
 ### Test 1: 1,000 Mixed Transactions (Local Network)
