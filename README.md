@@ -276,6 +276,37 @@ Requires: Go 1.21+, GCC, Make
 - [x] v1.0.0 and v1.0.1 marked as deprecated
 - [x] **Key lesson for Noven Fork**: Any feature modifying gas must use deterministic contract classification (static analysis at deploy time, not runtime profiling). Hard fork upgrades must be mandatory — all nodes upgrade before activation block.
 
+### Phase 8: Noven Fork - State Bloat & Smart Wallets (v1.0.3)
+
+Named after community member **Noven** who identified the critical need for Ethereum-level improvements to state bloat and account security. All features activate at **block 20,500** on the devnet.
+
+#### 8.1 State Rent Surcharge (anti-bloat)
+- [x] SSTORE surcharge for contracts proportional to storage activity
+- [x] Deterministic calculation using nonce as proxy (no per-node state needed)
+- [x] First 10 storage operations free, then 5 gas/slot, capped at 50,000
+- [x] Deleting storage has zero surcharge (incentivizes cleanup)
+- [x] Only applies to contracts (EOAs exempt)
+- [x] `ethernova_stateRent`, `ethernova_stateRentToggle`, `ethernova_stateRentSetBase` RPC endpoints
+
+#### 8.2 Native Smart Wallet (precompile 0x22 - novaAccountManager)
+- [x] **Guardian Recovery**: register 1-10 guardians with threshold voting
+  - `setGuardians(threshold, addresses)` - register guardian list
+  - `initiateRecovery(target, newOwner)` - guardian starts recovery
+  - `approveRecovery(target)` - other guardians vote
+  - `finalizeRecovery(target)` - execute after threshold + 100 block timelock
+- [x] **Key Rotation**: change private key without changing address
+  - `initiateKeyRotation(newKeyHash)` - start with 100-block timelock
+  - `getKeyRotation(addr)` - check rotation status
+- [x] Stateful precompile interface (`StatefulPrecompiledContract`) for EVM state access
+- [x] All storage deterministic via system address `0x...AA22` with keccak256 keys
+- [x] Gas: 2,000 for reads, 10,000 for writes
+
+#### 8.3 Fork Infrastructure
+- [x] `NovenForkBlock = 20,500` (devnet activation block)
+- [x] Peer version gate: minimum v1.0.2 (backwards compatible)
+- [x] Version bumped to v1.0.3-devnet
+- [x] All 5 nodes + VPS upgraded and deployed
+
 ### v1.0.2 Consensus Verification Results
 
 Full test suite run on 2026-03-24:
