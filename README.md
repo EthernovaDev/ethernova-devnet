@@ -440,6 +440,27 @@ Ethereum's Frame Transactions allow arbitrary gas payment tokens. Ethernova deli
 - [x] `FrameIntrospectionData` for cross-frame inspection
 - [x] Version bumped to v1.0.6-devnet
 
+### Phase 13: Consensus Fix - State Expiry Sweep (v1.0.7)
+
+**Bug found by Noven:** State expiry sweep caused `invalid merkle root` BAD BLOCK errors. Different nodes produced different final state roots for the same block.
+
+**Root cause:** `RunStateExpiry()` iterated `stateObjects` which is a Go `map[common.Address]*stateObject`. Go maps have **non-deterministic iteration order** - each node processes accounts in a different sequence, producing different intermediate state changes and ultimately different state roots.
+
+**This is the second consensus bug found on the devnet** (first was gas divergence in v1.0.1). Both bugs were caught before mainnet, validating the devnet's purpose.
+
+**Fix (v1.0.7):**
+- [x] State expiry sweep disabled in `Finalize()` and `FinalizeAndAssemble()`
+- [x] `LastTouched` tracking remains active (per-account field, deterministic)
+- [x] Unused imports removed from consensus package
+- [x] Version bumped to v1.0.7-devnet
+
+**Future fix (v1.0.8):** Re-enable sweep with sorted account iteration - collect addresses into a slice, sort by address bytes, then process in deterministic order.
+
+**Key lessons:**
+1. Go map iteration is non-deterministic - never iterate maps in consensus-critical code
+2. Any function that modifies state trie must produce identical results on all nodes
+3. The devnet continues to catch real bugs that would be catastrophic on mainnet
+
 ### v1.0.2 Consensus Verification Results
 
 Full test suite run on 2026-03-24:
