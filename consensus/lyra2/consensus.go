@@ -393,13 +393,11 @@ func (lyra2 *Lyra2) Finalize(chain consensus.ChainHeaderReader, header *types.He
 	// Ethernova: set current block for LastTouched tracking
 	statedb.SetCurrentBlock(header.Number.Uint64())
 
-	// Ethernova: run state expiry after StateExpiryForkBlock
-	if header.Number.Uint64() >= ethernova.StateExpiryForkBlock {
-		expired := statedb.RunStateExpiry(header.Number.Uint64(), ethernova.StateExpiryPeriod)
-		if expired > 0 {
-			log.Info("State expiry sweep", "block", header.Number, "archived", expired)
-		}
-	}
+	// Ethernova: state expiry sweep DISABLED in v1.0.7
+	// The sweep iterates a Go map (stateObjects) which has non-deterministic order.
+	// This caused different state roots on different nodes = invalid merkle root errors.
+	// Fix requires sorting accounts before processing. Will be re-enabled in v1.0.8.
+	// LastTouched tracking remains active (deterministic per-account field update).
 
 	header.Root = statedb.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 }
@@ -414,12 +412,7 @@ func (lyra2 *Lyra2) FinalizeAndAssemble(chain consensus.ChainHeaderReader, heade
 	statedb.SetCurrentBlock(header.Number.Uint64())
 
 	// Ethernova: run state expiry after StateExpiryForkBlock
-	if header.Number.Uint64() >= ethernova.StateExpiryForkBlock {
-		expired := statedb.RunStateExpiry(header.Number.Uint64(), ethernova.StateExpiryPeriod)
-		if expired > 0 {
-			log.Info("State expiry sweep", "block", header.Number, "archived", expired)
-		}
-	}
+	// Ethernova: state expiry sweep DISABLED in v1.0.7 (same reason as Finalize)
 
 	header.Root = statedb.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 
