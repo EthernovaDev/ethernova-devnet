@@ -23,4 +23,9 @@ const (
 	// Enables: atomic batching, fee delegation, scheduled transactions.
 	// Gas is always paid in NOVA (no ERC-20 gas payments).
 	TempoTxForkBlock uint64 = 23300
+	// FrameAAForkBlock activates Frame-style Account Abstraction.
+	// Smart contract wallets can validate and approve transactions.
+	// Precompiles 0x23 (novaFrameApprove) and 0x24 (novaFrameIntrospect).
+	// Inspired by EIP-8141 Frame Transactions.
+	FrameAAForkBlock uint64 = 24000
 )

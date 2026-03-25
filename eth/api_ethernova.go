@@ -340,6 +340,18 @@ func (api *EthernovaAPI) Precompiles() []PrecompileInfo {
 			Description: "Native smart wallet - key rotation, guardian recovery",
 			GasModel:    "2000 gas reads, 10000 gas writes",
 		},
+		{
+			Address:     "0x0000000000000000000000000000000000000023",
+			Name:        "novaFrameApprove",
+			Description: "Frame AA: smart contracts approve/reject transactions (EIP-8141 style)",
+			GasModel:    "5000 gas per approval",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000024",
+			Name:        "novaFrameIntrospect",
+			Description: "Frame AA: inspect other frames in the transaction for conditional logic",
+			GasModel:    "2000 gas per introspection",
+		},
 	}
 }
 

@@ -110,6 +110,8 @@ func PrecompiledContractsForConfig(config ctypes.ChainConfigurator, bn *big.Int,
 	precompileds[common.BytesToAddress([]byte{0x20})] = &novaBatchHash{}
 	precompileds[common.BytesToAddress([]byte{0x21})] = &novaBatchVerify{}
 	precompileds[common.BytesToAddress([]byte{0x22})] = &novaAccountManager{}
+	precompileds[common.BytesToAddress([]byte{0x23})] = &novaFrameApprove{}
+	precompileds[common.BytesToAddress([]byte{0x24})] = &novaFrameIntrospect{}
 
 	return precompileds
 }

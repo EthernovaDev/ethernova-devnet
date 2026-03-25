@@ -379,6 +379,67 @@ Unlike Ethereum's EIP-8141 which allows paying gas in any token, Ethernova delib
 - [x] `ExecuteTempoCalls` processor with atomic snapshot/revert
 - [x] Version bumped to v1.0.5-devnet
 
+### Phase 12: Frame-Style Account Abstraction (v1.0.6)
+
+Inspired by EIP-8141 Frame Transactions (endorsed by Vitalik Buterin). Implements the flexible AA foundation where smart contracts can validate and approve transactions, enabling use cases not possible with rigid AA proposals.
+
+#### 12.1 novaFrameApprove Precompile (0x23)
+- [x] Smart contracts call this to approve sending and/or paying gas for a transaction
+- [x] Three approval modes:
+  - `0x00` - Approve sending the transaction
+  - `0x01` - Approve paying gas for the transaction
+  - `0x02` - Approve both sending and gas payment
+- [x] Equivalent of EIP-8141's APPROVE opcode, but as a precompile (no tool breakage)
+- [x] Gas: 5,000 per approval call
+- [x] Per-transaction approval state, reset for each new transaction
+
+#### 12.2 novaFrameIntrospect Precompile (0x24)
+- [x] Allows a frame to inspect other frames in the transaction
+- [x] Field selectors:
+  - `0x01` - Target address of another frame
+  - `0x02` - Keccak256 hash of another frame's calldata
+  - `0x03` - Value being sent in another frame
+  - `0x04` - Gas limit of another frame
+  - `0x05` - Function selector (first 4 bytes of calldata)
+- [x] Gas: 2,000 per introspection call
+- [x] Enables conditional sponsorship: "only pay gas if next frame transfers tokens to me"
+
+#### 12.3 What This Enables
+| Use Case | How |
+|----------|-----|
+| Smart contract wallets | Contract validates signature, calls APPROVE (passkeys, multisig, quantum-resistant) |
+| Conditional gas sponsorship | Sponsor introspects next frame, only approves if user pays in tokens |
+| Privacy transactions | Mixer contract validates ZK proof, approves without revealing sender |
+| Delegated permissions | Account contract grants fine-grained execution rights to other accounts |
+| AI agent automation | Agent contract validates AI signature, approves bounded actions |
+
+#### 12.4 Why No ERC-20 Gas Payments
+Ethereum's Frame Transactions allow arbitrary gas payment tokens. Ethernova deliberately keeps gas in NOVA only:
+- **Protects native token value**: Gas utility creates base demand for NOVA
+- **Fee delegation solves the UX problem**: DApps sponsor gas in NOVA for users
+- **Simpler mempool**: No need for fee AMM or token price oracles
+- **Noven's insight**: "paying for gas with ERC-20 tokens seems to reduce the utility of the native coin"
+
+#### 12.5 Comparison: Ethernova vs Ethereum AA Approaches
+
+| Feature | Ethereum (debating) | Ethernova (shipped) |
+|---------|--------------------|--------------------|
+| Atomic batching | EIP-8141 or Tempo (pending) | Phase 11 - live on devnet |
+| Fee delegation | EIP-8141 or Tempo (pending) | Phase 11 - live on devnet |
+| Scheduling | Tempo only (pending) | Phase 11 - live on devnet |
+| Smart contract wallets | EIP-8141 (pending) | Phase 12 - live on devnet |
+| Frame introspection | EIP-8141 (pending) | Phase 12 - live on devnet |
+| State expiry | Years of discussion | Phase 9 - live on devnet |
+| ERC-20 gas | Under debate | Rejected (protects NOVA) |
+
+#### 12.6 Configuration
+- [x] `FrameAAForkBlock = 24,000` in `params/ethernova/forks.go`
+- [x] Precompiles 0x23 and 0x24 registered in `contracts.go`
+- [x] `ethernova_precompiles` RPC now lists 5 custom precompiles
+- [x] `FrameApprovalStore` for per-transaction approval state
+- [x] `FrameIntrospectionData` for cross-frame inspection
+- [x] Version bumped to v1.0.6-devnet
+
 ### v1.0.2 Consensus Verification Results
 
 Full test suite run on 2026-03-24:
