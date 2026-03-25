@@ -365,6 +365,57 @@ bash devnet/v102-consensus-test.sh
 
 All 5 nodes (4 local + 1 VPS) maintained consensus throughout all tests.
 
+### Phase 8: Noven Fork - State Bloat & Smart Wallets (v1.0.3)
+
+Named after community member **Noven** who identified the need for Ethereum-level improvements to state bloat and account security. These features will be activated on mainnet via the Noven Fork at a future block number.
+
+#### State Rent Surcharge (anti-bloat)
+Contracts pay extra gas on SSTORE proportional to their storage activity, incentivizing developers to clean up unused state.
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| Free slots | 10 | First 10 storage operations are free |
+| Base rent | 5 gas/slot | Extra gas per storage slot beyond threshold |
+| Max surcharge | 50,000 gas | Cap to prevent excessive costs |
+| Delete bonus | 0 gas | Deleting storage has zero surcharge (cleanup incentive) |
+| Applies to | Contracts only | EOAs are not affected |
+
+RPC Endpoints:
+- `ethernova_stateRent` - current configuration
+- `ethernova_stateRentToggle(bool)` - enable/disable
+- `ethernova_stateRentSetBase(uint)` - adjust base rent
+
+#### Native Smart Wallet (precompile 0x22 - novaAccountManager)
+Protocol-level account security without relying on smart contract wallets.
+
+**Guardian Recovery:**
+1. Account owner registers 1-10 guardians with a voting threshold
+2. If owner loses keys, a guardian initiates recovery with a new owner address
+3. Other guardians approve (must reach threshold, e.g. 3 of 5)
+4. After 100-block timelock, recovery is finalized
+5. No centralized recovery service needed
+
+**Key Rotation:**
+1. Owner initiates rotation with hash of new key
+2. 100-block timelock for security (prevents instant theft)
+3. After timelock, rotation takes effect
+
+| Function | Selector | Gas | Description |
+|----------|----------|-----|-------------|
+| setGuardians | 0x01 | 10,000 | Register guardians + threshold |
+| getGuardians | 0x02 | 2,000 | Query guardian list |
+| initiateRecovery | 0x03 | 10,000 | Start recovery (guardian only) |
+| approveRecovery | 0x04 | 10,000 | Vote to approve (guardian only) |
+| finalizeRecovery | 0x05 | 10,000 | Execute after threshold + timelock |
+| getRecoveryStatus | 0x06 | 2,000 | Check recovery state |
+| initiateKeyRotation | 0x07 | 10,000 | Start key rotation |
+| getKeyRotation | 0x08 | 2,000 | Check rotation status |
+
+#### Noven Fork Activation
+- **Devnet**: Active from genesis (block 0) for immediate testing
+- **Mainnet**: Will activate at a specific future block (TBD after devnet validation)
+- **Requirement**: All nodes must upgrade to v1.0.3+ before activation block
+
 ## Known Issues & Lessons Learned
 
 ### v1.0.0/v1.0.1: Consensus Bug (FIXED in v1.0.2)
