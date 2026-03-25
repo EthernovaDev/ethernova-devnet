@@ -12,4 +12,11 @@ const (
 	// Devnet activation: block 20,500 (~20 min from deployment)
 	// Mainnet: TBD after devnet validation
 	NovenForkBlock uint64 = 20500
+	// StateExpiryForkBlock activates the state expiry garbage collector.
+	// Contracts/tokens with no activity for StateExpiryPeriod blocks get archived.
+	// EOA wallets are NEVER expired. Archived state can be restored with merkle proof.
+	// Devnet activation: block 21,500
+	StateExpiryForkBlock uint64 = 21500
+	// StateExpiryPeriod is the number of blocks of inactivity before a contract is archived.
+	StateExpiryPeriod uint64 = 1000
 )

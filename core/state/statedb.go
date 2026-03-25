@@ -137,6 +137,10 @@ type StateDB struct {
 
 	// Testing hooks
 	onCommit func(states *triestate.Set) // Hook invoked when commit is performed
+
+	// Ethernova: state expiry tracking
+	currentBlockNumber uint64                    // Current block being processed
+	expiredAccounts    map[common.Address][]byte // Archived accounts (merkle proof receipts)
 }
 
 // New creates a new state from a given trie.
@@ -391,6 +395,7 @@ func (s *StateDB) SetBalance(addr common.Address, amount *uint256.Int) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetBalance(amount)
+		stateObject.TouchAccount(s.currentBlockNumber)
 	}
 }
 
@@ -398,6 +403,7 @@ func (s *StateDB) SetNonce(addr common.Address, nonce uint64) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetNonce(nonce)
+		stateObject.TouchAccount(s.currentBlockNumber)
 	}
 }
 
@@ -405,6 +411,7 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetCode(crypto.Keccak256Hash(code), code)
+		stateObject.TouchAccount(s.currentBlockNumber)
 	}
 }
 
@@ -412,7 +419,59 @@ func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetState(key, value)
+		stateObject.TouchAccount(s.currentBlockNumber)
 	}
+}
+
+// SetCurrentBlock sets the current block number for state expiry tracking.
+func (s *StateDB) SetCurrentBlock(blockNumber uint64) {
+	s.currentBlockNumber = blockNumber
+}
+
+// GetExpiredAccounts returns the list of contract addresses that have been
+// expired (archived) during this block's state expiry sweep.
+func (s *StateDB) GetExpiredAccounts() map[common.Address][]byte {
+	return s.expiredAccounts
+}
+
+// RunStateExpiry iterates all dirty/pending contract accounts and archives
+// those that haven't been touched in StateExpiryPeriod blocks.
+// Only contracts are expired. EOA wallets are never touched.
+// The archived account's slim RLP is stored as a receipt for future restoration.
+func (s *StateDB) RunStateExpiry(currentBlock, expiryPeriod uint64) int {
+	if s.expiredAccounts == nil {
+		s.expiredAccounts = make(map[common.Address][]byte)
+	}
+	expired := 0
+	for addr, obj := range s.stateObjects {
+		if obj.deleted || obj.selfDestructed {
+			continue
+		}
+		if !obj.IsContract() {
+			continue // never expire EOAs
+		}
+		if obj.IsExpired(currentBlock, expiryPeriod) {
+			// Archive: save slim RLP as receipt
+			receipt := types.SlimAccountRLP(obj.data)
+			s.expiredAccounts[addr] = receipt
+
+			// Mark as self-destructed to remove from state trie
+			obj.markSelfdestructed()
+			obj.data.Balance = new(uint256.Int)
+			obj.data.Nonce = 0
+			obj.data.CodeHash = types.EmptyCodeHash.Bytes()
+			obj.data.Root = types.EmptyRootHash
+
+			log.Info("State expiry: archived contract",
+				"address", addr.Hex(),
+				"lastTouched", obj.data.LastTouched,
+				"currentBlock", currentBlock,
+				"inactiveBlocks", currentBlock-obj.data.LastTouched)
+
+			expired++
+		}
+	}
+	return expired
 }
 
 // SetStorage replaces the entire storage for the specified account with given

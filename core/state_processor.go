@@ -74,6 +74,9 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			mutations.ApplyDAOHardFork(statedb)
 		}
 	}
+	// Ethernova: set current block number for state expiry LastTouched tracking
+	statedb.SetCurrentBlock(block.NumberU64())
+
 	var (
 		context = NewEVMBlockContext(header, p.bc, nil)
 		vmenv   = vm.NewEVM(context, vm.TxContext{}, statedb, p.config, cfg)
