@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
 	ethernova "github.com/ethereum/go-ethereum/params/ethernova"
+	"github.com/holiman/uint256"
 )
 
 // TempoResult holds the result of executing a Tempo transaction.
@@ -79,13 +80,21 @@ func ExecuteTempoCalls(
 			callGas = gasRemaining
 		}
 
+		// Convert value to uint256
+		var value *uint256.Int
+		if call.Value != nil {
+			value, _ = uint256.FromBig(call.Value)
+		} else {
+			value = new(uint256.Int)
+		}
+
 		// Execute the call
 		ret, gasLeft, err := evm.Call(
 			vm.AccountRef(sender),
 			call.Target,
 			call.Data,
 			callGas,
-			call.Value,
+			value,
 		)
 
 		gasUsed := callGas - gasLeft
