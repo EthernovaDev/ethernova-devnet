@@ -68,7 +68,7 @@ type SlimAccount struct {
 	Balance     *uint256.Int
 	Root        []byte // Nil if root equals to types.EmptyRootHash
 	CodeHash    []byte // Nil if hash equals to types.EmptyCodeHash
-	LastTouched uint64
+	LastTouched uint64 `rlp:"optional"`
 }
 
 // SlimAccountRLP encodes the state account in 'slim RLP' format.
