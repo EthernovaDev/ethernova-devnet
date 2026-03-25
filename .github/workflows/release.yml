@@ -1,9 +1,11 @@
 name: release
-
+# DISABLED: was uploading duplicate binaries with old names (ethernova-linux-amd64, ethernova-windows-amd64.exe)
+# We manually upload EthernovaDevnet.exe and EthernovaDevnet-linux-amd64 instead.
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+#  push:
+#    tags:
+#      - "v*"
 
 permissions:
   contents: write
