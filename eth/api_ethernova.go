@@ -334,5 +334,37 @@ func (api *EthernovaAPI) Precompiles() []PrecompileInfo {
 			Description: "Batch ecrecover - verify multiple signatures in one call",
 			GasModel:    "2000 gas per signature (vs 3000 for individual ecrecover)",
 		},
+		{
+			Address:     "0x0000000000000000000000000000000000000022",
+			Name:        "novaAccountManager",
+			Description: "Native smart wallet - key rotation, guardian recovery",
+			GasModel:    "2000 gas reads, 10000 gas writes",
+		},
 	}
+}
+
+// StateRent returns the current state rent configuration.
+func (api *EthernovaAPI) StateRent() map[string]interface{} {
+	return map[string]interface{}{
+		"enabled":          vm.GlobalStateRent.Enabled(),
+		"baseRentPerSlot":  vm.GlobalStateRent.BaseRentPerSlot,
+		"maxRentSurcharge": vm.GlobalStateRent.MaxRentSurcharge,
+		"freeSlotThreshold": vm.GlobalStateRent.FreeSlotThreshold,
+		"novenForkBlock":   ethernova.NovenForkBlock,
+	}
+}
+
+// StateRentToggle enables or disables state rent.
+func (api *EthernovaAPI) StateRentToggle(enabled bool) bool {
+	vm.GlobalStateRent.SetEnabled(enabled)
+	return vm.GlobalStateRent.Enabled()
+}
+
+// StateRentSetBase sets the base rent per storage slot.
+func (api *EthernovaAPI) StateRentSetBase(gasPerSlot uint64) uint64 {
+	if gasPerSlot > 100 {
+		gasPerSlot = 100
+	}
+	vm.GlobalStateRent.BaseRentPerSlot = gasPerSlot
+	return vm.GlobalStateRent.BaseRentPerSlot
 }

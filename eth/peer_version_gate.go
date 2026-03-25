@@ -29,10 +29,11 @@ func (v semver) lessThan(other semver) bool {
 }
 
 func minPeerVersion() semver {
+	// Allow peers from v1.0.2+ to connect (backwards compatible within minor)
 	return semver{
 		major: params.VersionMajor,
 		minor: params.VersionMinor,
-		patch: params.VersionPatch,
+		patch: 2, // minimum compatible patch version
 	}
 }
 
