@@ -395,7 +395,10 @@ func (s *StateDB) SetBalance(addr common.Address, amount *uint256.Int) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetBalance(amount)
-		stateObject.TouchAccount(s.currentBlockNumber)
+		// Ethernova: TouchAccount DISABLED in v1.0.7 - writing LastTouched changes
+		// the account RLP encoding which changes the state root. Since Windows and
+		// Linux builds may process transactions differently, this causes merkle root
+		// divergence. Will re-enable when LastTouched is stored outside the account trie.
 	}
 }
 
@@ -403,7 +406,6 @@ func (s *StateDB) SetNonce(addr common.Address, nonce uint64) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetNonce(nonce)
-		stateObject.TouchAccount(s.currentBlockNumber)
 	}
 }
 
@@ -411,7 +413,6 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetCode(crypto.Keccak256Hash(code), code)
-		stateObject.TouchAccount(s.currentBlockNumber)
 	}
 }
 
@@ -419,7 +420,6 @@ func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetState(key, value)
-		stateObject.TouchAccount(s.currentBlockNumber)
 	}
 }
 

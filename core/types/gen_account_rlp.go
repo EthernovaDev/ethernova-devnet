@@ -23,10 +23,13 @@ func (obj *StateAccount) EncodeRLP(_w io.Writer) error {
 	}
 	w.WriteBytes(obj.Root[:])
 	w.WriteBytes(obj.CodeHash)
-	// Only encode LastTouched if non-zero (preserves compatibility with pre-v1.0.4)
-	if obj.LastTouched > 0 {
-		w.WriteUint64(obj.LastTouched)
-	}
+	// Ethernova: LastTouched encoding DISABLED in v1.0.7
+	// Writing this field to the trie changes the state root and caused BAD BLOCK
+	// errors between Windows and Linux nodes. The field exists in the struct but
+	// is never persisted to the trie until we move it to a separate storage.
+	// if obj.LastTouched > 0 {
+	// 	w.WriteUint64(obj.LastTouched)
+	// }
 	w.ListEnd(_tmp0)
 	return w.Flush()
 }
