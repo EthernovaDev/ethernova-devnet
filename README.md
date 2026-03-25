@@ -333,6 +333,52 @@ Solves Ethereum's #1 scalability problem: state bloat. Dead contracts and abando
 - [x] Version bumped to v1.0.4-devnet
 - [x] All nodes upgraded and deployed
 
+### Phase 10: Cleanup - Remove State Rent (v1.0.5)
+
+State Rent surcharge was redundant with State Expiry. Having both is like charging a fine AND throwing away the property. We keep the garbage truck (State Expiry), remove the tax (State Rent).
+
+- [x] Removed `core/vm/state_rent.go` (SSTORE surcharge)
+- [x] Removed `ethernova_stateRent`, `ethernova_stateRentToggle`, `ethernova_stateRentSetBase` RPC endpoints
+- [x] Adaptive gas / optimizer gas-modifying hooks remain monitoring-only (no gas changes since v1.0.2)
+- [x] Cleaned up dead code references
+
+### Phase 11: Tempo-Style Smart Transactions (v1.0.5)
+
+Inspired by Tempo Transactions, practical Account Abstraction features for real-world use cases. **Gas is always paid in NOVA** - no ERC-20 gas payments, protecting the native token's value.
+
+#### 11.1 Atomic Batching
+- [x] New transaction type `0x04` (TEMPO_TX_TYPE) with array of calls
+- [x] All calls execute atomically - if any call reverts, entire batch reverts
+- [x] Maximum 16 calls per transaction
+- [x] Use case: approve + swap in one transaction, multi-transfer, etc.
+
+#### 11.2 Fee Delegation
+- [x] Optional `feePayer` field - another wallet pays gas on your behalf
+- [x] Fee payer co-signs the transaction with their own ECDSA signature
+- [x] **Gas always in NOVA** - DApps can sponsor gas for users without devaluing native token
+- [x] Use case: DApp onboarding (new users don't need to buy NOVA first)
+
+#### 11.3 Scheduled Transactions
+- [x] `validBefore` - transaction expires if not mined before this block
+- [x] `validAfter` - transaction only valid after this block
+- [x] Use case: limit orders, recurring payments, AI agent automation
+- [x] Eliminates need for third-party relayers or centralized schedulers
+
+#### 11.4 Design Decision: No ERC-20 Gas Payments
+Unlike Ethereum's EIP-8141 which allows paying gas in any token, Ethernova deliberately requires NOVA for all gas payments. Rationale:
+- Paying gas in stablecoins reduces demand for the native token
+- Native token must have utility beyond speculation
+- Fee delegation solves the UX problem (DApps sponsor gas in NOVA)
+- Simpler implementation, fewer attack vectors
+
+#### 11.5 Configuration
+- [x] `TempoTxForkBlock = 23,300` in `params/ethernova/forks.go`
+- [x] `ethernova_tempoConfig` RPC endpoint
+- [x] `ethernova_stateExpiry` RPC endpoint
+- [x] `TempoTransactionData` struct with calls, fee payer, scheduling fields
+- [x] `ExecuteTempoCalls` processor with atomic snapshot/revert
+- [x] Version bumped to v1.0.5-devnet
+
 ### v1.0.2 Consensus Verification Results
 
 Full test suite run on 2026-03-24:

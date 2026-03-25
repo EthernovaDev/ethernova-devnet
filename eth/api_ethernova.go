@@ -343,28 +343,29 @@ func (api *EthernovaAPI) Precompiles() []PrecompileInfo {
 	}
 }
 
-// StateRent returns the current state rent configuration.
-func (api *EthernovaAPI) StateRent() map[string]interface{} {
+// StateRent was removed in v1.0.5 (Phase 10 cleanup).
+// State Expiry garbage collector replaces rent surcharge.
+
+// TempoConfig returns the current Tempo transaction configuration.
+func (api *EthernovaAPI) TempoConfig() map[string]interface{} {
 	return map[string]interface{}{
-		"enabled":          vm.GlobalStateRent.Enabled(),
-		"baseRentPerSlot":  vm.GlobalStateRent.BaseRentPerSlot,
-		"maxRentSurcharge": vm.GlobalStateRent.MaxRentSurcharge,
-		"freeSlotThreshold": vm.GlobalStateRent.FreeSlotThreshold,
-		"novenForkBlock":   ethernova.NovenForkBlock,
+		"forkBlock":     ethernova.TempoTxForkBlock,
+		"txType":        "0x04",
+		"maxCalls":      16,
+		"feeDelegation": true,
+		"scheduling":    true,
+		"erc20Gas":      false,
+		"gasToken":      "NOVA (native only)",
+		"description":   "Tempo-style smart transactions: atomic batching, fee delegation, scheduling",
 	}
 }
 
-// StateRentToggle enables or disables state rent.
-func (api *EthernovaAPI) StateRentToggle(enabled bool) bool {
-	vm.GlobalStateRent.SetEnabled(enabled)
-	return vm.GlobalStateRent.Enabled()
-}
-
-// StateRentSetBase sets the base rent per storage slot.
-func (api *EthernovaAPI) StateRentSetBase(gasPerSlot uint64) uint64 {
-	if gasPerSlot > 100 {
-		gasPerSlot = 100
+// StateExpiry returns the current state expiry configuration.
+func (api *EthernovaAPI) StateExpiry() map[string]interface{} {
+	return map[string]interface{}{
+		"forkBlock":    ethernova.StateExpiryForkBlock,
+		"expiryPeriod": ethernova.StateExpiryPeriod,
+		"appliesTo":    "contracts only (EOAs never expire)",
+		"description":  "Blockchain garbage collector - archives dead contracts after inactivity period",
 	}
-	vm.GlobalStateRent.BaseRentPerSlot = gasPerSlot
-	return vm.GlobalStateRent.BaseRentPerSlot
 }

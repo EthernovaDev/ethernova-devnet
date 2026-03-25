@@ -19,4 +19,8 @@ const (
 	StateExpiryForkBlock uint64 = 21500
 	// StateExpiryPeriod is the number of blocks of inactivity before a contract is archived.
 	StateExpiryPeriod uint64 = 1000
+	// TempoTxForkBlock activates Tempo-style smart transactions.
+	// Enables: atomic batching, fee delegation, scheduled transactions.
+	// Gas is always paid in NOVA (no ERC-20 gas payments).
+	TempoTxForkBlock uint64 = 23300
 )
