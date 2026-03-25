@@ -307,6 +307,32 @@ Named after community member **Noven** who identified the critical need for Ethe
 - [x] Version bumped to v1.0.3-devnet
 - [x] All 5 nodes + VPS upgraded and deployed
 
+### Phase 9: State Expiry - Blockchain Garbage Collector (v1.0.4)
+
+Solves Ethereum's #1 scalability problem: state bloat. Dead contracts and abandoned tokens are automatically archived after 1,000 blocks of inactivity, keeping the state trie lean.
+
+#### 9.1 LastTouched Tracking
+- [x] New `LastTouched` field in `StateAccount` struct (persisted via RLP)
+- [x] Updated `gen_account_rlp.go` encoder to include 5th field
+- [x] Updated `SlimAccount` encoding/decoding
+- [x] `LastTouched` updates on: `SetBalance`, `SetNonce`, `SetState`, `SetCode`
+- [x] `SetCurrentBlock()` called in `state_processor.go` and `consensus/lyra2`
+
+#### 9.2 State Expiry Engine
+- [x] `RunStateExpiry(currentBlock, period)` sweep in `statedb.go`
+- [x] Runs at end of every block after `StateExpiryForkBlock` (21,500)
+- [x] Only expires contracts (checks `IsContract()` - code hash != empty)
+- [x] EOA wallets are **absolutely exempt** - `IsExpired()` returns false for non-contracts
+- [x] Pre-fork accounts (LastTouched=0) are not expired until first post-fork touch
+- [x] Archived contracts stored as slim RLP receipt for future restoration
+
+#### 9.3 Configuration
+- [x] `StateExpiryForkBlock = 21,500` in `params/ethernova/forks.go`
+- [x] `StateExpiryPeriod = 1,000` blocks (~4 hours on devnet)
+- [x] Integrated into `lyra2.Finalize()` and `lyra2.FinalizeAndAssemble()` (consensus-level)
+- [x] Version bumped to v1.0.4-devnet
+- [x] All nodes upgraded and deployed
+
 ### v1.0.2 Consensus Verification Results
 
 Full test suite run on 2026-03-24:
@@ -446,6 +472,67 @@ Protocol-level account security without relying on smart contract wallets.
 - **Devnet**: Active from genesis (block 0) for immediate testing
 - **Mainnet**: Will activate at a specific future block (TBD after devnet validation)
 - **Requirement**: All nodes must upgrade to v1.0.3+ before activation block
+
+### Phase 9: State Expiry - Blockchain Garbage Collector (v1.0.4)
+
+A native garbage collector that archives dead contracts and tokens, solving Ethereum's state bloat problem. The state trie grows indefinitely on Ethereum because abandoned contracts and tokens stay in memory forever. Ethernova's State Expiry removes them automatically while keeping a cryptographic receipt so users can restore them if needed.
+
+#### How it works
+
+1. Every contract account now tracks a `LastTouched` field (the block number of its last access)
+2. `LastTouched` updates on any interaction: balance change, nonce change, storage write, code deploy, or contract call
+3. After `StateExpiryForkBlock` (block 21,500), a sweep runs at the end of every block
+4. Any **contract** that hasn't been touched in `StateExpiryPeriod` (1,000 blocks) gets archived
+5. The archived contract's full state is stored as a slim RLP receipt (merkle proof)
+6. The contract is removed from the active state trie, reducing node memory and disk
+
+#### What gets expired vs what doesn't
+
+| Type | Expires? | Why |
+|------|----------|-----|
+| Dead contracts (no calls in 1000 blocks) | Yes | Frees state trie space |
+| Abandoned ERC-20 tokens | Yes | Token contract with no transfers |
+| Active contracts (DEX, bridges) | No | Continuous activity keeps them alive |
+| EOA wallets (regular accounts) | **Never** | User funds are always safe |
+| Precompiles (0x01-0x22) | **Never** | System contracts are exempt |
+| Recently deployed contracts | No | 1000 block grace period |
+
+#### Configuration
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `StateExpiryForkBlock` | 21,500 | Block where expiry sweeps begin |
+| `StateExpiryPeriod` | 1,000 blocks | Inactivity threshold (~4 hours on devnet) |
+| Applies to | Contracts only | Code hash != empty |
+| EOA protection | Absolute | Wallets can never be expired |
+
+#### State Account Changes
+
+The `StateAccount` struct now includes a 5th field:
+
+```go
+type StateAccount struct {
+    Nonce       uint64
+    Balance     *uint256.Int
+    Root        common.Hash
+    CodeHash    []byte
+    LastTouched uint64  // NEW: block number of last access
+}
+```
+
+This field is encoded/decoded via RLP and persisted to the state trie. All nodes must agree on this field for consensus.
+
+#### Future: State Restoration
+
+In v1.0.5, archived contracts will be restorable by submitting a merkle proof transaction. The user provides the archived receipt, the network verifies the proof, and the contract is re-inserted into the active state trie with its original storage.
+
+#### Why this matters for mainnet
+
+Ethereum's state trie is ~250 GB and growing. Running a full node requires expensive hardware, leading to centralization. By expiring unused state:
+- Active state trie stays small
+- Node requirements stay low
+- More people can run nodes = more decentralization
+- Network remains fast even after years of operation
 
 ## Known Issues & Lessons Learned
 
