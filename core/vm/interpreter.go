@@ -137,6 +137,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// Ethernova Phase 4: bytecode analysis at first encounter
 	GlobalBytecodeAnalyzer.Analyze(contract.Address(), contract.Code)
 
+	// Ethernova v1.1.0: deterministic static bytecode classification
+	// This replaces the old runtime-based PatternTracker for gas adjustment.
+	// Classification depends ONLY on bytecode, so it is identical across all nodes.
+	GlobalStaticClassifier.Classify(contract.Address(), contract.Code)
+
 	// Ethernova Phase 4: call cache DISABLED for consensus safety (v1.0.2)
 	// Cache hits/misses differ per node causing execution divergence.
 	// Bytecode analysis still runs for RPC reporting.
@@ -222,10 +227,13 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Ethernova: optimizer pattern detection (monitoring only, v1.0.2)
 		// Gas refunds DISABLED - caused non-deterministic gas across nodes.
 		GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost)
-		// Ethernova: adaptive gas tracking (monitoring only, v1.0.2)
-		// Gas discount/penalty DISABLED - each node has different profiling
-		// data causing 4-17 gas divergence and BAD BLOCK errors.
-		// Data still available via ethernova_adaptiveGas RPC.
+
+		// Ethernova v1.1.0: deterministic adaptive gas adjustment
+		// Uses static bytecode classification (not runtime profiling).
+		// Same bytecode → same classification → same gas on all nodes.
+		if GlobalAdaptiveGas.Enabled.Load() {
+			cost = GlobalStaticClassifier.ApplyGasAdjustment(contract.Address(), cost)
+		}
 		// Static portion of gas
 		if !contract.UseGas(cost) {
 			return nil, ErrOutOfGas

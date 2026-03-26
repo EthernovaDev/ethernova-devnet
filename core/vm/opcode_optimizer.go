@@ -185,6 +185,12 @@ func (at *AutoTuner) IsEnabled() bool {
 
 // MaybeTune checks if it's time to auto-tune and adjusts percentages.
 // Should be called once per block.
+//
+// SAFETY NOTE (v1.1.0): Auto-tuning of DiscountPercent/PenaltyPercent is
+// DISABLED because it depends on GlobalProfiler data which differs across
+// nodes (each node may have processed different transactions in different
+// order). Changing consensus-critical gas parameters from non-deterministic
+// data causes state root mismatches. The auto-tuner now only logs metrics.
 func (at *AutoTuner) MaybeTune(blockNum uint64) {
 	if !at.enabled.Load() {
 		return
@@ -196,7 +202,7 @@ func (at *AutoTuner) MaybeTune(blockNum uint64) {
 	}
 	at.lastBlock.Store(blockNum)
 
-	// Analyze current profiling data
+	// Analyze current profiling data (for metrics/logging only)
 	totalOps := GlobalProfiler.TotalOps()
 	if totalOps < 1000 {
 		return // not enough data
@@ -208,7 +214,7 @@ func (at *AutoTuner) MaybeTune(blockNum uint64) {
 		return
 	}
 
-	// Calculate network-wide pure ratio
+	// Calculate network-wide pure ratio (informational only)
 	var pureOps, totalCounted uint64
 	for _, s := range stats {
 		op := opcodeFromString(s.Opcode)
@@ -220,29 +226,11 @@ func (at *AutoTuner) MaybeTune(blockNum uint64) {
 		}
 	}
 
-	if totalCounted == 0 {
-		return
-	}
-
-	pureRatio := (pureOps * 100) / totalCounted
-
-	// Auto-tune logic:
-	// If network is mostly pure (>80%), increase discount to reward more
-	// If network is mostly impure (<40%), increase penalty to discourage
-	currentDiscount := GlobalAdaptiveGas.DiscountPercent
-	currentPenalty := GlobalAdaptiveGas.PenaltyPercent
-
-	if pureRatio > 80 && currentDiscount < at.maxDiscount {
-		GlobalAdaptiveGas.DiscountPercent = currentDiscount + 1
-	} else if pureRatio < 50 && currentDiscount > at.minDiscount {
-		GlobalAdaptiveGas.DiscountPercent = currentDiscount - 1
-	}
-
-	if pureRatio < 40 && currentPenalty < at.maxPenalty {
-		GlobalAdaptiveGas.PenaltyPercent = currentPenalty + 1
-	} else if pureRatio > 70 && currentPenalty > at.minPenalty {
-		GlobalAdaptiveGas.PenaltyPercent = currentPenalty - 1
-	}
+	// DO NOT modify GlobalAdaptiveGas.DiscountPercent or PenaltyPercent
+	// from runtime data — this breaks consensus determinism.
+	// Gas adjustments are now handled by StaticClassifier using bytecode analysis.
+	_ = pureOps
+	_ = totalCounted
 }
 
 // AutoTunerStats holds auto-tuner status for RPC reporting.
