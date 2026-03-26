@@ -599,6 +599,22 @@ Private NOVA transfers using commitment-nullifier scheme. Privacy is **OPTIONAL*
 | Parallel exec | `state_processor.go` analysis | GlobalParallelStats | N/A |
 | Privacy | N/A | `accessors_ethernova_privacy.go` | 0x26 RunStateful + NOVA movement |
 
+### Mainnet Stress Test Results (v1.1.0)
+
+```
+================================================================
+  ETHERNOVA v1.1.0 - MAINNET STRESS TEST
+================================================================
+  Contract deploy:   SUCCESS (gas=100,473)
+  200 transfers:     200/200 sent, 201 mined
+  Blocks:            300 in 219s
+  Max txs/block:     4
+  Precompiles:       9/9
+  RPC endpoints:     11/11
+  BAD BLOCK errors:  ZERO
+================================================================
+```
+
 ### Security Audit Results (v1.1.0)
 
 3 rounds of external AI security review (Gemini) identified 11 vulnerabilities across consensus, economic, and infrastructure layers. All fixed.
