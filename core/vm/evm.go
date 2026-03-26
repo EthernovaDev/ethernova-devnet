@@ -273,6 +273,15 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		if len(code) == 0 {
 			ret, err = nil, nil // gas is unchanged
 		} else {
+			// Ethernova Phase 17: Native reentrancy protection
+			// Block reentrant calls to contracts by default.
+			// Only applies to contract-to-contract calls (depth > 0).
+			if evm.depth > 0 && !GlobalReentrancyGuard.Enter(addr) {
+				return nil, gas, ErrExecutionReverted
+			}
+			if evm.depth > 0 {
+				defer GlobalReentrancyGuard.Exit(addr)
+			}
 			addrCopy := addr
 			// If the account has no code, we can abort here
 			// The depth-check is already done, and precompiles handled above

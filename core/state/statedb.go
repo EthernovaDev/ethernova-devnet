@@ -988,6 +988,8 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 func (s *StateDB) SetTxContext(thash common.Hash, ti int) {
 	s.thash = thash
 	s.txIndex = ti
+	// Ethernova Phase 17: Reset reentrancy guard for each new transaction
+	s.touchedContracts = nil
 }
 
 func (s *StateDB) clearJournalAndRefund() {

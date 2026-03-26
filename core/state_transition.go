@@ -467,6 +467,14 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, value)
 	}
 
+	// Ethernova Phase 18: Extra gas refund on revert
+	// If the transaction reverted, refund 90% of execution gas.
+	// User only pays base intrinsic gas + 10% penalty.
+	if vmerr != nil && vm.RevertRefundEnabled {
+		extraRefund := vm.CalculateRevertRefund(st.gasUsed(), gas) // gas = intrinsic gas
+		st.gasRemaining += extraRefund
+	}
+
 	var gasRefund uint64
 	if !eip3529f {
 		// Before EIP-3529: refunds were capped to gasUsed / 2
