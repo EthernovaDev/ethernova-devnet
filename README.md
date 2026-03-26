@@ -462,6 +462,15 @@ Ethereum's Frame Transactions allow arbitrary gas payment tokens. Ethernova deli
 3. The devnet continues to catch real bugs that would be catastrophic on mainnet
 4. LastTouched tracking also disabled - writing new fields to account RLP changes state root between Windows/Linux builds
 
+### Phase 14: Comprehensive Feature Validation (v1.0.7)
+- [x] 35/37 tests passed (2 minor test bytecode issues, not network bugs)
+- [x] 10/10 consensus blocks verified across multiple nodes
+- [x] 11 custom RPC endpoints responding
+- [x] 4 precompiles tested and functional
+- [x] Contract deployment + interaction verified
+- [x] 50 batch transfers in single block (1,050,000 gas)
+- [x] Zero BAD BLOCK errors
+
 ### Phase 15: State Expiry v2 - External Index (v1.0.8)
 
 The garbage collector is back, rebuilt from scratch with a fundamentally different architecture that solves the consensus bugs from v1.0.4-v1.0.7.
@@ -508,6 +517,14 @@ ArchivedAccounts{address → SlimRLP}                        → LevelDB (separa
 - [x] `TrackContractTouch()` in SetState/SetCode (external only)
 - [x] `FinalizeExpiry()` integrated in consensus Finalize
 - [x] Version bumped to v1.0.8-devnet
+
+### Phase 16: Real Contract Deployment & Extreme Testing (v1.0.8)
+- [x] Counter contract deployed: 100,473 gas, increment() x3, get()=3
+- [x] ERC-20 NovaToken deployed: 412,905 gas, transfer 1000 NTT, balanceOf verified
+- [x] 50 ETH transfers in single block (block 411, gas 1,050,000)
+- [x] 20/20 consensus blocks verified
+- [x] Contracts must compile with `--evm-version istanbul` (no Shanghai PUSH0)
+- [x] Zero BAD BLOCK errors
 
 ### Phases 17-24: Massive Feature Drop (v1.0.9)
 
@@ -582,32 +599,7 @@ Private NOVA transfers using commitment-nullifier scheme. Privacy is **OPTIONAL*
 | Parallel exec | `state_processor.go` analysis | GlobalParallelStats | N/A |
 | Privacy | N/A | `accessors_ethernova_privacy.go` | 0x26 RunStateful + NOVA movement |
 
-### Phase 16: Real Contract Deployment & Extreme Testing (v1.0.8)
-
-First successful real contract deployment on the devnet. All contracts compiled with `solc 0.8.24 --evm-version istanbul` (devnet uses Istanbul EVM, not Shanghai).
-
-#### Deployed Contracts
-| Contract | Address | Gas | Status |
-|----------|---------|-----|--------|
-| Counter | 0xae452be48646eb4bf5ce58b217b90233bf2226b1 | 100,473 | SUCCESS |
-| NovaToken (ERC-20) | 0x7a7e434c646105f7449a669cedd074ab2b44220e | 412,905 | SUCCESS |
-
-#### Test Results
-- [x] **Counter**: deploy + increment() x3 + get() = 3
-- [x] **ERC-20**: deploy (1M supply) + transfer(1000 NTT) + balanceOf = 1000
-- [x] **50 ETH transfers** in single block (block 411, gas 1,050,000)
-- [x] **20/20 consensus blocks** verified (including blocks with contract txs)
-- [x] **5 precompiles** tested: novaBatchHash, novaBatchVerify, novaAccountManager, novaFrameApprove, novaFrameIntrospect
-- [x] **Gas benchmarks**: ETH transfer = 21,000 | Counter.increment() = ~26,000 | ERC-20 transfer = 51,559
-- [x] **Cross-platform**: Windows + Linux miner + VPS all syncing without BAD BLOCK
-- [x] **ZERO consensus errors** across entire test suite
-
-#### Key Finding
-Contracts must be compiled with `--evm-version istanbul`. The devnet's EVM does not support the Shanghai `PUSH0` opcode (0x5f), which is the default target in solc 0.8.20+. Using `--evm-version istanbul` produces compatible bytecode.
-
-### Phase 14: Comprehensive Feature Validation (v1.0.7)
-
-Full test suite run against live devnet with contract deployments, interactions, batch transfers, and cross-node consensus verification.
+### v1.0.2 Consensus Verification
 
 ```
 ================================================================
@@ -753,118 +745,6 @@ bash devnet/v102-consensus-test.sh
 
 All 5 nodes (4 local + 1 VPS) maintained consensus throughout all tests.
 
-### Phase 8: Noven Fork - State Bloat & Smart Wallets (v1.0.3)
-
-Named after community member **Noven** who identified the need for Ethereum-level improvements to state bloat and account security. These features will be activated on mainnet via the Noven Fork at a future block number.
-
-#### State Rent Surcharge (anti-bloat)
-Contracts pay extra gas on SSTORE proportional to their storage activity, incentivizing developers to clean up unused state.
-
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| Free slots | 10 | First 10 storage operations are free |
-| Base rent | 5 gas/slot | Extra gas per storage slot beyond threshold |
-| Max surcharge | 50,000 gas | Cap to prevent excessive costs |
-| Delete bonus | 0 gas | Deleting storage has zero surcharge (cleanup incentive) |
-| Applies to | Contracts only | EOAs are not affected |
-
-RPC Endpoints:
-- `ethernova_stateRent` - current configuration
-- `ethernova_stateRentToggle(bool)` - enable/disable
-- `ethernova_stateRentSetBase(uint)` - adjust base rent
-
-#### Native Smart Wallet (precompile 0x22 - novaAccountManager)
-Protocol-level account security without relying on smart contract wallets.
-
-**Guardian Recovery:**
-1. Account owner registers 1-10 guardians with a voting threshold
-2. If owner loses keys, a guardian initiates recovery with a new owner address
-3. Other guardians approve (must reach threshold, e.g. 3 of 5)
-4. After 100-block timelock, recovery is finalized
-5. No centralized recovery service needed
-
-**Key Rotation:**
-1. Owner initiates rotation with hash of new key
-2. 100-block timelock for security (prevents instant theft)
-3. After timelock, rotation takes effect
-
-| Function | Selector | Gas | Description |
-|----------|----------|-----|-------------|
-| setGuardians | 0x01 | 10,000 | Register guardians + threshold |
-| getGuardians | 0x02 | 2,000 | Query guardian list |
-| initiateRecovery | 0x03 | 10,000 | Start recovery (guardian only) |
-| approveRecovery | 0x04 | 10,000 | Vote to approve (guardian only) |
-| finalizeRecovery | 0x05 | 10,000 | Execute after threshold + timelock |
-| getRecoveryStatus | 0x06 | 2,000 | Check recovery state |
-| initiateKeyRotation | 0x07 | 10,000 | Start key rotation |
-| getKeyRotation | 0x08 | 2,000 | Check rotation status |
-
-#### Noven Fork Activation
-- **Devnet**: Active from genesis (block 0) for immediate testing
-- **Mainnet**: Will activate at a specific future block (TBD after devnet validation)
-- **Requirement**: All nodes must upgrade to v1.0.3+ before activation block
-
-### Phase 9: State Expiry - Blockchain Garbage Collector (v1.0.4)
-
-A native garbage collector that archives dead contracts and tokens, solving Ethereum's state bloat problem. The state trie grows indefinitely on Ethereum because abandoned contracts and tokens stay in memory forever. Ethernova's State Expiry removes them automatically while keeping a cryptographic receipt so users can restore them if needed.
-
-#### How it works
-
-1. Every contract account now tracks a `LastTouched` field (the block number of its last access)
-2. `LastTouched` updates on any interaction: balance change, nonce change, storage write, code deploy, or contract call
-3. After `StateExpiryForkBlock` (block 21,500), a sweep runs at the end of every block
-4. Any **contract** that hasn't been touched in `StateExpiryPeriod` (1,000 blocks) gets archived
-5. The archived contract's full state is stored as a slim RLP receipt (merkle proof)
-6. The contract is removed from the active state trie, reducing node memory and disk
-
-#### What gets expired vs what doesn't
-
-| Type | Expires? | Why |
-|------|----------|-----|
-| Dead contracts (no calls in 1000 blocks) | Yes | Frees state trie space |
-| Abandoned ERC-20 tokens | Yes | Token contract with no transfers |
-| Active contracts (DEX, bridges) | No | Continuous activity keeps them alive |
-| EOA wallets (regular accounts) | **Never** | User funds are always safe |
-| Precompiles (0x01-0x22) | **Never** | System contracts are exempt |
-| Recently deployed contracts | No | 1000 block grace period |
-
-#### Configuration
-
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `StateExpiryForkBlock` | 21,500 | Block where expiry sweeps begin |
-| `StateExpiryPeriod` | 1,000 blocks | Inactivity threshold (~4 hours on devnet) |
-| Applies to | Contracts only | Code hash != empty |
-| EOA protection | Absolute | Wallets can never be expired |
-
-#### State Account Changes
-
-The `StateAccount` struct now includes a 5th field:
-
-```go
-type StateAccount struct {
-    Nonce       uint64
-    Balance     *uint256.Int
-    Root        common.Hash
-    CodeHash    []byte
-    LastTouched uint64  // NEW: block number of last access
-}
-```
-
-This field is encoded/decoded via RLP and persisted to the state trie. All nodes must agree on this field for consensus.
-
-#### Future: State Restoration
-
-In v1.0.5, archived contracts will be restorable by submitting a merkle proof transaction. The user provides the archived receipt, the network verifies the proof, and the contract is re-inserted into the active state trie with its original storage.
-
-#### Why this matters for mainnet
-
-Ethereum's state trie is ~250 GB and growing. Running a full node requires expensive hardware, leading to centralization. By expiring unused state:
-- Active state trie stays small
-- Node requirements stay low
-- More people can run nodes = more decentralization
-- Network remains fast even after years of operation
-
 ## Known Issues & Lessons Learned
 
 ### v1.0.0/v1.0.1: Consensus Bug (FIXED in v1.0.2)
@@ -932,12 +812,19 @@ These contracts demonstrate how adaptive gas treats different execution patterns
 
 ## Custom Precompiles
 
-Ethernova Devnet includes two custom precompiled contracts not found on any other EVM chain:
+Ethernova Devnet includes 9 custom precompiled contracts not found on any other EVM chain:
 
 | Address | Name | Description | Gas |
 |---------|------|-------------|-----|
-| `0x20` | `novaBatchHash` | Batch keccak256 - hash multiple 32-byte items in one call | 30 per item |
-| `0x21` | `novaBatchVerify` | Batch ecrecover - verify multiple signatures in one call | 2,000 per sig (vs 3,000 standard) |
+| `0x20` | `novaBatchHash` | Batch keccak256 hashing | 30/item |
+| `0x21` | `novaBatchVerify` | Batch signature verification | 2,000/sig |
+| `0x22` | `novaAccountManager` | Smart wallet (recovery, key rotation) | 2k-10k |
+| `0x23` | `novaFrameApprove` | Frame AA transaction approval | 5,000 |
+| `0x24` | `novaFrameIntrospect` | Frame inspection for conditional logic | 2,000 |
+| `0x25` | `novaTokenManager` | Native multi-token (no ERC-20 needed) | 1k-50k |
+| `0x26` | `novaShieldedPool` | Optional privacy (shielded transfers) | 50k-100k |
+| `0x27` | `novaContractUpgrade` | Safe contract upgrades with timelock | 2k-50k |
+| `0x28` | `novaOracle` | Protocol-level price oracle with TWAP | 2k-5k |
 
 ### Using novaBatchHash from Solidity
 
