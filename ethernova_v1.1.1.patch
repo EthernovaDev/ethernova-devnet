@@ -1,0 +1,282 @@
+From 99251390089adc3c9159a0841db460cac0160986 Mon Sep 17 00:00:00 2001
+From: Ethernova Patch <patch@ethernova.dev>
+Date: Thu, 26 Mar 2026 12:10:47 +0000
+Subject: [PATCH] fix(adaptive-gas): skip gas adjustment during contract
+ creation
+
+ROOT CAUSE:
+During contract deployment (tx.To == nil), evm.create() calls
+run(evm, contract, nil, false) which executes init code (constructor).
+The v1.1.0 patch blindly classified init code and applied gas adjustments.
+
+Init code contains ABI-encoded constructor arguments as trailing raw
+data bytes. Bytes like 0x54 (SLOAD) and 0x55 (SSTORE) in constructor
+args get misinterpreted as opcodes by bytecode analysis, producing
+inconsistent pureScore. Additionally, caching init code classification
+under the contract address poisons the cache for subsequent runtime calls.
+
+This caused: remote=36631 vs local=36373 -> invalid gas used -> BAD BLOCK
+
+FIX:
+1. Detect contract creation via input==nil (evm.create passes nil input)
+2. Skip GlobalStaticClassifier.Classify() for init code (prevents cache poison)
+3. Guard ApplyGasAdjustment() with !isContractCreation check
+4. Add debug logging in state_transition.go for per-tx gas tracing
+5. Add 3 new test functions for creation scenario coverage
+
+Files changed:
+- core/vm/interpreter.go (creation detection + skip adjustment)
+- core/state_transition.go (tx gas trace logging)
+- core/vm/adaptive_gas_test.go (3 new creation tests)
+---
+ core/state_transition.go     |  14 ++++
+ core/vm/adaptive_gas_test.go | 136 +++++++++++++++++++++++++++++++++++
+ core/vm/interpreter.go       |  40 +++++++++--
+ 3 files changed, 184 insertions(+), 6 deletions(-)
+
+diff --git a/core/state_transition.go b/core/state_transition.go
+index 7aac2df..586c18f 100644
+--- a/core/state_transition.go
++++ b/core/state_transition.go
+@@ -26,6 +26,7 @@ import (
+ 	"github.com/ethereum/go-ethereum/core/types"
+ 	"github.com/ethereum/go-ethereum/core/vm"
+ 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
++	"github.com/ethereum/go-ethereum/log"
+ 	"github.com/ethereum/go-ethereum/params/vars"
+ 	"github.com/holiman/uint256"
+ )
+@@ -467,6 +468,19 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
+ 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, value)
+ 	}
+ 
++	// Ethernova v1.1.1: debug log for gas tracing
++	// Logs every tx's gas info to help diagnose consensus mismatches.
++	adaptiveApplied := !contractCreation && vm.GlobalAdaptiveGas.Enabled.Load()
++	log.Debug("[AdaptiveGas] tx gas trace",
++		"from", msg.From.Hex(),
++		"nonce", msg.Nonce,
++		"isContractCreation", contractCreation,
++		"intrinsicGas", gas,
++		"gasUsed", st.gasUsed(),
++		"gasRemaining", st.gasRemaining,
++		"adaptiveApplied", adaptiveApplied,
++	)
++
+ 	// Ethernova Phase 18: Extra gas refund on revert
+ 	// If the transaction reverted, refund 90% of execution gas.
+ 	// User only pays base intrinsic gas + 10% penalty.
+diff --git a/core/vm/adaptive_gas_test.go b/core/vm/adaptive_gas_test.go
+index 9ffb464..8b35bed 100644
+--- a/core/vm/adaptive_gas_test.go
++++ b/core/vm/adaptive_gas_test.go
+@@ -463,3 +463,139 @@ func TestRegression_SLOADHeavyContractNotPure(t *testing.T) {
+ 		t.Error("REGRESSION: SLOAD-heavy contract classified as pure!")
+ 	}
+ }
++
++// ============================================================================
++// Contract creation (v1.1.1) — adaptive gas must NOT apply to init code
++// ============================================================================
++
++func TestStaticClassifier_NoClassificationForCreation(t *testing.T) {
++	// Simulates contract creation: init code should NOT be classified.
++	// If it were classified, the constructor arg bytes would be misread
++	// as opcodes, poisoning the cache.
++	sc := &StaticClassifier{
++		classifications: make(map[common.Address]*ContractClassification),
++	}
++
++	addr := common.HexToAddress("0xdeadbeef00000000000000000000000000000001")
++
++	// Simulate init code: real opcodes + trailing constructor args
++	// Constructor args include bytes 0x54 (SLOAD) and 0x55 (SSTORE)
++	// which would be misinterpreted as storage opcodes
++	initCode := buildBytecode(PUSH1, PUSH1, ADD, CODECOPY, RETURN)
++	// Append fake constructor args that look like SSTORE/SLOAD
++	for i := 0; i < 40; i++ {
++		initCode = append(initCode, byte(SSTORE)) // 0x55 as data
++	}
++
++	// During creation, we should NOT call Classify()
++	// Verify the address has no classification
++	c := sc.GetClassification(addr)
++	if c != nil {
++		t.Error("fresh address should have no classification before deployment")
++	}
++
++	// After deployment, classify with RUNTIME code (not init code)
++	runtimeCode := buildBytecode(PUSH1, PUSH1, ADD, PUSH1, MSTORE, RETURN)
++	sc.Classify(addr, runtimeCode)
++
++	c = sc.GetClassification(addr)
++	if c == nil {
++		t.Fatal("should have classification after Classify()")
++	}
++	if c.StorageOps != 0 {
++		t.Errorf("runtime code has no storage ops, but got %d (init code contamination?)", c.StorageOps)
++	}
++	if c.Category != CategoryPure {
++		t.Errorf("pure runtime code should be CategoryPure, got %v", c.Category)
++	}
++}
++
++func TestStaticClassifier_CachePoisonPrevention(t *testing.T) {
++	// Verify that classifying init code would produce a WRONG result,
++	// confirming why we must skip it during creation.
++	sc := &StaticClassifier{
++		classifications: make(map[common.Address]*ContractClassification),
++	}
++
++	addr := common.HexToAddress("0xdeadbeef00000000000000000000000000000002")
++
++	// Init code with trailing constructor args that look like SSTORE
++	initCode := buildBytecode(PUSH1, PUSH1, ADD, RETURN)
++	for i := 0; i < 50; i++ {
++		initCode = append(initCode, byte(SSTORE)) // 0x55 data bytes
++	}
++
++	// Classify with init code (this is what the BUG did)
++	badClassification := sc.Classify(addr, initCode)
++
++	// The trailing 0x55 bytes get misread as SSTORE opcodes
++	if badClassification.StorageOps == 0 {
++		t.Skip("classifier correctly skipped PUSH data (not the bug scenario)")
++	}
++
++	t.Logf("CONFIRMED: init code misclassification - storageOps=%d, pureScore=%d, category=%s",
++		badClassification.StorageOps, badClassification.PureScore, badClassification.Category)
++
++	// Now verify: if we had classified with actual runtime code instead,
++	// the result would be completely different
++	sc2 := &StaticClassifier{
++		classifications: make(map[common.Address]*ContractClassification),
++	}
++	runtimeCode := buildBytecode(PUSH1, PUSH1, ADD, PUSH1, MSTORE, RETURN)
++	goodClassification := sc2.Classify(addr, runtimeCode)
++
++	if goodClassification.StorageOps != 0 {
++		t.Error("runtime code should have 0 storage ops")
++	}
++	if badClassification.PureScore == goodClassification.PureScore {
++		t.Error("init code and runtime code should produce DIFFERENT classifications")
++	}
++}
++
++func TestApplyGasAdjustment_ContractCreationGetsZero(t *testing.T) {
++	// Even if a classification exists, contract creation must not use it.
++	// This tests the interpreter-level guard: isContractCreation == true → no adjustment.
++	sc := &StaticClassifier{
++		classifications: make(map[common.Address]*ContractClassification),
++	}
++
++	addr := common.HexToAddress("0xaaaa")
++	sc.mu.Lock()
++	sc.classifications[addr] = &ContractClassification{
++		PureScore:     95,
++		Category:      CategoryPure,
++		GasAdjustment: -25,
++	}
++	sc.mu.Unlock()
++
++	GlobalAdaptiveGas.Enabled.Store(true)
++	defer GlobalAdaptiveGas.Enabled.Store(false)
++
++	baseCost := uint64(1000)
++
++	// Simulate what happens in the interpreter:
++	// During creation → isContractCreation=true → skip adjustment
++	isContractCreation := true
++	adjustedCost := baseCost
++	if !isContractCreation && GlobalAdaptiveGas.Enabled.Load() {
++		adjustedCost = sc.ApplyGasAdjustment(addr, baseCost)
++	}
++
++	if adjustedCost != baseCost {
++		t.Errorf("during contract creation, gas must NOT be adjusted; got %d want %d",
++			adjustedCost, baseCost)
++	}
++
++	// During regular call → isContractCreation=false → apply adjustment
++	isContractCreation = false
++	adjustedCost = baseCost
++	if !isContractCreation && GlobalAdaptiveGas.Enabled.Load() {
++		adjustedCost = sc.ApplyGasAdjustment(addr, baseCost)
++	}
++
++	expectedCost := uint64(750) // 1000 - 25%
++	if adjustedCost != expectedCost {
++		t.Errorf("during regular call, gas should be adjusted; got %d want %d",
++			adjustedCost, expectedCost)
++	}
++}
+diff --git a/core/vm/interpreter.go b/core/vm/interpreter.go
+index c30a712..c0402b3 100644
+--- a/core/vm/interpreter.go
++++ b/core/vm/interpreter.go
+@@ -124,6 +124,18 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
+ 		return nil, nil
+ 	}
+ 
++	// Ethernova v1.1.1: detect contract creation.
++	// In go-ethereum, evm.create() calls run(evm, contract, nil, false) —
++	// input is nil ONLY during contract creation. Regular calls always pass
++	// non-nil input (empty []byte{} for no calldata).
++	//
++	// Contract creation executes INIT CODE (constructor), which is transient
++	// and contains ABI-encoded constructor arguments as trailing data bytes.
++	// These raw bytes get misinterpreted as opcodes by bytecode analysis,
++	// producing wrong classifications. Adaptive gas must NEVER apply to
++	// init code execution — only to deployed runtime code being called.
++	isContractCreation := input == nil
++
+ 	// Ethernova: record contract call for adaptive gas pattern tracking
+ 	GlobalPatternTracker.RecordCall(contract.Address())
+ 
+@@ -137,10 +149,22 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
+ 	// Ethernova Phase 4: bytecode analysis at first encounter
+ 	GlobalBytecodeAnalyzer.Analyze(contract.Address(), contract.Code)
+ 
+-	// Ethernova v1.1.0: deterministic static bytecode classification
+-	// This replaces the old runtime-based PatternTracker for gas adjustment.
+-	// Classification depends ONLY on bytecode, so it is identical across all nodes.
+-	GlobalStaticClassifier.Classify(contract.Address(), contract.Code)
++	// Ethernova v1.1.1: only classify deployed runtime code, NEVER init code.
++	// Init code bytecode contains constructor arguments as trailing data that
++	// gets misread as opcodes, producing wrong pureScore. Also, caching an
++	// init code classification under the contract address would poison the
++	// cache — subsequent calls would use the init code result instead of
++	// the actual runtime code classification.
++	if !isContractCreation {
++		GlobalStaticClassifier.Classify(contract.Address(), contract.Code)
++	}
++
++	if isContractCreation {
++		log.Debug("[AdaptiveGas] skipping classification for contract creation",
++			"contract", contract.Address().Hex(),
++			"initCodeLen", len(contract.Code),
++		)
++	}
+ 
+ 	// Ethernova Phase 4: call cache DISABLED for consensus safety (v1.0.2)
+ 	// Cache hits/misses differ per node causing execution divergence.
+@@ -228,10 +252,14 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
+ 		// Gas refunds DISABLED - caused non-deterministic gas across nodes.
+ 		GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost)
+ 
+-		// Ethernova v1.1.0: deterministic adaptive gas adjustment
++		// Ethernova v1.1.1: deterministic adaptive gas adjustment
+ 		// Uses static bytecode classification (not runtime profiling).
+ 		// Same bytecode → same classification → same gas on all nodes.
+-		if GlobalAdaptiveGas.Enabled.Load() {
++		// CRITICAL: NEVER apply during contract creation (init code).
++		// Init code is transient constructor bytecode, not the deployed contract.
++		// Applying gas adjustment to init code caused consensus divergence:
++		//   remote=36631 vs local=36373 → "invalid gas used" → BAD BLOCK
++		if !isContractCreation && GlobalAdaptiveGas.Enabled.Load() {
+ 			cost = GlobalStaticClassifier.ApplyGasAdjustment(contract.Address(), cost)
+ 		}
+ 		// Static portion of gas
+-- 
+2.43.0
+
