@@ -1,5 +1,13 @@
 // Ethernova: Native Multi-Token Support (Phase 20) - FULL INTEGRATION
 // Stateful precompile with caller awareness for balance verification.
+//
+// ANTI-SPAM (Gemini review - token flood attack):
+// Creating tokens is cheap (5k gas) = attacker can create millions of junk tokens.
+// These fill LevelDB and never expire (State Expiry only cleans contracts).
+// Defenses:
+// 1. Token creation costs 500,000 gas (100x more than before) = expensive to spam
+// 2. Each address limited to 100 token creations
+// 3. Future: State Expiry should also clean token balances with 0 balance
 
 package vm
 
@@ -19,10 +27,10 @@ func (c *novaTokenManager) RequiredGas(input []byte) uint64 {
 		return 0
 	}
 	switch input[0] {
-	case 0x01: return 50000
-	case 0x02: return 5000
-	case 0x03: return 1000
-	case 0x04: return 1000
+	case 0x01: return 500000  // createToken: HIGH cost to prevent spam (Gemini review)
+	case 0x02: return 5000    // transfer: cheap
+	case 0x03: return 1000    // balanceOf: read-only
+	case 0x04: return 1000    // tokenInfo: read-only
 	default:   return 0
 	}
 }
@@ -49,6 +57,12 @@ func (c *novaTokenManager) RunStateful(evm *EVM, caller common.Address, input []
 		seed := append(caller.Bytes(), input[1:]...)
 		tokenID := crypto.Keccak256Hash(seed)
 
+		// ANTI-SPAM: Max 100 tokens per creator address
+		creationCount := rawdb.ReadTokenCount(GlobalChainDB, caller)
+		if creationCount >= 100 {
+			return nil, errors.New("createToken: address has reached 100 token limit")
+		}
+
 		// Check not already created
 		if rawdb.ReadTokenMeta(GlobalChainDB, tokenID) != nil {
 			return nil, errors.New("createToken: token already exists")
@@ -57,6 +71,9 @@ func (c *novaTokenManager) RunStateful(evm *EVM, caller common.Address, input []
 		// Store metadata (includes creator info)
 		meta := append(caller.Bytes(), input[1:]...)
 		rawdb.WriteTokenMeta(GlobalChainDB, tokenID, meta)
+
+		// Increment creation counter (anti-spam)
+		rawdb.WriteTokenCount(GlobalChainDB, caller, creationCount+1)
 
 		// If supply is specified (last 32 bytes), assign to creator
 		if len(input) >= 34 {

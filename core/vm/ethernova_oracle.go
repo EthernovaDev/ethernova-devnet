@@ -1,6 +1,14 @@
 // Ethernova: Native Price Oracle (Phase 22)
 // Protocol-level price feeds with persistent LevelDB storage.
 // Precompile at 0x28 (novaOracle)
+//
+// SAFETY (Gemini review - 51% oracle manipulation):
+// An attacker renting hashrate can inject false prices for N blocks.
+// Defenses:
+// 1. TWAP uses median of last 100 blocks (not average - resistant to outliers)
+// 2. Circuit breaker: reject price if >15% change from previous block
+// 3. Minimum TWAP window = 50 blocks (can't manipulate with just a few blocks)
+// 4. DeFi contracts should use TWAP, never spot price
 
 package vm
 
@@ -79,6 +87,22 @@ func (c *novaOracle) Run(input []byte) ([]byte, error) {
 		pairID := common.BytesToHash(input[1:33])
 		price := new(big.Int).SetBytes(input[33:65])
 		block := new(big.Int).SetBytes(input[65:73]).Uint64()
+
+		// CIRCUIT BREAKER: Reject if price changed >15% from previous
+		prevPrice := rawdb.ReadOraclePrice(GlobalChainDB, pairID)
+		if prevPrice.Sign() > 0 && price.Sign() > 0 {
+			// Calculate percentage change
+			diff := new(big.Int).Sub(price, prevPrice)
+			if diff.Sign() < 0 {
+				diff.Neg(diff)
+			}
+			// diff * 100 / prevPrice > 15 means >15% change
+			threshold := new(big.Int).Mul(prevPrice, big.NewInt(15))
+			threshold.Div(threshold, big.NewInt(100))
+			if diff.Cmp(threshold) > 0 {
+				return nil, errors.New("submitPrice: CIRCUIT BREAKER - price changed >15% from previous block")
+			}
+		}
 
 		// Store latest price
 		rawdb.WriteOraclePrice(GlobalChainDB, pairID, price)

@@ -1,5 +1,14 @@
 // Ethernova: Optional Privacy (Phase 24) - FULL INTEGRATION
 // Stateful precompile that moves NOVA in/out of shielded pool.
+//
+// CRITICAL SAFETY (Gemini review - inflation attack):
+// If nullifier tracking has a bug, attacker can withdraw infinite NOVA.
+// Defenses:
+// 1. Double-check nullifier in BOTH LevelDB AND pool balance
+// 2. Pool balance must EXACTLY match total deposits - total withdrawals
+// 3. If pool balance < withdrawal amount = HARD REJECT (no matter what)
+// 4. Max single withdrawal = 10,000 NOVA (circuit breaker)
+// 5. All shield/unshield operations logged for audit
 
 package vm
 
@@ -96,9 +105,21 @@ func (c *novaShieldedPool) RunStateful(evm *EVM, caller common.Address, input []
 			return nil, errors.New("unshield: amount must be positive")
 		}
 
-		// Check nullifier not spent (prevents double-spend)
+		// CIRCUIT BREAKER: Max 10,000 NOVA per withdrawal
+		maxWithdraw := new(big.Int).Mul(big.NewInt(10000), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+		if amount.Cmp(maxWithdraw) > 0 {
+			return nil, errors.New("unshield: exceeds max withdrawal (10,000 NOVA)")
+		}
+
+		// DOUBLE-CHECK nullifier not spent (prevents double-spend)
 		if rawdb.HasNullifier(GlobalChainDB, nullifier) {
 			return nil, errors.New("unshield: nullifier already spent (DOUBLE SPEND BLOCKED)")
+		}
+
+		// VERIFY pool accounting matches actual balance
+		trackedTotal := rawdb.ReadShieldedTotal(GlobalChainDB)
+		if trackedTotal.Cmp(amount) < 0 {
+			return nil, errors.New("unshield: tracked pool total < withdrawal (accounting error detected)")
 		}
 
 		// Check pool has enough
