@@ -599,24 +599,35 @@ Private NOVA transfers using commitment-nullifier scheme. Privacy is **OPTIONAL*
 | Parallel exec | `state_processor.go` analysis | GlobalParallelStats | N/A |
 | Privacy | N/A | `accessors_ethernova_privacy.go` | 0x26 RunStateful + NOVA movement |
 
-### Mainnet Readiness Test Results (v1.1.1)
+### Final Test Results (v1.1.6 - Adaptive Gas ACTIVE)
 
 ```
 ================================================================
-  ETHERNOVA v1.1.1 - FINAL MAINNET READINESS TEST
+  ETHERNOVA v1.1.6 - MULTI-NODE CHAOS TEST
 ================================================================
-  Contract deploy:   SUCCESS (gas=100,473)
-  Contract calls:    increment() x10 -> count()=10
-  500 transfers:     500/500 sent and mined
-  Max txs/block:     17
-  Blocks:            51 in 273s
-  Precompiles:       9/9
-  RPC endpoints:     11/11
-  BAD BLOCK errors:  ZERO
+  Feature tests:         35/35 PASSED
+  Attack simulation:     12/12 BLOCKED
+  Contract deploy:       SUCCESS (gas=100,473)
+  Contract calls:        30 increment() calls
+  Transfers:             500 + 1000 zero-value + 200 self
+  Max txs/block:         66
+  Precompiles:           9/9
+  RPC endpoints:         11/11
+  BAD BLOCK errors:      ZERO
+================================================================
+  CROSS-NODE CONSENSUS: 50/50 blocks MATCHED (Miner vs VPS)
+  CROSS-PLATFORM:       Windows gasUsed IDENTICAL to Linux
+================================================================
+  Block 1607: Miner=111116 VPS=111116 Windows=111116  IDENTICAL
+  Block 1600: Miner=1398232 VPS=1398232               IDENTICAL
+  Block 1593: Miner=951116 VPS=951116                  IDENTICAL
+  Block 1579: Miner=993116 VPS=993116                  IDENTICAL
+================================================================
+  ADAPTIVE GAS v2 IS DETERMINISTIC CROSS-PLATFORM
 ================================================================
 ```
 
-**v1.1.1 includes Noven's deterministic adaptive gas fix** - static bytecode classification replaces runtime profiling, eliminating the root cause of consensus divergence.
+**v1.1.6 includes Noven's trace-based adaptive gas v2** with recalibrated thresholds. Gas adjustment applied post-execution using integer-only math. Verified identical results across Linux (CGO_ENABLED=1) and Windows (CGO_ENABLED=0) builds.
 
 ### Security Audit Results (v1.1.0)
 
