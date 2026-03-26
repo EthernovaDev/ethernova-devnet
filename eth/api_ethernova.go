@@ -352,6 +352,30 @@ func (api *EthernovaAPI) Precompiles() []PrecompileInfo {
 			Description: "Frame AA: inspect other frames in the transaction for conditional logic",
 			GasModel:    "2000 gas per introspection",
 		},
+		{
+			Address:     "0x0000000000000000000000000000000000000025",
+			Name:        "novaTokenManager",
+			Description: "Native multi-token: create, transfer, balanceOf without ERC-20 contracts",
+			GasModel:    "500k create, 5k transfer, 1k read",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000026",
+			Name:        "novaShieldedPool",
+			Description: "Optional privacy: shield/unshield NOVA with commitment-nullifier scheme",
+			GasModel:    "50k shield, 100k unshield, max 10k NOVA/withdrawal",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000027",
+			Name:        "novaContractUpgrade",
+			Description: "Native contract upgrades with 100-block timelock, no proxy pattern needed",
+			GasModel:    "50k initiate/execute, 2k status",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000028",
+			Name:        "novaOracle",
+			Description: "Protocol-level price oracle with TWAP and 15% circuit breaker",
+			GasModel:    "2k read, 5k TWAP, 50k submit",
+		},
 	}
 }
 
