@@ -256,26 +256,12 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Gas refunds DISABLED - caused non-deterministic gas across nodes.
 		GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost)
 
-<<<<<<< HEAD
-		// Ethernova v1.1.2: adaptive gas DISABLED in execution path
-		// v1.1.1 attempted deterministic static classification but still produced
-		// different gas between nodes (remote:36631 vs local:36373 = 258 gas diff).
-		// Root cause: even "static" classification can differ between CGO_ENABLED=0
-		// (Windows) and CGO_ENABLED=1 (Linux) builds due to floating point or
-		// map iteration in the classifier.
-		// DECISION: Adaptive gas is monitoring-only. Never modify gas during execution.
-		// The classification data is still available via ethernova_adaptiveGas RPC.
-		// if !isContractCreation && GlobalAdaptiveGas.Enabled.Load() {
-		// 	cost = GlobalStaticClassifier.ApplyGasAdjustment(contract.Address(), cost)
-		// }
-=======
-		// Ethernova v2.0: adaptive gas adjustment is now applied POST-EXECUTION
+		// Ethernova v2.0 (Noven): adaptive gas adjustment applied POST-EXECUTION
 		// in state_transition.go, not per-opcode. This ensures:
 		//   1. Zero modification to EVM execution (consensus-safe)
 		//   2. All nodes execute identical opcodes with identical gas
 		//   3. Adjustment computed from TraceCounters after execution completes
 		// See: ApplyAdaptiveGasV2() in adaptive_gas_v2.go
->>>>>>> 240e427 (feat: implement adaptive gas v2 (trace-based, deterministic, consensus-safe))
 		// Static portion of gas
 		if !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
