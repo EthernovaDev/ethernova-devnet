@@ -276,6 +276,10 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, genesis *genesis
 	// Open trie database with provided config
 	triedb := triedb.NewDatabase(db, cacheConfig.triedbConfig())
 
+	// Ethernova: set global chain DB for precompiles (0x25-0x28)
+	// Tokens, privacy, oracle, upgrades need LevelDB access
+	vm.GlobalChainDB = db
+
 	// Setup the genesis block, commit the provided genesis specification
 	// to database if the genesis block is not present yet, or load the
 	// stored one from database.
