@@ -569,6 +569,19 @@ Private NOVA transfers using commitment-nullifier scheme. Privacy is **OPTIONAL*
 | 12.8 min finality | Years away (SSF) | PoW ~15s blocks |
 | Slow governance | 1-2 years per upgrade | Ship in days on devnet |
 
+#### Deep Integration Status (all 100%)
+
+| Feature | EVM Hook | Persistent Storage | Precompile |
+|---------|----------|--------------------|------------|
+| Anti-reentrancy | `evm.Call()` blocks at depth>0 | Per-tx in-memory | N/A |
+| Gas refund | `TransitionDb()` +90% on revert | N/A | N/A |
+| Fair ordering | `ordering.go` FIFO sort + `worker.go` | Arrival tracker | N/A |
+| Native tokens | N/A | `accessors_ethernova_tokens.go` | 0x25 RunStateful |
+| Contract upgrades | N/A | `accessors_ethernova_upgrades.go` | 0x27 RunStateful + SetCode |
+| Oracle | `consensus/lyra2` writes per block | `accessors_ethernova_oracle.go` | 0x28 with TWAP |
+| Parallel exec | `state_processor.go` analysis | GlobalParallelStats | N/A |
+| Privacy | N/A | `accessors_ethernova_privacy.go` | 0x26 RunStateful + NOVA movement |
+
 ### Phase 16: Real Contract Deployment & Extreme Testing (v1.0.8)
 
 First successful real contract deployment on the devnet. All contracts compiled with `solc 0.8.24 --evm-version istanbul` (devnet uses Istanbul EVM, not Shanghai).
