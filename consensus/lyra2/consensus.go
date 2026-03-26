@@ -14,8 +14,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/misc"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
 	ethernova "github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/params/mutations"
@@ -402,6 +404,25 @@ func (lyra2 *Lyra2) Finalize(chain consensus.ChainHeaderReader, header *types.He
 		if expired > 0 {
 			log.Info("State expiry v2: archived contracts", "block", header.Number, "count", expired)
 		}
+	}
+
+	// Ethernova Phase 22: Native oracle - record gas price and difficulty as price feeds
+	// This creates protocol-level price data that contracts can query via precompile 0x28.
+	// Gas price feed: average gas price of transactions in this block.
+	// Difficulty feed: current mining difficulty (proxy for hashrate/security).
+	if vm.GlobalChainDB != nil {
+		blockNum := header.Number.Uint64()
+		// Record difficulty as a "security" feed
+		diffPairID := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001") // DIFF feed
+		if header.Difficulty != nil {
+			rawdb.WriteOraclePrice(vm.GlobalChainDB, diffPairID, header.Difficulty)
+			rawdb.WriteOraclePriceHistory(vm.GlobalChainDB, diffPairID, blockNum, header.Difficulty)
+		}
+		// Record gas used as an "activity" feed
+		gasPairID := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000002") // GAS feed
+		gasUsed := new(big.Int).SetUint64(header.GasUsed)
+		rawdb.WriteOraclePrice(vm.GlobalChainDB, gasPairID, gasUsed)
+		rawdb.WriteOraclePriceHistory(vm.GlobalChainDB, gasPairID, blockNum, gasUsed)
 	}
 
 	header.Root = statedb.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
