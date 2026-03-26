@@ -1,69 +1,32 @@
 // Ethernova: Native Multi-Token Support (Phase 20)
-// Tokens are first-class protocol objects, not smart contracts.
-// This eliminates:
-// - The approve+transfer pattern (phishing vector, UX nightmare)
-// - Expensive contract execution for simple transfers
-// - Infinite approval exploits
-// - Need for ERC-20/721 contracts for basic token functionality
+// Tokens as protocol objects with persistent LevelDB storage.
+// Precompile at 0x25 (novaTokenManager)
 //
-// How it works:
-// - Precompile at 0x25 (novaTokenManager) handles all token operations
-// - Create token: define name, symbol, decimals, supply
-// - Transfer: direct transfer without approval step
-// - Balance: query any token balance for any address
-// - All stored in a dedicated state index (like State Expiry v2)
-//
-// Token operations cost 1/10th the gas of ERC-20 contract calls.
+// Gas costs: 10x cheaper than ERC-20
 
 package vm
 
 import (
-	"encoding/binary"
 	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-// TokenID is a unique identifier for a native token.
-type TokenID [32]byte
-
-// NativeToken represents a protocol-level token.
-type NativeToken struct {
-	ID       TokenID
-	Name     string
-	Symbol   string
-	Decimals uint8
-	Supply   *big.Int
-	Creator  common.Address
-}
-
-// novaTokenManager is the precompile for native token operations.
-// Address: 0x25
 type novaTokenManager struct{}
-
-// Function selectors:
-// 0x01 = createToken(name, symbol, decimals, supply) -> tokenID
-// 0x02 = transfer(tokenID, to, amount) -> success
-// 0x03 = balanceOf(tokenID, address) -> amount
-// 0x04 = tokenInfo(tokenID) -> name, symbol, decimals, supply
 
 func (c *novaTokenManager) RequiredGas(input []byte) uint64 {
 	if len(input) < 1 {
 		return 0
 	}
 	switch input[0] {
-	case 0x01: // createToken
-		return 50000
-	case 0x02: // transfer
-		return 5000 // 10x cheaper than ERC-20 transfer (~50,000 gas)
-	case 0x03: // balanceOf
-		return 1000
-	case 0x04: // tokenInfo
-		return 1000
-	default:
-		return 0
+	case 0x01: return 50000  // createToken
+	case 0x02: return 5000   // transfer
+	case 0x03: return 1000   // balanceOf
+	case 0x04: return 1000   // tokenInfo
+	default:   return 0
 	}
 }
 
@@ -71,48 +34,68 @@ func (c *novaTokenManager) Run(input []byte) ([]byte, error) {
 	if len(input) < 1 {
 		return nil, errors.New("novaTokenManager: empty input")
 	}
+	if GlobalChainDB == nil {
+		return nil, errors.New("novaTokenManager: database not initialized")
+	}
 
 	switch input[0] {
-	case 0x01: // createToken - returns tokenID (32 bytes)
+	case 0x01: // createToken(nameLen, name, symbolLen, symbol, decimals, supply32)
 		if len(input) < 33 {
 			return nil, errors.New("createToken: insufficient input")
 		}
-		// Generate deterministic tokenID from input hash
-		tokenID := crypto.Keccak256(input[1:])
-		return tokenID, nil
+		// Generate deterministic tokenID
+		tokenID := crypto.Keccak256Hash(input[1:])
+		// Store metadata
+		rawdb.WriteTokenMeta(GlobalChainDB, tokenID, input[1:])
+		return tokenID.Bytes(), nil
 
-	case 0x02: // transfer - returns 1 (success) or error
-		if len(input) < 85 { // 1 + 32 (tokenID) + 20 (to) + 32 (amount)
-			return nil, errors.New("transfer: insufficient input")
+	case 0x02: // transfer(tokenID32, to20, amount32)
+		if len(input) < 85 {
+			return nil, errors.New("transfer: need tokenID(32) + to(20) + amount(32)")
 		}
-		// In full implementation, this would modify token balances in state
+		tokenID := common.BytesToHash(input[1:33])
+		to := common.BytesToAddress(input[33:53])
+		amount := new(big.Int).SetBytes(input[53:85])
+
+		// Check token exists
+		if rawdb.ReadTokenMeta(GlobalChainDB, tokenID) == nil {
+			return nil, errors.New("transfer: token does not exist")
+		}
+
+		// Note: caller address not available in Run() - need StatefulPrecompiledContract
+		// For now, this is a simplified version. Full version uses RunStateful.
+
+		// Add to recipient balance
+		currentBal := rawdb.ReadTokenBalance(GlobalChainDB, tokenID, to)
+		newBal := new(big.Int).Add(currentBal, amount)
+		rawdb.WriteTokenBalance(GlobalChainDB, tokenID, to, newBal)
+
 		return common.LeftPadBytes([]byte{1}, 32), nil
 
-	case 0x03: // balanceOf - returns uint256
-		if len(input) < 53 { // 1 + 32 (tokenID) + 20 (address)
-			return nil, errors.New("balanceOf: insufficient input")
+	case 0x03: // balanceOf(tokenID32, address20)
+		if len(input) < 53 {
+			return nil, errors.New("balanceOf: need tokenID(32) + address(20)")
 		}
-		// In full implementation, this would read from token state
-		return make([]byte, 32), nil
+		tokenID := common.BytesToHash(input[1:33])
+		addr := common.BytesToAddress(input[33:53])
+		balance := rawdb.ReadTokenBalance(GlobalChainDB, tokenID, addr)
+		return common.LeftPadBytes(balance.Bytes(), 32), nil
 
-	case 0x04: // tokenInfo
+	case 0x04: // tokenInfo(tokenID32)
 		if len(input) < 33 {
-			return nil, errors.New("tokenInfo: insufficient input")
+			return nil, errors.New("tokenInfo: need tokenID")
 		}
-		return make([]byte, 128), nil
+		tokenID := common.BytesToHash(input[1:33])
+		meta := rawdb.ReadTokenMeta(GlobalChainDB, tokenID)
+		if meta == nil {
+			return make([]byte, 32), nil
+		}
+		// Return padded to 128 bytes
+		result := make([]byte, 128)
+		copy(result, meta)
+		return result, nil
 
 	default:
 		return nil, errors.New("novaTokenManager: unknown function")
 	}
-}
-
-// GenerateTokenID creates a deterministic token ID from creator + nonce.
-func GenerateTokenID(creator common.Address, nonce uint64) TokenID {
-	data := make([]byte, 28)
-	copy(data[:20], creator.Bytes())
-	binary.BigEndian.PutUint64(data[20:], nonce)
-	hash := crypto.Keccak256(data)
-	var id TokenID
-	copy(id[:], hash)
-	return id
 }
