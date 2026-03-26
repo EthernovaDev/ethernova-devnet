@@ -1,7 +1,21 @@
 // Ethernova: Native Reentrancy Protection (Phase 17)
-// Blocks reentrant calls by default at the EVM level.
-// No more DAO hacks, no more Curve exploits.
-// Contracts can opt-out via a special storage flag if they need reentrancy.
+//
+// UPDATED after Gemini security review:
+// Old behavior: blocked ALL reentrant calls (broke DeFi composability)
+// New behavior: blocks SELF-reentrancy only (A->B->A blocked, A->B->C allowed)
+//
+// This preserves DeFi composability (flash loans, DEX aggregators, oracles)
+// while still preventing the DAO hack and Curve-style reentrancy exploits.
+//
+// How it works:
+// - When contract A is called, it's added to the call stack
+// - If someone tries to call A again while A is still executing = BLOCKED
+// - But A can call B, and B can call C, and C can call D (all different) = ALLOWED
+// - When A finishes, it's removed from the stack
+//
+// This is "same-contract reentrancy protection" - the most dangerous kind
+// of reentrancy (read-then-write on same storage) is blocked, while
+// cross-contract calls (the basis of DeFi composability) work normally.
 
 package vm
 
@@ -12,27 +26,28 @@ import (
 )
 
 // ReentrancyGuard tracks which contracts are currently executing.
-// If a contract tries to call itself (or be called while already executing),
-// the call is rejected with an error.
+// Only blocks SELF-reentrancy (same contract called while already in call stack).
+// Cross-contract calls are always allowed.
 type ReentrancyGuard struct {
-	mu       sync.Mutex
-	executing map[common.Address]bool
+	mu        sync.Mutex
+	callStack map[common.Address]int // address -> call depth count
 }
 
-// GlobalReentrancyGuard is the per-block reentrancy tracker.
+// GlobalReentrancyGuard is the per-transaction reentrancy tracker.
 var GlobalReentrancyGuard = &ReentrancyGuard{
-	executing: make(map[common.Address]bool),
+	callStack: make(map[common.Address]int),
 }
 
 // Enter marks a contract as currently executing.
-// Returns false if the contract is already executing (reentrancy detected).
+// Returns false ONLY if this exact contract is already in the call stack
+// (self-reentrancy). Cross-contract calls always return true.
 func (rg *ReentrancyGuard) Enter(addr common.Address) bool {
 	rg.mu.Lock()
 	defer rg.mu.Unlock()
-	if rg.executing[addr] {
-		return false // REENTRANCY BLOCKED
+	if rg.callStack[addr] > 0 {
+		return false // SELF-REENTRANCY BLOCKED
 	}
-	rg.executing[addr] = true
+	rg.callStack[addr]++
 	return true
 }
 
@@ -40,19 +55,22 @@ func (rg *ReentrancyGuard) Enter(addr common.Address) bool {
 func (rg *ReentrancyGuard) Exit(addr common.Address) {
 	rg.mu.Lock()
 	defer rg.mu.Unlock()
-	delete(rg.executing, addr)
+	rg.callStack[addr]--
+	if rg.callStack[addr] <= 0 {
+		delete(rg.callStack, addr)
+	}
 }
 
 // Reset clears all tracking (called at start of each transaction).
 func (rg *ReentrancyGuard) Reset() {
 	rg.mu.Lock()
 	defer rg.mu.Unlock()
-	rg.executing = make(map[common.Address]bool)
+	rg.callStack = make(map[common.Address]int)
 }
 
 // IsExecuting returns true if the contract is currently in the call stack.
 func (rg *ReentrancyGuard) IsExecuting(addr common.Address) bool {
 	rg.mu.Lock()
 	defer rg.mu.Unlock()
-	return rg.executing[addr]
+	return rg.callStack[addr] > 0
 }

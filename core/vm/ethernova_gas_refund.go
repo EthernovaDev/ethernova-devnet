@@ -1,32 +1,45 @@
 // Ethernova: Gas Refund on Revert (Phase 18)
 // When a transaction reverts, refund unused gas back to the sender.
 // On Ethereum, users pay full gas even when transactions fail.
-// On Ethernova, failed transactions only charge a minimal base fee.
+// On Ethernova, failed transactions get a partial refund.
 //
-// How it works:
-// - Transaction executes normally
-// - If it reverts, only charge 21,000 gas (base tx cost) + 10% of used gas
-// - Refund the remaining 90% of gas consumed during the reverted execution
-// - This protects users from losing money on failed transactions
-//
-// The 10% penalty prevents spam (can't submit infinite failing txs for free).
+// ANTI-DoS PROTECTION (credit: Gemini review):
+// A malicious contract could do heavy computation then REVERT at the end,
+// getting 90% refund while wasting miner CPU. To prevent this:
+// - Refund ONLY applies if execution gas < MaxRefundableGas (100,000)
+// - Heavy transactions (>100k gas) that revert pay FULL gas (no refund)
+// - This protects miners from computational DoS attacks
+// - Simple failed txs (wrong nonce, insufficient balance, small reverts) still get refunds
 
 package vm
 
+const (
+	// MaxRefundableGas is the maximum execution gas eligible for revert refund.
+	// Transactions using more gas than this get NO refund on revert.
+	// This prevents DoS attacks where attacker does heavy computation then reverts.
+	MaxRefundableGas uint64 = 100000
+
+	// RefundPercent is the percentage of execution gas refunded on revert.
+	RefundPercent uint64 = 90
+)
+
 // CalculateRevertRefund computes how much gas to refund on a reverted transaction.
-// baseGas = 21000 (intrinsic tx cost, always charged)
-// gasUsed = total gas consumed during execution
-// Returns the amount of gas to refund to the sender.
+// Returns 0 if the transaction used too much gas (anti-DoS).
 func CalculateRevertRefund(gasUsed uint64, baseGas uint64) uint64 {
 	if gasUsed <= baseGas {
-		return 0 // nothing to refund if only base gas was used
+		return 0
 	}
 	executionGas := gasUsed - baseGas
-	// Refund 90% of execution gas, keep 10% as anti-spam penalty
-	refund := executionGas * 90 / 100
+
+	// ANTI-DoS: No refund for heavy transactions
+	// This prevents attackers from doing expensive computation then reverting
+	if executionGas > MaxRefundableGas {
+		return 0
+	}
+
+	refund := executionGas * RefundPercent / 100
 	return refund
 }
 
 // RevertRefundEnabled controls whether revert refunds are active.
-// Can be toggled via RPC for testing.
 var RevertRefundEnabled = true
