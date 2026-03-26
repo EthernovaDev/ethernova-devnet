@@ -187,12 +187,18 @@ func ClassifyExecution(tc *TraceCounters) ExecutionCategory {
 	hasStateWrite := tc.SstoreCount > 0
 	hasExternalCall := tc.CallCount > 0 || tc.DelegateCallCount > 0 || tc.CallCodeCount > 0
 
-	// Hard gate: ANY state write → not pure, not light
+	// v1.1.4 calibration: allow contracts with FEW state writes to be Light
+	// A simple token transfer does 2 SSTORE (sender balance, receiver balance)
+	// That should still get a discount, not be penalized.
+	// Only contracts with HEAVY state writes (5+) are Mixed/Complex.
 	if hasStateWrite {
-		// Determine if Mixed or Complex based on score
 		score := ComputeComplexityScore(tc)
 		if score >= complexPenaltyThreshold {
 			return ExecCategoryComplex
+		}
+		// 1-2 SSTORE with low score = Light (still gets partial discount)
+		if tc.SstoreCount <= 2 && score < 10 {
+			return ExecCategoryLight
 		}
 		return ExecCategoryMixed
 	}
@@ -268,22 +274,21 @@ const (
 	// Maximum penalty for complex contracts: 10% (1000 basis points)
 	maxPenaltyBps = 1000
 
+	// v1.1.4 calibration: lowered thresholds for more aggressive discounts
+	// Before: only "pure" contracts (no SSTORE) got discount = useless
+	// After: simple contracts (1-2 SSTORE) get partial discount
+
 	// Complexity score threshold where penalty begins.
-	// Below this: Mixed (no adjustment)
-	// Above this: Complex (penalty applied)
-	complexPenaltyThreshold = uint64(15)
+	complexPenaltyThreshold = uint64(25) // was 15, raised to let more contracts be Light/Mixed
 
 	// Score at which maximum penalty is applied.
-	// Linear ramp from penaltyThreshold to this value.
-	maxPenaltyScore = uint64(100)
+	maxPenaltyScore = uint64(80) // was 100, lowered to penalize heavy contracts sooner
 
 	// Minimum executed opcodes before discount is applied.
-	// Prevents tiny view functions from getting huge discounts.
-	minOpsForDiscount = uint64(10)
+	minOpsForDiscount = uint64(5) // was 10, lowered to include simple transfers
 
 	// Opcodes at which discount reaches full scale.
-	// Linear ramp from minOpsForDiscount to this value.
-	fullDiscountOps = uint64(200)
+	fullDiscountOps = uint64(100) // was 200, lowered so simple contracts reach full discount
 )
 
 // ComputeGasAdjustment calculates the gas adjustment in basis points (1/100 of percent).
@@ -362,13 +367,15 @@ func computeLightDiscount(score uint64, totalOps uint64) int64 {
 		return 0
 	}
 
-	// Base discount from score (inverse relationship)
+	// v1.1.4: Light contracts include simple token transfers (1-2 SSTORE)
+	// Give them meaningful discount based on score
 	if score >= complexPenaltyThreshold {
-		return 0 // score too high, no discount
+		return 0
 	}
 
-	// baseDiscount = 15 × (threshold - score) / threshold
-	baseDiscount := int64(15 * (complexPenaltyThreshold - score) / complexPenaltyThreshold)
+	// baseDiscount = 20 × (threshold - score) / threshold
+	// Raised from 15% to 20% max for Light contracts
+	baseDiscount := int64(20 * (complexPenaltyThreshold - score) / complexPenaltyThreshold)
 	if baseDiscount < 1 {
 		return 0
 	}
