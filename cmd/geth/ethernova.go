@@ -113,7 +113,7 @@ func applyEthernovaDefaults(ctx *cli.Context) (*ethernovaPaths, error) {
 	return paths, nil
 }
 
-const devnetBootnodes = "enode://7c7ebab7a6a1c541f9c131b5a4b5bb1bf8ab167d156b1e33653f2517cacdf9bb542be3acefbdeba427bf6b2479098272902b9466e1504a579d8891618cf04079@207.180.230.125:30301,enode://6d6f8341c08058a8f966d4e0d75e1cf7009bbe8647741e105e5ef2edd929baf3157292dcb31a1e1bd6cbb9161fe7bfde8e15539bef801ace55950e2e23f92a88@75.86.96.101:30301"
+const devnetBootnodes = "enode://d6ae8703340328f6be7b8c3abd45611f759b7a55046edf1436255378c20b4ceb0fa3fb42b4f32f678735c6cad08a8a4fb5b3e4c5cfa0c556b09ef07a98d0807d@207.180.230.125:30301,enode://2f8812b73e761fb62d5805f0971cd2b44480803dcb092ec8c1d9059b3867fdc0bddd05c0e317ee6e2c81fe3cb547f507d7c9e28b73d75910d348d8fc026c243a@75.86.96.101:30301"
 
 func applyEthernovaOneClickDefaults(ctx *cli.Context) (uint64, error) {
 	if len(os.Args) > 1 {
