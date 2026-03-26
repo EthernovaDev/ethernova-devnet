@@ -112,6 +112,10 @@ func PrecompiledContractsForConfig(config ctypes.ChainConfigurator, bn *big.Int,
 	precompileds[common.BytesToAddress([]byte{0x22})] = &novaAccountManager{}
 	precompileds[common.BytesToAddress([]byte{0x23})] = &novaFrameApprove{}
 	precompileds[common.BytesToAddress([]byte{0x24})] = &novaFrameIntrospect{}
+	precompileds[common.BytesToAddress([]byte{0x25})] = &novaTokenManager{}
+	precompileds[common.BytesToAddress([]byte{0x26})] = &novaShieldedPool{}
+	precompileds[common.BytesToAddress([]byte{0x27})] = &novaContractUpgrade{}
+	precompileds[common.BytesToAddress([]byte{0x28})] = &novaOracle{}
 
 	return precompileds
 }

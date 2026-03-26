@@ -1,0 +1,133 @@
+// Ethernova: Parallel Transaction Execution (Phase 23)
+// Transactions that don't touch the same state can execute in parallel.
+// This multiplies throughput by the number of CPU cores.
+//
+// How it works:
+// 1. Analyze each transaction's access list (read/write sets)
+// 2. Build a dependency graph - txs that share state must be sequential
+// 3. Independent txs execute in parallel across CPU cores
+// 4. Results are merged deterministically (sorted by tx index)
+//
+// For the devnet, we implement conflict detection and grouping.
+// Actual parallel execution requires deeper EVM changes.
+
+package vm
+
+import (
+	"sort"
+	"sync"
+
+	"github.com/ethereum/go-ethereum/common"
+)
+
+// TxAccessSet tracks which storage slots a transaction reads and writes.
+type TxAccessSet struct {
+	TxIndex int
+	Reads   map[common.Address]map[common.Hash]bool
+	Writes  map[common.Address]map[common.Hash]bool
+}
+
+// ParallelGroup is a set of transactions that can execute in parallel.
+type ParallelGroup struct {
+	TxIndices []int
+}
+
+// ClassifyTransactions groups transactions into parallel execution groups.
+// Transactions in the same group have no state conflicts and can run simultaneously.
+func ClassifyTransactions(accessSets []TxAccessSet) []ParallelGroup {
+	n := len(accessSets)
+	if n == 0 {
+		return nil
+	}
+
+	// Build conflict graph
+	conflicts := make([][]bool, n)
+	for i := range conflicts {
+		conflicts[i] = make([]bool, n)
+	}
+
+	for i := 0; i < n; i++ {
+		for j := i + 1; j < n; j++ {
+			if hasConflict(accessSets[i], accessSets[j]) {
+				conflicts[i][j] = true
+				conflicts[j][i] = true
+			}
+		}
+	}
+
+	// Greedy coloring to assign groups
+	colors := make([]int, n)
+	for i := range colors {
+		colors[i] = -1
+	}
+
+	for i := 0; i < n; i++ {
+		used := make(map[int]bool)
+		for j := 0; j < n; j++ {
+			if conflicts[i][j] && colors[j] >= 0 {
+				used[colors[j]] = true
+			}
+		}
+		// Find first available color
+		color := 0
+		for used[color] {
+			color++
+		}
+		colors[i] = color
+	}
+
+	// Build groups from colors
+	groupMap := make(map[int][]int)
+	for i, c := range colors {
+		groupMap[c] = append(groupMap[c], i)
+	}
+
+	// Sort groups by first tx index for determinism
+	keys := make([]int, 0, len(groupMap))
+	for k := range groupMap {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	groups := make([]ParallelGroup, 0, len(keys))
+	for _, k := range keys {
+		groups = append(groups, ParallelGroup{TxIndices: groupMap[k]})
+	}
+	return groups
+}
+
+func hasConflict(a, b TxAccessSet) bool {
+	// Conflict if A writes something B reads/writes, or B writes something A reads
+	for addr, slots := range a.Writes {
+		if bSlots, ok := b.Reads[addr]; ok {
+			for slot := range slots {
+				if bSlots[slot] {
+					return true
+				}
+			}
+		}
+		if bSlots, ok := b.Writes[addr]; ok {
+			for slot := range slots {
+				if bSlots[slot] {
+					return true
+				}
+			}
+		}
+	}
+	for addr, slots := range b.Writes {
+		if aSlots, ok := a.Reads[addr]; ok {
+			for slot := range slots {
+				if aSlots[slot] {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// ParallelExecutor runs transaction groups in parallel.
+type ParallelExecutor struct {
+	mu      sync.Mutex
+	results map[int][]byte // tx index -> result
+}
