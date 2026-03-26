@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params/vars"
 	"github.com/holiman/uint256"
 )
@@ -466,6 +467,19 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, value)
 	}
+
+	// Ethernova v1.1.1: debug log for gas tracing
+	// Logs every tx's gas info to help diagnose consensus mismatches.
+	adaptiveApplied := !contractCreation && vm.GlobalAdaptiveGas.Enabled.Load()
+	log.Debug("[AdaptiveGas] tx gas trace",
+		"from", msg.From.Hex(),
+		"nonce", msg.Nonce,
+		"isContractCreation", contractCreation,
+		"intrinsicGas", gas,
+		"gasUsed", st.gasUsed(),
+		"gasRemaining", st.gasRemaining,
+		"adaptiveApplied", adaptiveApplied,
+	)
 
 	// Ethernova Phase 18: Extra gas refund on revert
 	// If the transaction reverted, refund 90% of execution gas.

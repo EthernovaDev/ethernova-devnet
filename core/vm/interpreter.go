@@ -124,6 +124,18 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		return nil, nil
 	}
 
+	// Ethernova v1.1.1: detect contract creation.
+	// In go-ethereum, evm.create() calls run(evm, contract, nil, false) —
+	// input is nil ONLY during contract creation. Regular calls always pass
+	// non-nil input (empty []byte{} for no calldata).
+	//
+	// Contract creation executes INIT CODE (constructor), which is transient
+	// and contains ABI-encoded constructor arguments as trailing data bytes.
+	// These raw bytes get misinterpreted as opcodes by bytecode analysis,
+	// producing wrong classifications. Adaptive gas must NEVER apply to
+	// init code execution — only to deployed runtime code being called.
+	isContractCreation := input == nil
+
 	// Ethernova: record contract call for adaptive gas pattern tracking
 	GlobalPatternTracker.RecordCall(contract.Address())
 
@@ -137,10 +149,22 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// Ethernova Phase 4: bytecode analysis at first encounter
 	GlobalBytecodeAnalyzer.Analyze(contract.Address(), contract.Code)
 
-	// Ethernova v1.1.0: deterministic static bytecode classification
-	// This replaces the old runtime-based PatternTracker for gas adjustment.
-	// Classification depends ONLY on bytecode, so it is identical across all nodes.
-	GlobalStaticClassifier.Classify(contract.Address(), contract.Code)
+	// Ethernova v1.1.1: only classify deployed runtime code, NEVER init code.
+	// Init code bytecode contains constructor arguments as trailing data that
+	// gets misread as opcodes, producing wrong pureScore. Also, caching an
+	// init code classification under the contract address would poison the
+	// cache — subsequent calls would use the init code result instead of
+	// the actual runtime code classification.
+	if !isContractCreation {
+		GlobalStaticClassifier.Classify(contract.Address(), contract.Code)
+	}
+
+	if isContractCreation {
+		log.Debug("[AdaptiveGas] skipping classification for contract creation",
+			"contract", contract.Address().Hex(),
+			"initCodeLen", len(contract.Code),
+		)
+	}
 
 	// Ethernova Phase 4: call cache DISABLED for consensus safety (v1.0.2)
 	// Cache hits/misses differ per node causing execution divergence.
@@ -228,10 +252,14 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Gas refunds DISABLED - caused non-deterministic gas across nodes.
 		GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost)
 
-		// Ethernova v1.1.0: deterministic adaptive gas adjustment
+		// Ethernova v1.1.1: deterministic adaptive gas adjustment
 		// Uses static bytecode classification (not runtime profiling).
 		// Same bytecode → same classification → same gas on all nodes.
-		if GlobalAdaptiveGas.Enabled.Load() {
+		// CRITICAL: NEVER apply during contract creation (init code).
+		// Init code is transient constructor bytecode, not the deployed contract.
+		// Applying gas adjustment to init code caused consensus divergence:
+		//   remote=36631 vs local=36373 → "invalid gas used" → BAD BLOCK
+		if !isContractCreation && GlobalAdaptiveGas.Enabled.Load() {
 			cost = GlobalStaticClassifier.ApplyGasAdjustment(contract.Address(), cost)
 		}
 		// Static portion of gas

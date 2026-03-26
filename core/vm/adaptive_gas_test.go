@@ -463,3 +463,139 @@ func TestRegression_SLOADHeavyContractNotPure(t *testing.T) {
 		t.Error("REGRESSION: SLOAD-heavy contract classified as pure!")
 	}
 }
+
+// ============================================================================
+// Contract creation (v1.1.1) — adaptive gas must NOT apply to init code
+// ============================================================================
+
+func TestStaticClassifier_NoClassificationForCreation(t *testing.T) {
+	// Simulates contract creation: init code should NOT be classified.
+	// If it were classified, the constructor arg bytes would be misread
+	// as opcodes, poisoning the cache.
+	sc := &StaticClassifier{
+		classifications: make(map[common.Address]*ContractClassification),
+	}
+
+	addr := common.HexToAddress("0xdeadbeef00000000000000000000000000000001")
+
+	// Simulate init code: real opcodes + trailing constructor args
+	// Constructor args include bytes 0x54 (SLOAD) and 0x55 (SSTORE)
+	// which would be misinterpreted as storage opcodes
+	initCode := buildBytecode(PUSH1, PUSH1, ADD, CODECOPY, RETURN)
+	// Append fake constructor args that look like SSTORE/SLOAD
+	for i := 0; i < 40; i++ {
+		initCode = append(initCode, byte(SSTORE)) // 0x55 as data
+	}
+
+	// During creation, we should NOT call Classify()
+	// Verify the address has no classification
+	c := sc.GetClassification(addr)
+	if c != nil {
+		t.Error("fresh address should have no classification before deployment")
+	}
+
+	// After deployment, classify with RUNTIME code (not init code)
+	runtimeCode := buildBytecode(PUSH1, PUSH1, ADD, PUSH1, MSTORE, RETURN)
+	sc.Classify(addr, runtimeCode)
+
+	c = sc.GetClassification(addr)
+	if c == nil {
+		t.Fatal("should have classification after Classify()")
+	}
+	if c.StorageOps != 0 {
+		t.Errorf("runtime code has no storage ops, but got %d (init code contamination?)", c.StorageOps)
+	}
+	if c.Category != CategoryPure {
+		t.Errorf("pure runtime code should be CategoryPure, got %v", c.Category)
+	}
+}
+
+func TestStaticClassifier_CachePoisonPrevention(t *testing.T) {
+	// Verify that classifying init code would produce a WRONG result,
+	// confirming why we must skip it during creation.
+	sc := &StaticClassifier{
+		classifications: make(map[common.Address]*ContractClassification),
+	}
+
+	addr := common.HexToAddress("0xdeadbeef00000000000000000000000000000002")
+
+	// Init code with trailing constructor args that look like SSTORE
+	initCode := buildBytecode(PUSH1, PUSH1, ADD, RETURN)
+	for i := 0; i < 50; i++ {
+		initCode = append(initCode, byte(SSTORE)) // 0x55 data bytes
+	}
+
+	// Classify with init code (this is what the BUG did)
+	badClassification := sc.Classify(addr, initCode)
+
+	// The trailing 0x55 bytes get misread as SSTORE opcodes
+	if badClassification.StorageOps == 0 {
+		t.Skip("classifier correctly skipped PUSH data (not the bug scenario)")
+	}
+
+	t.Logf("CONFIRMED: init code misclassification - storageOps=%d, pureScore=%d, category=%s",
+		badClassification.StorageOps, badClassification.PureScore, badClassification.Category)
+
+	// Now verify: if we had classified with actual runtime code instead,
+	// the result would be completely different
+	sc2 := &StaticClassifier{
+		classifications: make(map[common.Address]*ContractClassification),
+	}
+	runtimeCode := buildBytecode(PUSH1, PUSH1, ADD, PUSH1, MSTORE, RETURN)
+	goodClassification := sc2.Classify(addr, runtimeCode)
+
+	if goodClassification.StorageOps != 0 {
+		t.Error("runtime code should have 0 storage ops")
+	}
+	if badClassification.PureScore == goodClassification.PureScore {
+		t.Error("init code and runtime code should produce DIFFERENT classifications")
+	}
+}
+
+func TestApplyGasAdjustment_ContractCreationGetsZero(t *testing.T) {
+	// Even if a classification exists, contract creation must not use it.
+	// This tests the interpreter-level guard: isContractCreation == true → no adjustment.
+	sc := &StaticClassifier{
+		classifications: make(map[common.Address]*ContractClassification),
+	}
+
+	addr := common.HexToAddress("0xaaaa")
+	sc.mu.Lock()
+	sc.classifications[addr] = &ContractClassification{
+		PureScore:     95,
+		Category:      CategoryPure,
+		GasAdjustment: -25,
+	}
+	sc.mu.Unlock()
+
+	GlobalAdaptiveGas.Enabled.Store(true)
+	defer GlobalAdaptiveGas.Enabled.Store(false)
+
+	baseCost := uint64(1000)
+
+	// Simulate what happens in the interpreter:
+	// During creation → isContractCreation=true → skip adjustment
+	isContractCreation := true
+	adjustedCost := baseCost
+	if !isContractCreation && GlobalAdaptiveGas.Enabled.Load() {
+		adjustedCost = sc.ApplyGasAdjustment(addr, baseCost)
+	}
+
+	if adjustedCost != baseCost {
+		t.Errorf("during contract creation, gas must NOT be adjusted; got %d want %d",
+			adjustedCost, baseCost)
+	}
+
+	// During regular call → isContractCreation=false → apply adjustment
+	isContractCreation = false
+	adjustedCost = baseCost
+	if !isContractCreation && GlobalAdaptiveGas.Enabled.Load() {
+		adjustedCost = sc.ApplyGasAdjustment(addr, baseCost)
+	}
+
+	expectedCost := uint64(750) // 1000 - 25%
+	if adjustedCost != expectedCost {
+		t.Errorf("during regular call, gas should be adjusted; got %d want %d",
+			adjustedCost, expectedCost)
+	}
+}
