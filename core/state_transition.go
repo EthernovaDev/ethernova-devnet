@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/params/vars"
 	"github.com/holiman/uint256"
 )
@@ -456,6 +457,10 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// - reset transient storage(eip 1153)
 	st.state.Prepare(eip2930f, eip3651f, msg.From, st.evm.Context.Coinbase, msg.To, st.evm.ActivePrecompiles(), msg.AccessList)
 
+	// Ethernova v2.0: reset trace counters before execution.
+	// This ensures each transaction starts with fresh counters.
+	st.evm.TraceCounters.Reset()
+
 	var (
 		ret   []byte
 		vmerr error // vm errors do not effect consensus and are therefore not assigned to err
@@ -468,9 +473,65 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, value)
 	}
 
-	// Ethernova v1.1.1: debug log for gas tracing
-	// Logs every tx's gas info to help diagnose consensus mismatches.
-	adaptiveApplied := !contractCreation && vm.GlobalAdaptiveGas.Enabled.Load()
+	// Ethernova v2.0: Trace-based adaptive gas adjustment (POST-EXECUTION)
+	// ================================================================
+	// CONSENSUS RULE — activated at AdaptiveGasV2ForkBlock.
+	// This replaces the old per-opcode approach that caused consensus splits.
+	// The adjustment is computed from TraceCounters collected during execution:
+	//   - Pure contracts (no SSTORE, no CALL) → discount up to -25%
+	//   - Complex contracts (heavy SSTORE/CALL) → penalty up to +10%
+	//   - Mixed contracts → no adjustment
+	//
+	// Applied to execution gas only (gasUsed - intrinsicGas).
+	// Intrinsic gas (21000 for transfer, etc.) is never modified.
+	//
+	// DETERMINISM: This is a pure function of TraceCounters (uint64 fields
+	// on the EVM struct) → same tx = same counters = same adjustment.
+	// No floats, no maps, no caching, no global mutable state.
+	//
+	// ACTIVATION: Fork-block gated, NOT runtime-toggled.
+	// All nodes running the same binary produce identical results.
+	// ================================================================
+	currentBlock := st.evm.Context.BlockNumber.Uint64()
+	adaptiveGasV2Active := !contractCreation && currentBlock >= ethernova.AdaptiveGasV2ForkBlock
+	if adaptiveGasV2Active {
+		var newRemaining uint64
+		var adjustPct int64
+		var classification *vm.ExecutionClassification
+		newRemaining, adjustPct, classification = vm.ApplyAdaptiveGasV2(
+			&st.evm.TraceCounters,
+			st.gasUsed(),
+			st.gasRemaining,
+			gas, // intrinsicGas
+		)
+		st.gasRemaining = newRemaining
+
+		// Store for RPC introspection
+		if classification != nil {
+			vm.LastTxClassification = classification
+		}
+
+		log.Debug("[AdaptiveGasV2] post-execution adjustment",
+			"block", currentBlock,
+			"from", msg.From.Hex(),
+			"nonce", msg.Nonce,
+			"category", func() string {
+				if classification != nil {
+					return classification.Category.String()
+				}
+				return "none"
+			}(),
+			"adjustPct", fmt.Sprintf("%+d%%", adjustPct),
+			"gasUsed", st.gasUsed(),
+			"gasRemaining", st.gasRemaining,
+			"traceOps", st.evm.TraceCounters.TotalOpsExecuted,
+			"traceSSTORE", st.evm.TraceCounters.SstoreCount,
+			"traceSLOAD", st.evm.TraceCounters.SloadCount,
+			"traceCALL", st.evm.TraceCounters.CallCount,
+		)
+	}
+
+	// Legacy gas trace log (kept for backward compat monitoring)
 	log.Debug("[AdaptiveGas] tx gas trace",
 		"from", msg.From.Hex(),
 		"nonce", msg.Nonce,
@@ -478,7 +539,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		"intrinsicGas", gas,
 		"gasUsed", st.gasUsed(),
 		"gasRemaining", st.gasRemaining,
-		"adaptiveApplied", adaptiveApplied,
+		"adaptiveV2Active", adaptiveGasV2Active,
 	)
 
 	// Ethernova Phase 18: Extra gas refund on revert

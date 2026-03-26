@@ -234,8 +234,12 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 		// Ethernova: record opcode execution for profiling
 		GlobalProfiler.Record(op, cost)
-		// Ethernova: record opcode for adaptive gas pattern analysis
+		// Ethernova: record opcode for adaptive gas pattern analysis (legacy, monitoring only)
 		GlobalPatternTracker.RecordOp(contract.Address(), op)
+		// Ethernova v2.0: record opcode for trace-based adaptive gas
+		// This is a lightweight integer increment — no allocation, no branching overhead.
+		// Counters are on the EVM struct (per-tx scope), read after execution completes.
+		in.evm.TraceCounters.RecordOpcode(op)
 		// Validate stack
 		// Ethernova fast mode: skip stack bounds check for verified contracts
 		if !fastMode {
@@ -252,6 +256,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Gas refunds DISABLED - caused non-deterministic gas across nodes.
 		GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost)
 
+<<<<<<< HEAD
 		// Ethernova v1.1.2: adaptive gas DISABLED in execution path
 		// v1.1.1 attempted deterministic static classification but still produced
 		// different gas between nodes (remote:36631 vs local:36373 = 258 gas diff).
@@ -263,6 +268,14 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// if !isContractCreation && GlobalAdaptiveGas.Enabled.Load() {
 		// 	cost = GlobalStaticClassifier.ApplyGasAdjustment(contract.Address(), cost)
 		// }
+=======
+		// Ethernova v2.0: adaptive gas adjustment is now applied POST-EXECUTION
+		// in state_transition.go, not per-opcode. This ensures:
+		//   1. Zero modification to EVM execution (consensus-safe)
+		//   2. All nodes execute identical opcodes with identical gas
+		//   3. Adjustment computed from TraceCounters after execution completes
+		// See: ApplyAdaptiveGasV2() in adaptive_gas_v2.go
+>>>>>>> 240e427 (feat: implement adaptive gas v2 (trace-based, deterministic, consensus-safe))
 		// Static portion of gas
 		if !contract.UseGas(cost) {
 			return nil, ErrOutOfGas

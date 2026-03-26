@@ -141,6 +141,15 @@ type EVM struct {
 	// callErrorTemp holds any errors caused during the execution of system opcodes (0xf0)
 	// NOTE: it's being used only for tracers
 	CallErrorTemp error
+
+	// Ethernova v2.0: Trace-based adaptive gas counters.
+	// Collects opcode execution counts during EVM execution for post-execution
+	// gas adjustment. These are simple uint64 counters — no allocations, no maps.
+	// Reset at the start of each transaction by state_transition.go.
+	// Only the top-level (depth==0) counters are used for gas adjustment;
+	// nested calls accumulate into the same counters since the EVM instance
+	// is shared across the entire call tree.
+	TraceCounters TraceCounters
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -184,6 +193,8 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 func (evm *EVM) Reset(txCtx TxContext, statedb StateDB) {
 	evm.TxContext = txCtx
 	evm.StateDB = statedb
+	// Ethernova v2.0: reset trace counters for the new transaction
+	evm.TraceCounters.Reset()
 }
 
 // Cancel cancels any running EVM operation. This may be called concurrently and

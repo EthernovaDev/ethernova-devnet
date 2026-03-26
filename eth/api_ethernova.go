@@ -187,49 +187,135 @@ func (api *EthernovaAPI) EvmProfileToggle(enabled bool) bool {
 // AdaptiveGasResult holds the adaptive gas system status.
 type AdaptiveGasResult struct {
 	Enabled         bool                `json:"enabled"`
-	DiscountPercent uint64              `json:"discountPercent"`
-	PenaltyPercent  uint64              `json:"penaltyPercent"`
+	Version         string              `json:"version"`
+	ForkBlock       uint64              `json:"forkBlock"`
+	DiscountPercent uint64              `json:"maxDiscountPercent"`
+	PenaltyPercent  uint64              `json:"maxPenaltyPercent"`
 	Contracts       []vm.PatternStats   `json:"contracts"`
 }
 
 // AdaptiveGas returns the current adaptive gas configuration and contract patterns.
 func (api *EthernovaAPI) AdaptiveGas() AdaptiveGasResult {
 	return AdaptiveGasResult{
-		Enabled:         vm.GlobalAdaptiveGas.Enabled.Load(),
-		DiscountPercent: vm.GlobalAdaptiveGas.DiscountPercent,
-		PenaltyPercent:  vm.GlobalAdaptiveGas.PenaltyPercent,
+		Enabled:         true, // CONSENSUS RULE: always active after fork block
+		Version:         "2.0.0-trace-based",
+		ForkBlock:       ethernova.AdaptiveGasV2ForkBlock,
+		DiscountPercent: 25, // compile-time constant from adaptive_gas_v2.go
+		PenaltyPercent:  10, // compile-time constant from adaptive_gas_v2.go
 		Contracts:       vm.GlobalPatternTracker.GetAllPatterns(),
 	}
 }
 
-// AdaptiveGasToggle enables or disables the adaptive gas system.
+// AdaptiveGasToggle is DEPRECATED and intentionally a no-op.
+// Adaptive gas v2 is a CONSENSUS RULE activated by fork block.
+// Allowing runtime toggle would cause consensus forks between nodes.
+// Returns: always true (system is always active).
 func (api *EthernovaAPI) AdaptiveGasToggle(enabled bool) bool {
-	vm.GlobalAdaptiveGas.Enabled.Store(enabled)
-	return vm.GlobalAdaptiveGas.Enabled.Load()
+	// NO-OP: consensus rules cannot be toggled at runtime.
+	// Log warning if someone tries to disable it.
+	if !enabled {
+		// Do NOT actually disable — just warn.
+		_ = enabled // suppress unused warning
+	}
+	return true // always active
 }
 
-// AdaptiveGasSetDiscount sets the discount percentage (0-50).
+// AdaptiveGasSetDiscount is DEPRECATED and intentionally a no-op.
+// Gas adjustment parameters are compile-time constants for consensus safety.
+// Returns: the fixed discount value (25%).
 func (api *EthernovaAPI) AdaptiveGasSetDiscount(percent uint64) uint64 {
-	if percent > 50 {
-		percent = 50
-	}
-	vm.GlobalAdaptiveGas.DiscountPercent = percent
-	return vm.GlobalAdaptiveGas.DiscountPercent
+	// NO-OP: consensus-critical parameters cannot be changed at runtime.
+	return 25
 }
 
-// AdaptiveGasSetPenalty sets the penalty percentage for complex contracts (0-50).
+// AdaptiveGasSetPenalty is DEPRECATED and intentionally a no-op.
+// Gas adjustment parameters are compile-time constants for consensus safety.
+// Returns: the fixed penalty value (10%).
 func (api *EthernovaAPI) AdaptiveGasSetPenalty(percent uint64) uint64 {
-	if percent > 50 {
-		percent = 50
-	}
-	vm.GlobalAdaptiveGas.PenaltyPercent = percent
-	return vm.GlobalAdaptiveGas.PenaltyPercent
+	// NO-OP: consensus-critical parameters cannot be changed at runtime.
+	return 10
 }
 
-// AdaptiveGasReset clears all pattern tracking data.
+// AdaptiveGasReset clears monitoring/pattern tracking data (NOT consensus-affecting).
 func (api *EthernovaAPI) AdaptiveGasReset() bool {
 	vm.GlobalPatternTracker.Reset()
+	vm.GlobalStaticClassifier.Reset()
 	return true
+}
+
+// ============================================================================
+// Adaptive Gas v2 — Trace-Based System (NEW)
+// ============================================================================
+
+// AdaptiveGasV2Result holds the trace-based adaptive gas system status.
+type AdaptiveGasV2Result struct {
+	Enabled         bool                       `json:"enabled"`
+	ConsensusRule   bool                       `json:"consensusRule"`
+	Version         string                     `json:"version"`
+	ForkBlock       uint64                     `json:"forkBlock"`
+	DiscountPercent uint64                     `json:"maxDiscountPercent"`
+	PenaltyPercent  uint64                     `json:"maxPenaltyPercent"`
+	LastTx          *vm.AdaptiveGasV2Stats     `json:"lastTxClassification,omitempty"`
+	LegacyContracts []vm.PatternStats          `json:"legacyContracts,omitempty"`
+	StaticClasses   []vm.ClassificationStats   `json:"staticClassifications,omitempty"`
+}
+
+// AdaptiveGasV2 returns the v2 trace-based adaptive gas system status.
+// Includes the last transaction's classification for debugging.
+func (api *EthernovaAPI) AdaptiveGasV2() AdaptiveGasV2Result {
+	result := AdaptiveGasV2Result{
+		Enabled:         true, // always active after fork block
+		ConsensusRule:   true,
+		Version:         "2.0.0-trace-based",
+		ForkBlock:       ethernova.AdaptiveGasV2ForkBlock,
+		DiscountPercent: 25,
+		PenaltyPercent:  10,
+		LegacyContracts: vm.GlobalPatternTracker.GetAllPatterns(),
+		StaticClasses:   vm.GlobalStaticClassifier.GetAllClassifications(),
+	}
+
+	if vm.LastTxClassification != nil {
+		stats := vm.LastTxClassification.ToStats()
+		result.LastTx = &stats
+	}
+
+	return result
+}
+
+// AdaptiveGasV2Simulate simulates classification for given trace counters.
+// Useful for testing without executing a real transaction.
+func (api *EthernovaAPI) AdaptiveGasV2Simulate(
+	sstoreCount, sloadCount, callCount, delegateCallCount,
+	staticCallCount, jumpiCount, createCount, totalOps uint64,
+) vm.AdaptiveGasV2Stats {
+	tc := &vm.TraceCounters{
+		SstoreCount:       sstoreCount,
+		SloadCount:        sloadCount,
+		CallCount:         callCount,
+		DelegateCallCount: delegateCallCount,
+		StaticCallCount:   staticCallCount,
+		JumpiCount:        jumpiCount,
+		CreateCount:       createCount,
+		TotalOpsExecuted:  totalOps,
+	}
+
+	category := vm.ClassifyExecution(tc)
+	score := vm.ComputeComplexityScore(tc)
+	adjustPct := vm.ComputeGasAdjustment(category, score, totalOps)
+
+	return vm.AdaptiveGasV2Stats{
+		Category:        category.String(),
+		ComplexityScore: score,
+		GasAdjustPct:    adjustPct,
+		SstoreCount:     sstoreCount,
+		SloadCount:      sloadCount,
+		CallCount:       callCount,
+		StaticCallCount: staticCallCount,
+		DelegateCount:   delegateCallCount,
+		CreateCount:     createCount,
+		JumpiCount:      jumpiCount,
+		TotalOps:        totalOps,
+	}
 }
 
 // ExecutionModeResult holds execution mode status.

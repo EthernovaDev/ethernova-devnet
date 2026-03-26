@@ -28,4 +28,14 @@ const (
 	// Precompiles 0x23 (novaFrameApprove) and 0x24 (novaFrameIntrospect).
 	// Inspired by EIP-8141 Frame Transactions.
 	FrameAAForkBlock uint64 = 24000
+
+	// AdaptiveGasV2ForkBlock activates trace-based adaptive gas pricing.
+	// Replaces the v1 bytecode-based system that caused consensus splits.
+	// Pure computation contracts get up to -25% gas discount.
+	// Storage-heavy contracts get up to +10% gas penalty.
+	// This is a CONSENSUS RULE — all nodes MUST apply the same adjustment.
+	// Classification is deterministic: pure function of execution trace counters.
+	// Devnet activation: block 0 (always active)
+	// Mainnet: TBD after devnet validation
+	AdaptiveGasV2ForkBlock uint64 = 0
 )
