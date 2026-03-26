@@ -509,6 +509,29 @@ ArchivedAccounts{address → SlimRLP}                        → LevelDB (separa
 - [x] `FinalizeExpiry()` integrated in consensus Finalize
 - [x] Version bumped to v1.0.8-devnet
 
+### Phase 16: Real Contract Deployment & Extreme Testing (v1.0.8)
+
+First successful real contract deployment on the devnet. All contracts compiled with `solc 0.8.24 --evm-version istanbul` (devnet uses Istanbul EVM, not Shanghai).
+
+#### Deployed Contracts
+| Contract | Address | Gas | Status |
+|----------|---------|-----|--------|
+| Counter | 0xae452be48646eb4bf5ce58b217b90233bf2226b1 | 100,473 | SUCCESS |
+| NovaToken (ERC-20) | 0x7a7e434c646105f7449a669cedd074ab2b44220e | 412,905 | SUCCESS |
+
+#### Test Results
+- [x] **Counter**: deploy + increment() x3 + get() = 3
+- [x] **ERC-20**: deploy (1M supply) + transfer(1000 NTT) + balanceOf = 1000
+- [x] **50 ETH transfers** in single block (block 411, gas 1,050,000)
+- [x] **20/20 consensus blocks** verified (including blocks with contract txs)
+- [x] **5 precompiles** tested: novaBatchHash, novaBatchVerify, novaAccountManager, novaFrameApprove, novaFrameIntrospect
+- [x] **Gas benchmarks**: ETH transfer = 21,000 | Counter.increment() = ~26,000 | ERC-20 transfer = 51,559
+- [x] **Cross-platform**: Windows + Linux miner + VPS all syncing without BAD BLOCK
+- [x] **ZERO consensus errors** across entire test suite
+
+#### Key Finding
+Contracts must be compiled with `--evm-version istanbul`. The devnet's EVM does not support the Shanghai `PUSH0` opcode (0x5f), which is the default target in solc 0.8.20+. Using `--evm-version istanbul` produces compatible bytecode.
+
 ### Phase 14: Comprehensive Feature Validation (v1.0.7)
 
 Full test suite run against live devnet with contract deployments, interactions, batch transfers, and cross-node consensus verification.
