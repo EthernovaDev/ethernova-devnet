@@ -85,6 +85,32 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
+	// Ethernova Phase 23: Parallel execution analysis
+	// Classify transactions into parallel groups based on sender/recipient.
+	// Simple heuristic: txs with different senders AND different recipients can be parallel.
+	// This doesn't change execution order (determinism!) but logs potential parallelism.
+	if len(block.Transactions()) > 1 {
+		senders := make(map[common.Address]bool)
+		recipients := make(map[common.Address]bool)
+		parallelCandidates := 0
+		for _, tx := range block.Transactions() {
+			from, _ := types.Sender(signer, tx)
+			to := tx.To()
+			isIndependent := !senders[from]
+			if to != nil {
+				isIndependent = isIndependent && !recipients[*to]
+				recipients[*to] = true
+			}
+			senders[from] = true
+			if isIndependent {
+				parallelCandidates++
+			}
+		}
+		if parallelCandidates > 1 {
+			vm.GlobalParallelStats.RecordBlock(block.NumberU64(), len(block.Transactions()), parallelCandidates)
+		}
+	}
+
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		msg, err := TransactionToMessage(tx, signer, header.BaseFee)

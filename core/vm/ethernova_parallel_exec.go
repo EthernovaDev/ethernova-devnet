@@ -126,8 +126,47 @@ func hasConflict(a, b TxAccessSet) bool {
 	return false
 }
 
-// ParallelExecutor runs transaction groups in parallel.
-type ParallelExecutor struct {
-	mu      sync.Mutex
-	results map[int][]byte // tx index -> result
+// ParallelStats tracks how much parallelism is available per block.
+type ParallelStats struct {
+	mu              sync.Mutex
+	TotalBlocks     uint64
+	TotalTxs        uint64
+	ParallelTxs     uint64
+	LastBlockNumber uint64
+	LastBlockTxs    int
+	LastBlockParallel int
+}
+
+// GlobalParallelStats is the singleton stats tracker.
+var GlobalParallelStats = &ParallelStats{}
+
+// RecordBlock records parallel execution statistics for a block.
+func (ps *ParallelStats) RecordBlock(blockNumber uint64, totalTxs, parallelTxs int) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	ps.TotalBlocks++
+	ps.TotalTxs += uint64(totalTxs)
+	ps.ParallelTxs += uint64(parallelTxs)
+	ps.LastBlockNumber = blockNumber
+	ps.LastBlockTxs = totalTxs
+	ps.LastBlockParallel = parallelTxs
+}
+
+// GetStats returns a copy of the current stats.
+func (ps *ParallelStats) GetStats() map[string]interface{} {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	ratio := float64(0)
+	if ps.TotalTxs > 0 {
+		ratio = float64(ps.ParallelTxs) / float64(ps.TotalTxs) * 100
+	}
+	return map[string]interface{}{
+		"totalBlocks":       ps.TotalBlocks,
+		"totalTxs":          ps.TotalTxs,
+		"parallelTxs":       ps.ParallelTxs,
+		"parallelRatio":     ratio,
+		"lastBlock":         ps.LastBlockNumber,
+		"lastBlockTxs":      ps.LastBlockTxs,
+		"lastBlockParallel": ps.LastBlockParallel,
+	}
 }
