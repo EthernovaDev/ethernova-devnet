@@ -1,20 +1,17 @@
 // Ethernova: Anti-MEV Fair Ordering (Phase 19)
-// Prevents front-running and sandwich attacks at the protocol level.
 //
-// Mechanism: Commit-Reveal transaction ordering
-// 1. Users submit encrypted tx hash (commit) - nobody can see the contents
-// 2. After N blocks, the actual transaction is revealed
-// 3. Transactions are ordered by commit time, not gas price
+// UPDATED after Gemini security review:
+// Pure FIFO ordering creates a spam vector - bots flood the mempool with
+// minimum-gas txs to get priority by arrival time instead of paying for it.
 //
-// For the devnet, we implement a simpler version:
-// - Transaction ordering within a block is by ARRIVAL TIME, not gas price
-// - The miner cannot reorder transactions to extract MEV
-// - A "fair ordering" flag in the block header indicates this policy
-//
-// This eliminates:
-// - Front-running (can't see pending txs before they're ordered)
-// - Sandwich attacks (can't insert txs around a target)
-// - Gas price bidding wars (ordering is first-come-first-serve)
+// Solution: Hybrid ordering
+// - Base ordering is by arrival time (FIFO) = fair for users
+// - BUT: rate limit per sender address in the mempool
+//   - Max 16 pending txs per sender (prevents spam flooding)
+//   - After 16 pending, new txs from that sender are dropped
+// - Priority fee still accepted but NOT used for ordering
+//   - Higher fee = higher chance of inclusion in full blocks
+//   - But within the block, order is FIFO
 
 package vm
 
@@ -25,28 +22,37 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+const (
+	// MaxPendingPerSender limits how many pending txs one address can have.
+	// Prevents spam attacks where bots flood mempool with minimum-gas txs.
+	MaxPendingPerSender = 16
+)
+
 // FairOrderingConfig controls the anti-MEV fair ordering system.
 type FairOrderingConfig struct {
-	Enabled        bool
-	OrderByArrival bool // Order txs by arrival time, not gas price
+	Enabled            bool
+	OrderByArrival     bool
+	RateLimitPerSender int // max pending txs per sender
 }
 
 // GlobalFairOrdering is the singleton config.
 var GlobalFairOrdering = &FairOrderingConfig{
-	Enabled:        true,
-	OrderByArrival: true,
+	Enabled:            true,
+	OrderByArrival:     true,
+	RateLimitPerSender: MaxPendingPerSender,
 }
 
 // TxArrivalTracker records when transactions arrive at the node.
-// Used for fair ordering (first-come-first-serve instead of gas price).
 type TxArrivalTracker struct {
-	mu       sync.Mutex
-	arrivals map[common.Hash]time.Time
+	mu           sync.Mutex
+	arrivals     map[common.Hash]time.Time
+	senderCount  map[common.Address]int // track pending txs per sender
 }
 
 // GlobalTxArrivals tracks transaction arrival times.
 var GlobalTxArrivals = &TxArrivalTracker{
-	arrivals: make(map[common.Hash]time.Time),
+	arrivals:    make(map[common.Hash]time.Time),
+	senderCount: make(map[common.Address]int),
 }
 
 // RecordArrival marks when a transaction was first seen.
@@ -55,6 +61,30 @@ func (t *TxArrivalTracker) RecordArrival(txHash common.Hash) {
 	defer t.mu.Unlock()
 	if _, exists := t.arrivals[txHash]; !exists {
 		t.arrivals[txHash] = time.Now()
+	}
+}
+
+// CanAcceptFromSender returns true if the sender hasn't exceeded the rate limit.
+func (t *TxArrivalTracker) CanAcceptFromSender(sender common.Address) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.senderCount[sender] < MaxPendingPerSender
+}
+
+// IncrementSender records a new pending tx from this sender.
+func (t *TxArrivalTracker) IncrementSender(sender common.Address) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.senderCount[sender]++
+}
+
+// DecrementSender removes a pending tx count (tx mined or dropped).
+func (t *TxArrivalTracker) DecrementSender(sender common.Address) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.senderCount[sender]--
+	if t.senderCount[sender] <= 0 {
+		delete(t.senderCount, sender)
 	}
 }
 

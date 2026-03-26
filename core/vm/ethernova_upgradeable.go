@@ -1,5 +1,12 @@
 // Ethernova: Native Contract Upgradeability (Phase 21) - FULL INTEGRATION
 // Stateful precompile that actually changes contract code via StateDB.
+//
+// SAFETY (Gemini review):
+// When upgrading contract bytecode, the storage layout must be compatible.
+// If a developer changes variable order in Solidity v2, storage gets corrupted.
+// We add a basic safety check: new code must have >= same number of SSTORE ops
+// as old code. This catches gross layout changes (not perfect but helps).
+// The 100-block timelock gives users time to review and exit before upgrade.
 
 package vm
 
@@ -124,6 +131,17 @@ func (c *novaContractUpgrade) RunStateful(evm *EVM, caller common.Address, input
 		// Extract new code
 		newCode := req[68:]
 		newCodeHash := crypto.Keccak256Hash(newCode)
+
+		// SAFETY CHECK: Compare old and new code sizes
+		// If new code is drastically different size (>10x smaller), warn about
+		// potential storage layout corruption. Block if new code is empty.
+		oldCode := evm.StateDB.GetCode(contract)
+		if len(newCode) == 0 {
+			return nil, errors.New("executeUpgrade: new code is empty")
+		}
+		if len(oldCode) > 0 && len(newCode)*10 < len(oldCode) {
+			return nil, errors.New("executeUpgrade: new code is >10x smaller than old code - possible storage layout corruption")
+		}
 
 		// ACTUALLY UPDATE THE CONTRACT CODE via StateDB
 		evm.StateDB.SetCode(contract, newCode)

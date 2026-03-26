@@ -1,15 +1,19 @@
 // Ethernova: Parallel Transaction Execution (Phase 23)
-// Transactions that don't touch the same state can execute in parallel.
-// This multiplies throughput by the number of CPU cores.
 //
-// How it works:
-// 1. Analyze each transaction's access list (read/write sets)
-// 2. Build a dependency graph - txs that share state must be sequential
-// 3. Independent txs execute in parallel across CPU cores
-// 4. Results are merged deterministically (sorted by tx index)
+// IMPORTANT (Gemini review): This is ANALYSIS ONLY - transactions still execute
+// sequentially for consensus safety. The engine reports how much parallelism
+// is available but does NOT change execution order.
 //
-// For the devnet, we implement conflict detection and grouping.
-// Actual parallel execution requires deeper EVM changes.
+// Why not actual parallel execution?
+// EVM contracts make dynamic CALL to addresses computed at runtime.
+// It's impossible to predict 100% which storage slots a tx will touch
+// before executing it. If two "independent" txs collide at runtime,
+// the state root would be non-deterministic = BAD BLOCK.
+//
+// Future: Implement optimistic parallel execution with abort-and-retry.
+// If a collision is detected during parallel execution, abort the
+// conflicting tx and re-execute it sequentially at the end of the block.
+// This is what Monad and Block-STM (Aptos) do.
 
 package vm
 
