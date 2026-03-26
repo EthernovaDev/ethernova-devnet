@@ -599,6 +599,43 @@ Private NOVA transfers using commitment-nullifier scheme. Privacy is **OPTIONAL*
 | Parallel exec | `state_processor.go` analysis | GlobalParallelStats | N/A |
 | Privacy | N/A | `accessors_ethernova_privacy.go` | 0x26 RunStateful + NOVA movement |
 
+### Security Audit Results (v1.1.0)
+
+3 rounds of external AI security review (Gemini) identified 11 vulnerabilities across consensus, economic, and infrastructure layers. All fixed.
+
+#### Round 1: Consensus & Safety
+| Issue | Severity | Attack | Fix |
+|-------|----------|--------|-----|
+| Gas Refund DoS | HIGH | Heavy computation + REVERT = 90% refund while wasting miner CPU | Refund only for txs <100k execution gas |
+| Reentrancy kills DeFi | MEDIUM | Global block prevents flash loans, DEX aggregators, oracles | Self-reentrancy only (A->B->A blocked, A->B->C allowed) |
+
+#### Round 2: Engineering & Architecture
+| Issue | Severity | Attack | Fix |
+|-------|----------|--------|-----|
+| Parallel exec collision | CRITICAL | Two "independent" txs modify same slot = BAD BLOCK | Analysis-only mode, sequential execution |
+| Anti-MEV spam flood | HIGH | Bots send millions of min-gas txs for FIFO priority | Rate limit: max 16 pending txs per sender |
+| Upgrade storage corruption | HIGH | Dev changes Solidity variable order = storage corrupted | Reject empty code, reject >10x size change, 100-block timelock |
+
+#### Round 3: Economic Attacks
+| Issue | Severity | Attack | Fix |
+|-------|----------|--------|-----|
+| Shielded pool double-spend | CRITICAL | Nullifier bug = infinite NOVA creation | Max 10,000 NOVA/withdrawal + double-check pool accounting |
+| Oracle 51% manipulation | CRITICAL | Rent hashrate, inject false prices | Circuit breaker: reject >15% price change per block |
+| Token spam fills LevelDB | HIGH | Create millions of junk tokens cheaply | 500,000 gas creation cost + max 100 tokens per address |
+
+#### Round 4: Infrastructure Apocalypse
+| Issue | Severity | Attack | Fix |
+|-------|----------|--------|-----|
+| Tempo TX mempool RAM bomb | CRITICAL | 5M future-dated txs fill node RAM = OOM kill | Max 500 blocks scheduling window |
+| LevelDB crash desync | CRITICAL | Power failure corrupts external indexes | Atomic batch writes for all index operations |
+| Tempo batch revert CPU bomb | HIGH | 15 heavy SSTORE calls + REVERT = CPU exhaustion | 5,000 gas overhead per call in batch |
+
+#### Defense Summary
+- **4 circuit breakers**: privacy withdrawal, oracle price, gas refund, batch overhead
+- **3 rate limits**: 16 txs/sender, 100 tokens/creator, 500 block schedule window
+- **2 atomic write guarantees**: LevelDB batch for all external indexes
+- **1 safe architecture**: parallel exec = analysis only, no execution changes
+
 ### v1.0.2 Consensus Verification
 
 ```
