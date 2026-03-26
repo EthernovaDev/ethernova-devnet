@@ -462,6 +462,53 @@ Ethereum's Frame Transactions allow arbitrary gas payment tokens. Ethernova deli
 3. The devnet continues to catch real bugs that would be catastrophic on mainnet
 4. LastTouched tracking also disabled - writing new fields to account RLP changes state root between Windows/Linux builds
 
+### Phase 15: State Expiry v2 - External Index (v1.0.8)
+
+The garbage collector is back, rebuilt from scratch with a fundamentally different architecture that solves the consensus bugs from v1.0.4-v1.0.7.
+
+#### The Problem (v1.0.4-v1.0.7)
+```
+StateAccount{Nonce, Balance, Root, CodeHash, LastTouched} → state trie → state root CHANGES
+                                                                          ↓
+                                                            Different nodes = different roots = BAD BLOCK
+```
+
+#### The Solution (v1.0.8)
+```
+StateAccount{Nonce, Balance, Root, CodeHash}               → state trie → state root UNCHANGED
+LastTouchedIndex{address → blockNumber}                    → LevelDB (separate) → no consensus impact
+BlockIndex{blockNumber → []address}                        → LevelDB (separate) → deterministic sweep order
+ArchivedAccounts{address → SlimRLP}                        → LevelDB (separate) → resurrection data
+```
+
+#### How it works
+1. When a contract is called (`SetState`, `SetCode`), the address is recorded in the external LevelDB index
+2. At the end of each block, the touched addresses are saved to a block-indexed list (sorted for determinism)
+3. At block N, the sweep looks up block (N - 1,000) and checks if those contracts have been touched since
+4. Contracts that haven't been touched get archived (slim RLP saved) and deleted from the state trie
+5. The trie deletion is deterministic because the input list comes from the sorted block index
+
+#### New files
+- `core/rawdb/accessors_ethernova_expiry.go` - LevelDB schema with 3 prefixes (X, x, A)
+- `core/state/state_expiry_v2.go` - StateExpiryEngine with external index + sweep
+
+#### Why this is safe
+| Concern | v1.0.4 (broken) | v1.0.8 (fixed) |
+|---------|-----------------|-----------------|
+| State root changes | LastTouched in trie = yes | External index = no |
+| Sweep order | Go map iteration = random | Sorted block index = deterministic |
+| Cross-platform | Windows/Linux produce different RLP | Identical - no new trie fields |
+| Recovery | Lost on trie change | Archived in LevelDB with slim RLP |
+
+#### Configuration
+- [x] `StateExpiryForkBlock = 25,200` (updated for new chain)
+- [x] `StateExpiryPeriod = 1,000` blocks
+- [x] External LevelDB index with 3 key prefixes
+- [x] Deterministic sweep via sorted block index
+- [x] `TrackContractTouch()` in SetState/SetCode (external only)
+- [x] `FinalizeExpiry()` integrated in consensus Finalize
+- [x] Version bumped to v1.0.8-devnet
+
 ### Phase 14: Comprehensive Feature Validation (v1.0.7)
 
 Full test suite run against live devnet with contract deployments, interactions, batch transfers, and cross-node consensus verification.
