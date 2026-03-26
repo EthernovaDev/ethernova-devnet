@@ -34,16 +34,24 @@ func NewStateExpiryEngine(db ethdb.Database) *StateExpiryEngine {
 
 // TouchContract records that a contract was accessed at the given block.
 // This writes to the external index only - does NOT modify the state trie.
+// SAFETY (Gemini review): Uses batch writes to ensure atomicity.
+// If power fails mid-write, either ALL index updates are saved or NONE.
 func (e *StateExpiryEngine) TouchContract(addr common.Address, blockNumber uint64) {
 	current := rawdb.ReadLastTouched(e.db, addr)
 	if current == blockNumber {
-		return // already touched at this block
+		return
 	}
-	rawdb.WriteLastTouched(e.db, addr, blockNumber)
+	// Use atomic batch write to prevent partial corruption on crash
+	batch := e.db.NewBatch()
+	rawdb.WriteLastTouched(batch, addr, blockNumber)
+	if err := batch.Write(); err != nil {
+		log.Error("State expiry: failed to write touch", "addr", addr, "err", err)
+	}
 }
 
 // RecordBlockTouches saves the list of contracts touched during a block.
 // Called at the end of block processing (in Finalize).
+// SAFETY: All writes in a single atomic batch - crash-safe.
 func (e *StateExpiryEngine) RecordBlockTouches(blockNumber uint64, addresses []common.Address) {
 	if len(addresses) == 0 {
 		return
@@ -59,7 +67,12 @@ func (e *StateExpiryEngine) RecordBlockTouches(blockNumber uint64, addresses []c
 			unique = append(unique, addr)
 		}
 	}
-	rawdb.WriteBlockTouchedAddresses(e.db, blockNumber, unique)
+	// Atomic batch write - all or nothing (crash-safe)
+	batch := e.db.NewBatch()
+	rawdb.WriteBlockTouchedAddresses(batch, blockNumber, unique)
+	if err := batch.Write(); err != nil {
+		log.Error("State expiry: failed to write block touches", "block", blockNumber, "err", err)
+	}
 }
 
 // SweepExpired checks contracts touched at (currentBlock - expiryPeriod) and

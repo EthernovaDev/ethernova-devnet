@@ -52,6 +52,12 @@ type TempoTransactionData struct {
 }
 
 // IsScheduled returns true if this transaction has time constraints.
+// MaxScheduleWindow is the maximum number of blocks into the future
+// that a scheduled transaction can target. Prevents mempool RAM bomb
+// where attacker sends millions of far-future txs filling node memory.
+// (Gemini security review - apocalyptic scenario 1)
+const MaxScheduleWindow uint64 = 500
+
 func (td *TempoTransactionData) IsScheduled() bool {
 	return td.ValidBefore > 0 || td.ValidAfter > 0
 }
@@ -68,6 +74,18 @@ func (td *TempoTransactionData) IsValidAtBlock(blockNumber uint64) bool {
 	}
 	if td.ValidAfter > 0 && blockNumber < td.ValidAfter {
 		return false // not yet valid
+	}
+	return true
+}
+
+// IsScheduleWindowValid checks that validAfter is not too far in the future.
+// Rejects txs scheduled >500 blocks ahead to prevent mempool RAM exhaustion.
+func (td *TempoTransactionData) IsScheduleWindowValid(currentBlock uint64) bool {
+	if td.ValidAfter > 0 && td.ValidAfter > currentBlock+MaxScheduleWindow {
+		return false // too far in the future - reject to protect mempool RAM
+	}
+	if td.ValidBefore > 0 && td.ValidBefore > currentBlock+MaxScheduleWindow {
+		return false // expiry too far out
 	}
 	return true
 }

@@ -59,6 +59,19 @@ func ExecuteTempoCalls(
 		return nil, fmt.Errorf("tempo transaction must have at least one call")
 	}
 
+	// ANTI-DoS (Gemini review - batch revert CPU bomb):
+	// Attacker fills 15 calls with massive SSTORE writes, then call 16 = REVERT.
+	// The EVM journal must undo ALL writes = CPU exhaustion.
+	// Defense: Each individual call in a batch is limited to totalGasLimit/calls.
+	// This caps the total state changes that need reverting.
+	// Also: base gas cost per call = 5,000 gas (makes deep batches expensive)
+	perCallOverhead := uint64(5000) // base cost per call in batch
+	totalOverhead := perCallOverhead * uint64(len(calls))
+	if totalGasLimit < totalOverhead {
+		return nil, fmt.Errorf("tempo batch: insufficient gas for %d calls (need %d base)", len(calls), totalOverhead)
+	}
+	totalGasLimit -= totalOverhead // deduct overhead upfront
+
 	if len(calls) > 16 {
 		return nil, fmt.Errorf("tempo transaction limited to 16 calls maximum")
 	}
