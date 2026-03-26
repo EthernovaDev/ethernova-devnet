@@ -76,7 +76,7 @@ func (lyra2 *Lyra2) VerifyHeader(chain consensus.ChainHeaderReader, header *type
 		return consensus.ErrUnknownAncestor
 	}
 	// Sanity checks passed, do a proper verification
-	return lyra2.verifyHeader(chain, header, parent, false, seal)
+	return lyra2.verifyHeader(chain, header, parent, false, seal, time.Now().Unix())
 }
 
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
@@ -100,15 +100,16 @@ func (lyra2 *Lyra2) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*
 
 	// Create a task channel and spawn the verifiers
 	var (
-		inputs = make(chan int)
-		done   = make(chan int, workers)
-		errors = make([]error, len(headers))
-		abort  = make(chan struct{})
+		inputs  = make(chan int)
+		done    = make(chan int, workers)
+		errors  = make([]error, len(headers))
+		abort   = make(chan struct{})
+		unixNow = time.Now().Unix() // Ethernova: snapshot time once for all workers (consistent with ethash)
 	)
 	for i := 0; i < workers; i++ {
 		go func() {
 			for index := range inputs {
-				errors[index] = lyra2.verifyHeaderWorker(chain, headers, seals, index)
+				errors[index] = lyra2.verifyHeaderWorker(chain, headers, seals, index, unixNow)
 				done <- index
 			}
 		}()
@@ -144,7 +145,7 @@ func (lyra2 *Lyra2) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*
 	return abort, errorsOut
 }
 
-func (lyra2 *Lyra2) verifyHeaderWorker(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool, index int) error {
+func (lyra2 *Lyra2) verifyHeaderWorker(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool, index int, unixNow int64) error {
 	var parent *types.Header
 	if index == 0 {
 		parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
@@ -157,7 +158,7 @@ func (lyra2 *Lyra2) verifyHeaderWorker(chain consensus.ChainHeaderReader, header
 	if chain.GetHeader(headers[index].Hash(), headers[index].Number.Uint64()) != nil {
 		return nil // known block
 	}
-	return lyra2.verifyHeader(chain, headers[index], parent, false, seals[index])
+	return lyra2.verifyHeader(chain, headers[index], parent, false, seals[index], unixNow)
 }
 
 // VerifyUncles verifies that the given block's uncles conform to the consensus
@@ -208,7 +209,7 @@ func (lyra2 *Lyra2) VerifyUncles(chain consensus.ChainReader, block *types.Block
 		if ancestors[uncle.ParentHash] == nil || uncle.ParentHash == block.ParentHash() {
 			return errDanglingUncle
 		}
-		if err := lyra2.verifyHeader(chain, uncle, ancestors[uncle.ParentHash], true, true); err != nil {
+		if err := lyra2.verifyHeader(chain, uncle, ancestors[uncle.ParentHash], true, true, time.Now().Unix()); err != nil {
 			return err
 		}
 	}
@@ -218,14 +219,15 @@ func (lyra2 *Lyra2) VerifyUncles(chain consensus.ChainReader, block *types.Block
 // verifyHeader checks whether a header conforms to the consensus rules of the
 // stock Ethereum ethash and lyra2 engine.
 // See YP section 4.3.4. "Block Header Validity"
-func (lyra2 *Lyra2) verifyHeader(chain consensus.ChainHeaderReader, header, parent *types.Header, uncle bool, seal bool) error {
+func (lyra2 *Lyra2) verifyHeader(chain consensus.ChainHeaderReader, header, parent *types.Header, uncle bool, seal bool, unixNow int64) error {
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > vars.MaximumExtraDataSize {
 		return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), vars.MaximumExtraDataSize)
 	}
 	// Verify the header's timestamp
+	// Ethernova: use pre-snapshotted unixNow for consistency across batch verification
 	if !uncle {
-		if header.Time > uint64(time.Now().Add(allowedFutureBlockTime).Unix()) {
+		if header.Time > uint64(unixNow+int64(allowedFutureBlockTime.Seconds())) {
 			return consensus.ErrFutureBlock
 		}
 	}

@@ -104,7 +104,7 @@ const (
 	receiptsCacheLimit  = 32
 	txLookupCacheLimit  = 1024
 	maxFutureBlocks     = 256
-	maxTimeFutureBlocks = 30
+	maxTimeFutureBlocks = 60 // Ethernova: increased from 30 to 60s to prevent premature future block rejection on devnet
 	TriesInMemory       = 128
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
@@ -1505,14 +1505,23 @@ func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types
 // TODO after the transition, the future block shouldn't be kept. Because
 // it's not checked in the Geth side anymore.
 func (bc *BlockChain) addFutureBlock(block *types.Block) error {
-	max := uint64(time.Now().Unix() + maxTimeFutureBlocks)
+	now := uint64(time.Now().Unix())
+	max := now + maxTimeFutureBlocks
+	drift := int64(block.Time()) - int64(now)
 	if block.Time() > max {
-		return fmt.Errorf("future block timestamp %v > allowed %v", block.Time(), max)
+		log.Warn("Rejecting future block: timestamp too far ahead",
+			"number", block.Number(), "hash", block.Hash(),
+			"blockTime", block.Time(), "now", now,
+			"driftSeconds", drift, "maxAllowed", maxTimeFutureBlocks)
+		return fmt.Errorf("future block timestamp %v > allowed %v (drift=%ds)", block.Time(), max, drift)
 	}
 	if block.Difficulty().Cmp(common.Big0) == 0 {
 		// Never add PoS blocks into the future queue
 		return nil
 	}
+	log.Debug("Queueing future block for later processing",
+		"number", block.Number(), "hash", block.Hash(),
+		"blockTime", block.Time(), "driftSeconds", drift)
 	bc.futureBlocks.Add(block.Hash(), block)
 	return nil
 }
