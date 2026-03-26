@@ -1,6 +1,5 @@
-// Ethernova: Optional Privacy - Shielded Transfers (Phase 24)
-// Persistent commitment/nullifier storage in LevelDB.
-// Precompile at 0x26 (novaShieldedPool)
+// Ethernova: Optional Privacy (Phase 24) - FULL INTEGRATION
+// Stateful precompile that moves NOVA in/out of shielded pool.
 
 package vm
 
@@ -11,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/holiman/uint256"
 )
 
 type novaShieldedPool struct{}
@@ -20,15 +20,22 @@ func (c *novaShieldedPool) RequiredGas(input []byte) uint64 {
 		return 0
 	}
 	switch input[0] {
-	case 0x01: return 50000   // shield
-	case 0x02: return 100000  // unshield
-	case 0x03: return 2000    // poolInfo
-	case 0x04: return 2000    // verifyInPool
+	case 0x01: return 50000
+	case 0x02: return 100000
+	case 0x03: return 2000
+	case 0x04: return 2000
 	default:   return 0
 	}
 }
 
 func (c *novaShieldedPool) Run(input []byte) ([]byte, error) {
+	return nil, errors.New("novaShieldedPool: use RunStateful")
+}
+
+// Shield pool address where NOVA is held
+var shieldPoolAddress = common.HexToAddress("0x000000000000000000000000000000000000dEaD")
+
+func (c *novaShieldedPool) RunStateful(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
 	if len(input) < 1 {
 		return nil, errors.New("novaShieldedPool: empty input")
 	}
@@ -37,22 +44,44 @@ func (c *novaShieldedPool) Run(input []byte) ([]byte, error) {
 	}
 
 	switch input[0] {
-	case 0x01: // shield(commitment32)
-		if len(input) < 33 {
-			return nil, errors.New("shield: need 32-byte commitment")
+	case 0x01: // shield(commitment32, amount32) - deposit NOVA into pool
+		if len(input) < 65 {
+			return nil, errors.New("shield: need commitment(32) + amount(32)")
 		}
 		commitment := common.BytesToHash(input[1:33])
+		amount := new(big.Int).SetBytes(input[33:65])
+
+		if amount.Sign() <= 0 {
+			return nil, errors.New("shield: amount must be positive")
+		}
+
+		// Check commitment doesn't exist
 		if rawdb.HasCommitment(GlobalChainDB, commitment) {
 			return nil, errors.New("shield: commitment already exists")
 		}
+
+		// Check caller has enough NOVA
+		amountU256, overflow := uint256.FromBig(amount)
+		if overflow {
+			return nil, errors.New("shield: amount overflow")
+		}
+		callerBalance := evm.StateDB.GetBalance(caller)
+		if callerBalance.Cmp(amountU256) < 0 {
+			return nil, errors.New("shield: insufficient NOVA balance")
+		}
+
+		// Transfer NOVA from caller to pool (burns from caller perspective)
+		evm.StateDB.SubBalance(caller, amountU256)
+		evm.StateDB.AddBalance(shieldPoolAddress, amountU256)
+
+		// Record commitment
 		rawdb.WriteCommitment(GlobalChainDB, commitment)
+
 		// Update total shielded
 		total := rawdb.ReadShieldedTotal(GlobalChainDB)
-		if len(input) >= 65 {
-			amount := new(big.Int).SetBytes(input[33:65])
-			total.Add(total, amount)
-			rawdb.WriteShieldedTotal(GlobalChainDB, total)
-		}
+		total.Add(total, amount)
+		rawdb.WriteShieldedTotal(GlobalChainDB, total)
+
 		return common.LeftPadBytes([]byte{1}, 32), nil
 
 	case 0x02: // unshield(nullifier32, recipient20, amount32)
@@ -60,27 +89,52 @@ func (c *novaShieldedPool) Run(input []byte) ([]byte, error) {
 			return nil, errors.New("unshield: need nullifier(32) + recipient(20) + amount(32)")
 		}
 		nullifier := common.BytesToHash(input[1:33])
-		if rawdb.HasNullifier(GlobalChainDB, nullifier) {
-			return nil, errors.New("unshield: nullifier already spent (double-spend blocked)")
-		}
-		rawdb.WriteNullifier(GlobalChainDB, nullifier)
-		// Update total shielded
+		recipient := common.BytesToAddress(input[33:53])
 		amount := new(big.Int).SetBytes(input[53:85])
+
+		if amount.Sign() <= 0 {
+			return nil, errors.New("unshield: amount must be positive")
+		}
+
+		// Check nullifier not spent (prevents double-spend)
+		if rawdb.HasNullifier(GlobalChainDB, nullifier) {
+			return nil, errors.New("unshield: nullifier already spent (DOUBLE SPEND BLOCKED)")
+		}
+
+		// Check pool has enough
+		amountU256, overflow := uint256.FromBig(amount)
+		if overflow {
+			return nil, errors.New("unshield: amount overflow")
+		}
+		poolBalance := evm.StateDB.GetBalance(shieldPoolAddress)
+		if poolBalance.Cmp(amountU256) < 0 {
+			return nil, errors.New("unshield: pool insufficient balance")
+		}
+
+		// Transfer NOVA from pool to recipient
+		evm.StateDB.SubBalance(shieldPoolAddress, amountU256)
+		evm.StateDB.AddBalance(recipient, amountU256)
+
+		// Record nullifier
+		rawdb.WriteNullifier(GlobalChainDB, nullifier)
+
+		// Update total
 		total := rawdb.ReadShieldedTotal(GlobalChainDB)
 		total.Sub(total, amount)
 		if total.Sign() < 0 {
 			total = new(big.Int)
 		}
 		rawdb.WriteShieldedTotal(GlobalChainDB, total)
+
 		return common.LeftPadBytes([]byte{1}, 32), nil
 
-	case 0x03: // poolInfo() -> totalShielded
+	case 0x03: // poolInfo()
 		total := rawdb.ReadShieldedTotal(GlobalChainDB)
 		return common.LeftPadBytes(total.Bytes(), 32), nil
 
 	case 0x04: // verifyInPool(commitment32)
 		if len(input) < 33 {
-			return nil, errors.New("verifyInPool: need 32-byte commitment")
+			return nil, errors.New("verifyInPool: need commitment")
 		}
 		commitment := common.BytesToHash(input[1:33])
 		if rawdb.HasCommitment(GlobalChainDB, commitment) {

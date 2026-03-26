@@ -1,8 +1,5 @@
-// Ethernova: Native Multi-Token Support (Phase 20)
-// Tokens as protocol objects with persistent LevelDB storage.
-// Precompile at 0x25 (novaTokenManager)
-//
-// Gas costs: 10x cheaper than ERC-20
+// Ethernova: Native Multi-Token Support (Phase 20) - FULL INTEGRATION
+// Stateful precompile with caller awareness for balance verification.
 
 package vm
 
@@ -22,15 +19,20 @@ func (c *novaTokenManager) RequiredGas(input []byte) uint64 {
 		return 0
 	}
 	switch input[0] {
-	case 0x01: return 50000  // createToken
-	case 0x02: return 5000   // transfer
-	case 0x03: return 1000   // balanceOf
-	case 0x04: return 1000   // tokenInfo
+	case 0x01: return 50000
+	case 0x02: return 5000
+	case 0x03: return 1000
+	case 0x04: return 1000
 	default:   return 0
 	}
 }
 
 func (c *novaTokenManager) Run(input []byte) ([]byte, error) {
+	return nil, errors.New("novaTokenManager: use RunStateful")
+}
+
+// RunStateful has access to the EVM and caller address.
+func (c *novaTokenManager) RunStateful(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
 	if len(input) < 1 {
 		return nil, errors.New("novaTokenManager: empty input")
 	}
@@ -39,14 +41,31 @@ func (c *novaTokenManager) Run(input []byte) ([]byte, error) {
 	}
 
 	switch input[0] {
-	case 0x01: // createToken(nameLen, name, symbolLen, symbol, decimals, supply32)
-		if len(input) < 33 {
+	case 0x01: // createToken(data...) -> tokenID
+		if len(input) < 2 {
 			return nil, errors.New("createToken: insufficient input")
 		}
-		// Generate deterministic tokenID
-		tokenID := crypto.Keccak256Hash(input[1:])
-		// Store metadata
-		rawdb.WriteTokenMeta(GlobalChainDB, tokenID, input[1:])
+		// TokenID = keccak256(caller + input)
+		seed := append(caller.Bytes(), input[1:]...)
+		tokenID := crypto.Keccak256Hash(seed)
+
+		// Check not already created
+		if rawdb.ReadTokenMeta(GlobalChainDB, tokenID) != nil {
+			return nil, errors.New("createToken: token already exists")
+		}
+
+		// Store metadata (includes creator info)
+		meta := append(caller.Bytes(), input[1:]...)
+		rawdb.WriteTokenMeta(GlobalChainDB, tokenID, meta)
+
+		// If supply is specified (last 32 bytes), assign to creator
+		if len(input) >= 34 {
+			supply := new(big.Int).SetBytes(input[len(input)-32:])
+			if supply.Sign() > 0 {
+				rawdb.WriteTokenBalance(GlobalChainDB, tokenID, caller, supply)
+			}
+		}
+
 		return tokenID.Bytes(), nil
 
 	case 0x02: // transfer(tokenID32, to20, amount32)
@@ -57,18 +76,29 @@ func (c *novaTokenManager) Run(input []byte) ([]byte, error) {
 		to := common.BytesToAddress(input[33:53])
 		amount := new(big.Int).SetBytes(input[53:85])
 
+		if amount.Sign() <= 0 {
+			return nil, errors.New("transfer: amount must be positive")
+		}
+
 		// Check token exists
 		if rawdb.ReadTokenMeta(GlobalChainDB, tokenID) == nil {
 			return nil, errors.New("transfer: token does not exist")
 		}
 
-		// Note: caller address not available in Run() - need StatefulPrecompiledContract
-		// For now, this is a simplified version. Full version uses RunStateful.
+		// Check sender balance
+		senderBal := rawdb.ReadTokenBalance(GlobalChainDB, tokenID, caller)
+		if senderBal.Cmp(amount) < 0 {
+			return nil, errors.New("transfer: insufficient balance")
+		}
 
-		// Add to recipient balance
-		currentBal := rawdb.ReadTokenBalance(GlobalChainDB, tokenID, to)
-		newBal := new(big.Int).Add(currentBal, amount)
-		rawdb.WriteTokenBalance(GlobalChainDB, tokenID, to, newBal)
+		// Deduct from sender
+		newSenderBal := new(big.Int).Sub(senderBal, amount)
+		rawdb.WriteTokenBalance(GlobalChainDB, tokenID, caller, newSenderBal)
+
+		// Add to recipient
+		recipientBal := rawdb.ReadTokenBalance(GlobalChainDB, tokenID, to)
+		newRecipientBal := new(big.Int).Add(recipientBal, amount)
+		rawdb.WriteTokenBalance(GlobalChainDB, tokenID, to, newRecipientBal)
 
 		return common.LeftPadBytes([]byte{1}, 32), nil
 
@@ -90,9 +120,12 @@ func (c *novaTokenManager) Run(input []byte) ([]byte, error) {
 		if meta == nil {
 			return make([]byte, 32), nil
 		}
-		// Return padded to 128 bytes
 		result := make([]byte, 128)
-		copy(result, meta)
+		if len(meta) > 128 {
+			copy(result, meta[:128])
+		} else {
+			copy(result, meta)
+		}
 		return result, nil
 
 	default:
