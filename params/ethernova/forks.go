@@ -39,5 +39,5 @@ const (
 	// Before: block 0 (active from genesis) caused BAD BLOCK because
 	// nodes with old binary validated blocks without adaptive gas adjustment.
 	// Now: all nodes update to v1.1.5, then adaptive gas activates at block 14400.
-	AdaptiveGasV2ForkBlock uint64 = 14400
+	AdaptiveGasV2ForkBlock uint64 = 0
 )
