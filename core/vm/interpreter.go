@@ -252,16 +252,17 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Gas refunds DISABLED - caused non-deterministic gas across nodes.
 		GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost)
 
-		// Ethernova v1.1.1: deterministic adaptive gas adjustment
-		// Uses static bytecode classification (not runtime profiling).
-		// Same bytecode → same classification → same gas on all nodes.
-		// CRITICAL: NEVER apply during contract creation (init code).
-		// Init code is transient constructor bytecode, not the deployed contract.
-		// Applying gas adjustment to init code caused consensus divergence:
-		//   remote=36631 vs local=36373 → "invalid gas used" → BAD BLOCK
-		if !isContractCreation && GlobalAdaptiveGas.Enabled.Load() {
-			cost = GlobalStaticClassifier.ApplyGasAdjustment(contract.Address(), cost)
-		}
+		// Ethernova v1.1.2: adaptive gas DISABLED in execution path
+		// v1.1.1 attempted deterministic static classification but still produced
+		// different gas between nodes (remote:36631 vs local:36373 = 258 gas diff).
+		// Root cause: even "static" classification can differ between CGO_ENABLED=0
+		// (Windows) and CGO_ENABLED=1 (Linux) builds due to floating point or
+		// map iteration in the classifier.
+		// DECISION: Adaptive gas is monitoring-only. Never modify gas during execution.
+		// The classification data is still available via ethernova_adaptiveGas RPC.
+		// if !isContractCreation && GlobalAdaptiveGas.Enabled.Load() {
+		// 	cost = GlobalStaticClassifier.ApplyGasAdjustment(contract.Address(), cost)
+		// }
 		// Static portion of gas
 		if !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
