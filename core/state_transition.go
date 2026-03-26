@@ -493,7 +493,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// All nodes running the same binary produce identical results.
 	// ================================================================
 	currentBlock := st.evm.Context.BlockNumber.Uint64()
-	adaptiveGasV2Active := !contractCreation && currentBlock >= ethernova.AdaptiveGasV2ForkBlock
+	// v1.1.5: Adaptive gas v2 DISABLED - 5th consensus failure
+	// The post-execution adjustment still produces different gasRemaining
+	// between nodes. Trace counters collect data but DO NOT modify gas.
+	// Keeping classification for RPC monitoring only.
+	adaptiveGasV2Active := false // was: !contractCreation && currentBlock >= ethernova.AdaptiveGasV2ForkBlock
 	if adaptiveGasV2Active {
 		var newRemaining uint64
 		var adjustPct int64
