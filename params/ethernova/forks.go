@@ -35,7 +35,9 @@ const (
 	// Storage-heavy contracts get up to +10% gas penalty.
 	// This is a CONSENSUS RULE — all nodes MUST apply the same adjustment.
 	// Classification is deterministic: pure function of execution trace counters.
-	// Devnet activation: block 0 (always active)
-	// Mainnet: TBD after devnet validation
-	AdaptiveGasV2ForkBlock uint64 = 0
+	// v1.1.5: Fork block set to FUTURE so ALL nodes must upgrade first.
+	// Before: block 0 (active from genesis) caused BAD BLOCK because
+	// nodes with old binary validated blocks without adaptive gas adjustment.
+	// Now: all nodes update to v1.1.5, then adaptive gas activates at block 14400.
+	AdaptiveGasV2ForkBlock uint64 = 14400
 )
