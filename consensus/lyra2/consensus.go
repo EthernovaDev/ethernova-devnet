@@ -16,6 +16,8 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
+	ethernova "github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/params/mutations"
 	"github.com/ethereum/go-ethereum/params/types/ctypes"
 	"github.com/ethereum/go-ethereum/params/vars"
@@ -391,11 +393,16 @@ func (lyra2 *Lyra2) Finalize(chain consensus.ChainHeaderReader, header *types.He
 	// Ethernova: set current block for LastTouched tracking
 	statedb.SetCurrentBlock(header.Number.Uint64())
 
-	// Ethernova: state expiry sweep DISABLED in v1.0.7
-	// The sweep iterates a Go map (stateObjects) which has non-deterministic order.
-	// This caused different state roots on different nodes = invalid merkle root errors.
-	// Fix requires sorting accounts before processing. Will be re-enabled in v1.0.8.
-	// LastTouched tracking remains active (deterministic per-account field update).
+	// Ethernova: State Expiry v2 (Phase 15) - uses external index, not state trie
+	// The expiry engine tracks contracts in LevelDB outside the trie.
+	// FinalizeExpiry records touched contracts and sweeps expired ones.
+	// This is deterministic because the sweep reads from a sorted block index.
+	if header.Number.Uint64() >= ethernova.StateExpiryForkBlock {
+		expired := statedb.FinalizeExpiry(header.Number.Uint64(), ethernova.StateExpiryPeriod)
+		if expired > 0 {
+			log.Info("State expiry v2: archived contracts", "block", header.Number, "count", expired)
+		}
+	}
 
 	header.Root = statedb.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 }
@@ -409,8 +416,13 @@ func (lyra2 *Lyra2) FinalizeAndAssemble(chain consensus.ChainHeaderReader, heade
 	// Ethernova: set current block for LastTouched tracking
 	statedb.SetCurrentBlock(header.Number.Uint64())
 
-	// Ethernova: run state expiry after StateExpiryForkBlock
-	// Ethernova: state expiry sweep DISABLED in v1.0.7 (same reason as Finalize)
+	// Ethernova: State Expiry v2 (Phase 15)
+	if header.Number.Uint64() >= ethernova.StateExpiryForkBlock {
+		expired := statedb.FinalizeExpiry(header.Number.Uint64(), ethernova.StateExpiryPeriod)
+		if expired > 0 {
+			log.Info("State expiry v2: archived contracts", "block", header.Number, "count", expired)
+		}
+	}
 
 	header.Root = statedb.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 

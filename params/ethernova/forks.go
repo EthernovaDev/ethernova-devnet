@@ -16,7 +16,7 @@ const (
 	// Contracts/tokens with no activity for StateExpiryPeriod blocks get archived.
 	// EOA wallets are NEVER expired. Archived state can be restored with merkle proof.
 	// Devnet activation: block 21,500
-	StateExpiryForkBlock uint64 = 21500
+	StateExpiryForkBlock uint64 = 25200
 	// StateExpiryPeriod is the number of blocks of inactivity before a contract is archived.
 	StateExpiryPeriod uint64 = 1000
 	// TempoTxForkBlock activates Tempo-style smart transactions.

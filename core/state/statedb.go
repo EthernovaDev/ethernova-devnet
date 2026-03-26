@@ -139,8 +139,10 @@ type StateDB struct {
 	onCommit func(states *triestate.Set) // Hook invoked when commit is performed
 
 	// Ethernova: state expiry tracking
-	currentBlockNumber uint64                    // Current block being processed
-	expiredAccounts    map[common.Address][]byte // Archived accounts (merkle proof receipts)
+	currentBlockNumber    uint64                    // Current block being processed
+	expiredAccounts       map[common.Address][]byte // Archived accounts (merkle proof receipts)
+	touchedContracts      []common.Address           // Contracts touched during this block (for expiry index)
+	stateExpiryEngine     *StateExpiryEngine         // External expiry engine (nil if not set)
 }
 
 // New creates a new state from a given trie.
@@ -413,6 +415,7 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetCode(crypto.Keccak256Hash(code), code)
+		s.TrackContractTouch(addr) // Ethernova: track for state expiry (external index)
 	}
 }
 
@@ -420,6 +423,7 @@ func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetState(key, value)
+		s.TrackContractTouch(addr) // Ethernova: track for state expiry (external index)
 	}
 }
 
@@ -428,50 +432,38 @@ func (s *StateDB) SetCurrentBlock(blockNumber uint64) {
 	s.currentBlockNumber = blockNumber
 }
 
-// GetExpiredAccounts returns the list of contract addresses that have been
-// expired (archived) during this block's state expiry sweep.
-func (s *StateDB) GetExpiredAccounts() map[common.Address][]byte {
-	return s.expiredAccounts
+// SetStateExpiryEngine sets the external expiry engine for v2 tracking.
+func (s *StateDB) SetStateExpiryEngine(engine *StateExpiryEngine) {
+	s.stateExpiryEngine = engine
 }
 
-// RunStateExpiry iterates all dirty/pending contract accounts and archives
-// those that haven't been touched in StateExpiryPeriod blocks.
-// Only contracts are expired. EOA wallets are never touched.
-// The archived account's slim RLP is stored as a receipt for future restoration.
-func (s *StateDB) RunStateExpiry(currentBlock, expiryPeriod uint64) int {
-	if s.expiredAccounts == nil {
-		s.expiredAccounts = make(map[common.Address][]byte)
+// TrackContractTouch records a contract address as touched during this block.
+// Only tracks contracts (non-empty code hash). Called from SetState, SetCode, etc.
+func (s *StateDB) TrackContractTouch(addr common.Address) {
+	if s.stateExpiryEngine == nil || s.currentBlockNumber == 0 {
+		return
 	}
-	expired := 0
-	for addr, obj := range s.stateObjects {
-		if obj.deleted || obj.selfDestructed {
-			continue
-		}
-		if !obj.IsContract() {
-			continue // never expire EOAs
-		}
-		if obj.IsExpired(currentBlock, expiryPeriod) {
-			// Archive: save slim RLP as receipt
-			receipt := types.SlimAccountRLP(obj.data)
-			s.expiredAccounts[addr] = receipt
-
-			// Mark as self-destructed to remove from state trie
-			obj.markSelfdestructed()
-			obj.data.Balance = new(uint256.Int)
-			obj.data.Nonce = 0
-			obj.data.CodeHash = types.EmptyCodeHash.Bytes()
-			obj.data.Root = types.EmptyRootHash
-
-			log.Info("State expiry: archived contract",
-				"address", addr.Hex(),
-				"lastTouched", obj.data.LastTouched,
-				"currentBlock", currentBlock,
-				"inactiveBlocks", currentBlock-obj.data.LastTouched)
-
-			expired++
-		}
+	obj := s.getStateObject(addr)
+	if obj == nil || !obj.IsContract() {
+		return
 	}
-	return expired
+	s.touchedContracts = append(s.touchedContracts, addr)
+	s.stateExpiryEngine.TouchContract(addr, s.currentBlockNumber)
+}
+
+// FinalizeExpiry writes the block's touched contracts to the index and runs the sweep.
+// Called from consensus Finalize BEFORE computing the state root.
+// Returns number of expired contracts.
+func (s *StateDB) FinalizeExpiry(currentBlock, expiryPeriod uint64) int {
+	if s.stateExpiryEngine == nil {
+		return 0
+	}
+	// 1. Record which contracts were touched this block
+	s.stateExpiryEngine.RecordBlockTouches(currentBlock, s.touchedContracts)
+
+	// 2. Run the sweep using the external index (deterministic order)
+	expired := s.stateExpiryEngine.SweepExpired(s, currentBlock, expiryPeriod)
+	return len(expired)
 }
 
 // SetStorage replaces the entire storage for the specified account with given
