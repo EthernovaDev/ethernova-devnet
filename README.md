@@ -599,21 +599,24 @@ Private NOVA transfers using commitment-nullifier scheme. Privacy is **OPTIONAL*
 | Parallel exec | `state_processor.go` analysis | GlobalParallelStats | N/A |
 | Privacy | N/A | `accessors_ethernova_privacy.go` | 0x26 RunStateful + NOVA movement |
 
-### Mainnet Stress Test Results (v1.1.0)
+### Mainnet Readiness Test Results (v1.1.1)
 
 ```
 ================================================================
-  ETHERNOVA v1.1.0 - MAINNET STRESS TEST
+  ETHERNOVA v1.1.1 - FINAL MAINNET READINESS TEST
 ================================================================
   Contract deploy:   SUCCESS (gas=100,473)
-  200 transfers:     200/200 sent, 201 mined
-  Blocks:            300 in 219s
-  Max txs/block:     4
+  Contract calls:    increment() x10 -> count()=10
+  500 transfers:     500/500 sent and mined
+  Max txs/block:     17
+  Blocks:            51 in 273s
   Precompiles:       9/9
   RPC endpoints:     11/11
   BAD BLOCK errors:  ZERO
 ================================================================
 ```
+
+**v1.1.1 includes Noven's deterministic adaptive gas fix** - static bytecode classification replaces runtime profiling, eliminating the root cause of consensus divergence.
 
 ### Security Audit Results (v1.1.0)
 
