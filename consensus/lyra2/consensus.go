@@ -31,7 +31,7 @@ import (
 
 var (
 	maxUncles              = 2                // Maximum number of uncles allowed in a single block
-	allowedFutureBlockTime = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
+	allowedFutureBlockTime = 30 * time.Second // Ethernova: increased from 15s to 30s to prevent "block in the future" errors when miner/validator clocks have slight drift
 
 	two256                   = new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0))
 	big32                    = big.NewInt(32)
