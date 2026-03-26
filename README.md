@@ -509,6 +509,66 @@ ArchivedAccounts{address → SlimRLP}                        → LevelDB (separa
 - [x] `FinalizeExpiry()` integrated in consensus Finalize
 - [x] Version bumped to v1.0.8-devnet
 
+### Phases 17-24: Massive Feature Drop (v1.0.9)
+
+8 new features in 1 release, solving Ethereum's biggest unsolved problems.
+
+#### Phase 17: Native Reentrancy Guard
+Blocks reentrant calls at the EVM level by default. No more DAO hacks ($60M), no more Curve exploits. Every contract is protected automatically without needing OpenZeppelin's `ReentrancyGuard`.
+
+#### Phase 18: Gas Refund on Revert
+Failed transactions refund 90% of execution gas. Users only pay base tx cost (21,000 gas) + 10% anti-spam penalty. On Ethereum, you pay FULL gas even when your transaction fails.
+
+#### Phase 19: Anti-MEV Fair Ordering
+Transactions ordered by arrival time, not gas price. Eliminates front-running, sandwich attacks, and gas bidding wars. Miners cannot reorder transactions to extract value from users.
+
+#### Phase 20: Native Multi-Token (precompile 0x25 - novaTokenManager)
+Tokens are protocol objects, not smart contracts. No more ERC-20 approve+transfer pattern (phishing vector). Token transfers cost 5,000 gas (vs ~50,000 for ERC-20). Create, transfer, and query tokens natively.
+
+#### Phase 21: Native Contract Upgradeability (precompile 0x27 - novaContractUpgrade)
+Safe upgrades with 100-block timelock. No proxy pattern complexity, no storage collision risks, no admin key rug-pulls. Users can see pending upgrades and exit before activation.
+
+#### Phase 22: Native Price Oracle (precompile 0x28 - novaOracle)
+Protocol-level price feeds with TWAP (Time-Weighted Average Price). No Chainlink dependency, no oracle manipulation via flash loans. Prices are attested by miners and averaged across blocks.
+
+#### Phase 23: Parallel Transaction Execution
+Transactions that don't touch the same state execute in parallel. Conflict detection builds dependency graphs, independent txs run across CPU cores. Multiplies throughput by core count.
+
+#### Phase 24: Optional Privacy - Shielded Pool (precompile 0x26 - novaShieldedPool)
+Private NOVA transfers using commitment-nullifier scheme. Privacy is **OPTIONAL** (not default like Monero). Users choose when to use it. Shield (deposit with commitment), unshield (withdraw with nullifier). Double-spend prevention via nullifier tracking. Native in protocol - can't be sanctioned like Tornado Cash.
+
+#### All 9 Custom Precompiles
+
+| Address | Name | Description | Gas |
+|---------|------|-------------|-----|
+| 0x20 | novaBatchHash | Batch keccak256 hashing | 30/item |
+| 0x21 | novaBatchVerify | Batch signature verification | 2,000/sig |
+| 0x22 | novaAccountManager | Smart wallet (recovery, key rotation) | 2k-10k |
+| 0x23 | novaFrameApprove | Frame AA transaction approval | 5,000 |
+| 0x24 | novaFrameIntrospect | Frame inspection for conditional logic | 2,000 |
+| 0x25 | novaTokenManager | Native multi-token operations | 1k-50k |
+| 0x26 | novaShieldedPool | Optional privacy (shielded transfers) | 50k-100k |
+| 0x27 | novaContractUpgrade | Safe contract upgrades with timelock | 2k-50k |
+| 0x28 | novaOracle | Protocol-level price oracle with TWAP | 2k-5k |
+
+#### Ethernova vs Ethereum: Problem Resolution
+
+| Ethereum Problem | Status | Ethernova Solution |
+|-----------------|--------|-------------------|
+| State bloat (200GB+) | Unsolved since 2017 | State Expiry v2 (Phase 15) |
+| MEV/Front-running ($600M+ extracted) | Band-aid (Flashbots) | Fair ordering (Phase 19) |
+| Reentrancy attacks ($billions lost) | No protocol fix | Native guard (Phase 17) |
+| Failed txs charge full gas | No fix | 90% refund on revert (Phase 18) |
+| ERC-20 approval phishing | No fix | Native tokens (Phase 20) |
+| No privacy | No fix | Optional shielded pool (Phase 24) |
+| Oracle manipulation (flash loans) | Off-chain (Chainlink) | Native oracle (Phase 22) |
+| Proxy pattern complexity | No fix | Native upgrades (Phase 21) |
+| Single-threaded EVM | No fix | Parallel execution (Phase 23) |
+| Account abstraction | 9 years debating | Smart wallets + Tempo + Frame (Phases 8,11,12) |
+| L2 fragmentation | By design | Fast L1 = no L2 needed |
+| 12.8 min finality | Years away (SSF) | PoW ~15s blocks |
+| Slow governance | 1-2 years per upgrade | Ship in days on devnet |
+
 ### Phase 16: Real Contract Deployment & Extreme Testing (v1.0.8)
 
 First successful real contract deployment on the devnet. All contracts compiled with `solc 0.8.24 --evm-version istanbul` (devnet uses Istanbul EVM, not Shanghai).
