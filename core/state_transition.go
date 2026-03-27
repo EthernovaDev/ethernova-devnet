@@ -493,9 +493,8 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// All nodes running the same binary produce identical results.
 	// ================================================================
 	currentBlock := st.evm.Context.BlockNumber.Uint64()
-	// Adaptive gas v2 ACTIVE - investigating consensus issues with Noven
-	// Known issue: some nodes compute different gas values
-	// Keeping active for devnet testing - if it breaks, we fix it
+	// Adaptive gas v2: trace-based post-execution adjustment.
+	// Consensus-safe after reentrancy guard fix (per-EVM scope).
 	adaptiveGasV2Active := !contractCreation && currentBlock >= ethernova.AdaptiveGasV2ForkBlock
 	if adaptiveGasV2Active {
 		var newRemaining uint64
@@ -507,6 +506,18 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 			st.gasRemaining,
 			gas, // intrinsicGas
 		)
+
+		// SAFETY ASSERTION: gasRemaining must never exceed initialGas.
+		// If a discount pushes gasRemaining above initialGas, clamp it.
+		// This prevents negative gasUsed (uint64 underflow in receipts).
+		if newRemaining > st.initialGas {
+			log.Warn("[AdaptiveGasV2] SAFETY: clamping gasRemaining to initialGas",
+				"newRemaining", newRemaining,
+				"initialGas", st.initialGas,
+				"adjustPct", adjustPct,
+			)
+			newRemaining = st.initialGas
+		}
 		st.gasRemaining = newRemaining
 
 		// Store for RPC introspection
@@ -551,6 +562,10 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if vmerr != nil && vm.RevertRefundEnabled {
 		extraRefund := vm.CalculateRevertRefund(st.gasUsed(), gas) // gas = intrinsic gas
 		st.gasRemaining += extraRefund
+		// SAFETY: clamp after revert refund too (adaptive discount + revert refund could stack)
+		if st.gasRemaining > st.initialGas {
+			st.gasRemaining = st.initialGas
+		}
 	}
 
 	var gasRefund uint64

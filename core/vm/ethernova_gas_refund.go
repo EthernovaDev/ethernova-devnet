@@ -42,4 +42,7 @@ func CalculateRevertRefund(gasUsed uint64, baseGas uint64) uint64 {
 }
 
 // RevertRefundEnabled controls whether revert refunds are active.
-var RevertRefundEnabled = true
+// SAFETY: Changed from var to const. This is a consensus-critical
+// parameter — if it differs between nodes, gasUsed diverges → BAD BLOCK.
+// A var could be accidentally toggled via RPC; a const cannot.
+const RevertRefundEnabled = true

@@ -21,7 +21,8 @@ func TestIsPureOpcode_Arithmetic(t *testing.T) {
 
 func TestIsPureOpcode_AllPushVariants(t *testing.T) {
 	// BUG 2 fix: ALL PUSH variants must be pure (was missing PUSH5-PUSH32)
-	for op := PUSH0; op <= PUSH32; op++ {
+	for i := PUSH0; i <= PUSH32; i++ {
+		op := OpCode(i)
 		if !isPureOpcode(op) {
 			t.Errorf("expected %v to be pure (BUG 2 regression: PUSH5-PUSH32 were missing)", op)
 		}
@@ -29,7 +30,8 @@ func TestIsPureOpcode_AllPushVariants(t *testing.T) {
 }
 
 func TestIsPureOpcode_AllDupVariants(t *testing.T) {
-	for op := DUP1; op <= DUP16; op++ {
+	for i := DUP1; i <= DUP16; i++ {
+		op := OpCode(i)
 		if !isPureOpcode(op) {
 			t.Errorf("expected %v to be pure", op)
 		}
@@ -37,7 +39,8 @@ func TestIsPureOpcode_AllDupVariants(t *testing.T) {
 }
 
 func TestIsPureOpcode_AllSwapVariants(t *testing.T) {
-	for op := SWAP1; op <= SWAP16; op++ {
+	for i := SWAP1; i <= SWAP16; i++ {
+		op := OpCode(i)
 		if !isPureOpcode(op) {
 			t.Errorf("expected %v to be pure", op)
 		}

@@ -33,7 +33,16 @@ type ReentrancyGuard struct {
 	callStack map[common.Address]int // address -> call depth count
 }
 
-// GlobalReentrancyGuard is the per-transaction reentrancy tracker.
+// GlobalReentrancyGuard is DEPRECATED.
+//
+// DO NOT USE for consensus-critical execution paths.
+//
+// This was the root cause of BAD BLOCK errors: being a process-wide singleton,
+// concurrent EVM instances (eth_call, miner, tracers) interfered with block
+// processing, causing different execution paths on different nodes.
+//
+// Replaced by PerEVMReentrancyGuard (embedded in each EVM struct).
+// Kept only for backward-compatible RPC inspection (IsExecuting).
 var GlobalReentrancyGuard = &ReentrancyGuard{
 	callStack: make(map[common.Address]int),
 }
@@ -73,4 +82,62 @@ func (rg *ReentrancyGuard) IsExecuting(addr common.Address) bool {
 	rg.mu.Lock()
 	defer rg.mu.Unlock()
 	return rg.callStack[addr] > 0
+}
+
+// ============================================================================
+// PER-EVM REENTRANCY GUARD (consensus-safe replacement)
+// ============================================================================
+//
+// CRITICAL CONSENSUS FIX:
+// The GlobalReentrancyGuard above is UNSAFE for consensus because it is
+// shared across ALL concurrent EVM instances (block processing, eth_call,
+// miner, tracers). When multiple EVM instances run concurrently:
+//   - eth_call executing contract A at depth>0 marks A as "executing"
+//   - Block processing tries to call A at depth>0 → falsely blocked
+//   - Block processing gets ErrExecutionReverted instead of normal execution
+//   - Different execution path → different TraceCounters → different gas → BAD BLOCK
+//
+// PerEVMReentrancyGuard is embedded in the EVM struct (per-instance).
+// No mutex needed: the EVM struct is documented as "not thread safe,
+// should only ever be used *once*" — all calls within a single EVM
+// instance are sequential (nested via the call stack, never concurrent).
+//
+// The GlobalReentrancyGuard is kept for backward compatibility (RPC
+// inspection) but is NO LONGER used for consensus-critical execution.
+
+// PerEVMReentrancyGuard tracks which contracts are currently executing
+// within a single EVM instance. No mutex — EVM is single-threaded.
+type PerEVMReentrancyGuard struct {
+	callStack map[common.Address]int
+}
+
+// Init initializes the guard. Must be called once after EVM creation.
+func (rg *PerEVMReentrancyGuard) Init() {
+	rg.callStack = make(map[common.Address]int)
+}
+
+// Reset clears all tracking. Called at the start of each transaction.
+func (rg *PerEVMReentrancyGuard) Reset() {
+	// Re-use existing map by clearing entries (avoids allocation)
+	for k := range rg.callStack {
+		delete(rg.callStack, k)
+	}
+}
+
+// Enter marks a contract as currently executing.
+// Returns false if this contract is already in the call stack (self-reentrancy).
+func (rg *PerEVMReentrancyGuard) Enter(addr common.Address) bool {
+	if rg.callStack[addr] > 0 {
+		return false // SELF-REENTRANCY BLOCKED
+	}
+	rg.callStack[addr]++
+	return true
+}
+
+// Exit marks a contract as no longer executing.
+func (rg *PerEVMReentrancyGuard) Exit(addr common.Address) {
+	rg.callStack[addr]--
+	if rg.callStack[addr] <= 0 {
+		delete(rg.callStack, addr)
+	}
 }

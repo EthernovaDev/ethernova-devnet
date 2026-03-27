@@ -150,6 +150,20 @@ type EVM struct {
 	// nested calls accumulate into the same counters since the EVM instance
 	// is shared across the entire call tree.
 	TraceCounters TraceCounters
+
+	// Ethernova Phase 17 (FIX): per-EVM reentrancy guard.
+	// CRITICAL CONSENSUS FIX: Previously this was a global variable
+	// (GlobalReentrancyGuard) shared across ALL concurrent EVM instances.
+	// When eth_call, miner, or tracer EVM instances ran concurrently with
+	// block processing, they would interfere with each other's reentrancy
+	// state — causing inner CALLs to be falsely blocked with
+	// ErrExecutionReverted on some nodes but not others.
+	// This produced different execution paths → different TraceCounters →
+	// different adaptive gas adjustment → BAD BLOCK.
+	//
+	// Now each EVM instance has its own reentrancy guard. Initialized in
+	// NewEVM(), reset in Reset(). No cross-instance interference possible.
+	reentrancyGuard PerEVMReentrancyGuard
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -185,6 +199,9 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 
 	evm.interpreter = evm.interpreters[0]
 
+	// Ethernova: initialize per-EVM reentrancy guard
+	evm.reentrancyGuard.Init()
+
 	return evm
 }
 
@@ -195,6 +212,8 @@ func (evm *EVM) Reset(txCtx TxContext, statedb StateDB) {
 	evm.StateDB = statedb
 	// Ethernova v2.0: reset trace counters for the new transaction
 	evm.TraceCounters.Reset()
+	// eset per-EVM reentrancy guard for the new transaction
+	evm.reentrancyGuard.Reset()
 }
 
 // Cancel cancels any running EVM operation. This may be called concurrently and
@@ -287,11 +306,13 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			// Ethernova Phase 17: Native reentrancy protection
 			// Block reentrant calls to contracts by default.
 			// Only applies to contract-to-contract calls (depth > 0).
-			if evm.depth > 0 && !GlobalReentrancyGuard.Enter(addr) {
+			// FIX: uses per-EVM guard instead of GlobalReentrancyGuard
+			// to prevent concurrent EVM instances from interfering.
+			if evm.depth > 0 && !evm.reentrancyGuard.Enter(addr) {
 				return nil, gas, ErrExecutionReverted
 			}
 			if evm.depth > 0 {
-				defer GlobalReentrancyGuard.Exit(addr)
+				defer evm.reentrancyGuard.Exit(addr)
 			}
 			addrCopy := addr
 			// If the account has no code, we can abort here
