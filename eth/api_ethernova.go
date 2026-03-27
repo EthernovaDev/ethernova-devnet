@@ -301,7 +301,7 @@ func (api *EthernovaAPI) AdaptiveGasV2Simulate(
 
 	category := vm.ClassifyExecution(tc)
 	score := vm.ComputeComplexityScore(tc)
-	adjustPct := vm.ComputeGasAdjustment(category, score, totalOps)
+	adjustPct := vm.ComputeGasAdjustment(category, score, totalOps, tc)
 
 	return vm.AdaptiveGasV2Stats{
 		Category:        category.String(),

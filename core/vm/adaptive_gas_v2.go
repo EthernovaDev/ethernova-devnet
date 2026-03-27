@@ -25,13 +25,23 @@ package vm
 //   EXECUTES ~50 per call. The bytecode contains function selector dispatch,
 //   dead code paths, etc. Only executed opcodes matter for classification.
 //
-// Complexity score formula:
+// Complexity score formula (used for CLASSIFICATION):
 //   score = (SSTORE × 5) + (CALL_OPS × 3) + (SLOAD × 2) + (JUMPI × 1) + (CREATE × 10)
 //
 //   This weights state mutation (SSTORE) heavily, external calls (CALL/DELEGATECALL)
 //   moderately, state reads (SLOAD) lightly, and branching (JUMPI) minimally.
 //   CREATE/CREATE2 get the highest weight since deploying contracts is the most
 //   complex operation.
+//
+// Penalty score formula (used for PENALTY MAGNITUDE — Complex category only):
+//   penaltyScore = (SSTORE × 5) + (CALL_OPS × 3) + (CREATE × 10)
+//
+//   SLOAD and JUMPI are intentionally excluded from the penalty score.
+//   They vary per code path (e.g. AMM swap aToB=true vs aToB=false executes
+//   different numbers of conditional branches and storage reads) while SSTORE
+//   count is fixed for a given function. Using the full classification score
+//   for penalty causes the same function to receive different penalty percentages
+//   on different calls — the "inconsistent gas" problem.
 //
 // Gas adjustment mapping:
 //   PURE (score=0, no SSTORE, no external CALL):
@@ -278,11 +288,14 @@ const (
 	// Before: only "pure" contracts (no SSTORE) got discount = useless
 	// After: simple contracts (1-2 SSTORE) get partial discount
 
-	// Complexity score threshold where penalty begins.
+	// Complexity score threshold (CLASSIFICATION) where penalty begins.
 	complexPenaltyThreshold = uint64(25) // was 15, raised to let more contracts be Light/Mixed
 
-	// Score at which maximum penalty is applied.
-	maxPenaltyScore = uint64(80) // was 100, lowered to penalize heavy contracts sooner
+	// Stable penalty score thresholds (PENALTY MAGNITUDE, Complex category only).
+	// These operate on penaltyScore = SSTORE*5 + CALL*3 + CREATE*10, which excludes
+	// SLOAD and JUMPI. Calibrated so a 7-SSTORE DEX swap always gets exactly 5%.
+	stablePenaltyMin = uint64(15) // stableScore at which penalty starts (3 SSTOREs)
+	stablePenaltyMax = uint64(55) // stableScore at which max penalty (10%) is reached
 
 	// Minimum executed opcodes before discount is applied.
 	minOpsForDiscount = uint64(5) // was 10, lowered to include simple transfers
@@ -291,6 +304,19 @@ const (
 	fullDiscountOps = uint64(100) // was 200, lowered so simple contracts reach full discount
 )
 
+// computeStablePenaltyScore returns the penalty magnitude score for Complex contracts.
+// Uses only heavy state-mutation operations (SSTORE, CALL, CREATE, SELFDESTRUCT).
+// Intentionally excludes SLOAD and JUMPI, which vary per code path within the same
+// function (e.g. AMM swap aToB=true vs false) and would cause inconsistent penalty
+// percentages for the same operation type.
+func computeStablePenaltyScore(tc *TraceCounters) uint64 {
+	score := tc.SstoreCount * 5
+	score += (tc.CallCount + tc.DelegateCallCount + tc.CallCodeCount) * 3
+	score += (tc.CreateCount + tc.Create2Count) * 10
+	score += tc.SelfDestructCount * 10
+	return score
+}
+
 // ComputeGasAdjustment calculates the gas adjustment in basis points (1/100 of percent).
 // Returns value in PERCENT (not basis points) for backward compatibility.
 //
@@ -298,9 +324,10 @@ const (
 // Positive = penalty (caller pays more)
 // Zero = no adjustment
 //
-// This function is a PURE FUNCTION of (category, score, totalOps).
-// No global state, no randomness, no floating point.
-func ComputeGasAdjustment(category ExecutionCategory, score uint64, totalOps uint64) int64 {
+// For Pure/Light categories: pure function of (score, totalOps).
+// For Complex category: uses stable penalty score from tc (excludes SLOAD/JUMPI)
+// to ensure predictable gas for DEX operations.
+func ComputeGasAdjustment(category ExecutionCategory, score uint64, totalOps uint64, tc *TraceCounters) int64 {
 	switch category {
 	case ExecCategoryPure:
 		return computePureDiscount(totalOps)
@@ -313,7 +340,7 @@ func ComputeGasAdjustment(category ExecutionCategory, score uint64, totalOps uin
 		return 0
 
 	case ExecCategoryComplex:
-		return computeComplexPenalty(score)
+		return computeComplexPenalty(tc)
 
 	default:
 		return 0
@@ -398,26 +425,32 @@ func computeLightDiscount(score uint64, totalOps uint64) int64 {
 }
 
 // computeComplexPenalty calculates penalty for complex contracts.
-// Complex = high complexity score (heavy SSTORE, CALL, etc.)
+// Uses the stable penalty score (SSTORE+CALL+CREATE only, no SLOAD/JUMPI)
+// so the same function always receives the same penalty percentage regardless
+// of which code path it takes.
 //
-// Linear ramp:
-//   score at penaltyThreshold: 0% penalty
-//   score at maxPenaltyScore: 10% penalty (max)
-//   score > maxPenaltyScore: capped at 10%
-func computeComplexPenalty(score uint64) int64 {
-	if score <= complexPenaltyThreshold {
+// Linear ramp (stableScore):
+//   ≤ stablePenaltyMin (15): 0% penalty
+//   stablePenaltyMin → stablePenaltyMax (55): linear ramp 0% → 10%
+//   ≥ stablePenaltyMax: capped at 10%
+//
+// Calibration: 7-SSTORE DEX swap → stableScore=35 → exactly 5% always.
+func computeComplexPenalty(tc *TraceCounters) int64 {
+	score := computeStablePenaltyScore(tc)
+
+	if score <= stablePenaltyMin {
 		return 0
 	}
 
-	if score >= maxPenaltyScore {
+	if score >= stablePenaltyMax {
 		return 10 // max penalty
 	}
 
-	// Linear ramp: (score - threshold) / (maxScore - threshold) × maxPenalty
-	scoreAboveThreshold := score - complexPenaltyThreshold
-	rangeSize := maxPenaltyScore - complexPenaltyThreshold
+	// Linear ramp: (score - min) / (max - min) × maxPenalty
+	scoreAboveMin := score - stablePenaltyMin
+	rangeSize := stablePenaltyMax - stablePenaltyMin // 40
 
-	penalty := int64(10 * scoreAboveThreshold / rangeSize)
+	penalty := int64(10 * scoreAboveMin / rangeSize)
 	if penalty < 1 {
 		penalty = 1
 	}
@@ -467,7 +500,7 @@ func ApplyAdaptiveGasV2(tc *TraceCounters, gasUsed, gasRemaining, intrinsicGas u
 	score := ComputeComplexityScore(tc)
 
 	// Step 3: Compute gas adjustment percentage
-	adjustPct := ComputeGasAdjustment(category, score, tc.TotalOpsExecuted)
+	adjustPct := ComputeGasAdjustment(category, score, tc.TotalOpsExecuted, tc)
 
 	// Step 4: Apply adjustment to execution gas only
 	// executionGas = gasUsed - intrinsicGas
