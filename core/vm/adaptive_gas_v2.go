@@ -197,17 +197,35 @@ func ClassifyExecution(tc *TraceCounters) ExecutionCategory {
 	hasStateWrite := tc.SstoreCount > 0
 	hasExternalCall := tc.CallCount > 0 || tc.DelegateCallCount > 0 || tc.CallCodeCount > 0
 
-	// v1.1.4 calibration: allow contracts with FEW state writes to be Light
-	// A simple token transfer does 2 SSTORE (sender balance, receiver balance)
-	// That should still get a discount, not be penalized.
-	// Only contracts with HEAVY state writes (5+) are Mixed/Complex.
+	// v1.1.5 FIX: use STABLE score (SSTORE+CALL+CREATE only) for classification.
+	//
+	// CONSENSUS BUG FIXED: Previously used ComputeComplexityScore() which
+	// includes SLOAD and JUMPI. These counters vary per code path within
+	// the SAME function (e.g. AMM swap aToB=true vs aToB=false executes
+	// different numbers of conditional branches and storage reads).
+	//
+	// This caused the SAME swap function to sometimes classify as Mixed
+	// (0% adjustment) and sometimes as Complex (+6% penalty), depending
+	// on which code path was taken. The ~31k gas spike was caused by this
+	// category flip: Mixed→Complex added a penalty on top of already-high
+	// execution gas from cold storage access.
+	//
+	// Fix: Use computeStablePenaltyScore() which only counts SSTORE, CALL,
+	// CREATE, SELFDESTRUCT — operations whose count is FIXED for a given
+	// function regardless of which branch is taken. Same function type
+	// always gets the same category.
+	//
+	// Impact on existing stable tests:
+	//   - NovaToken (2 SSTORE, 0 CALL): stableScore=10, < threshold → Light ✓
+	//   - addLiquidity (moderate SSTORE): stableScore stable → same category ✓
+	//   - swap (7+ SSTORE, 2+ CALL): stableScore ≥ 41, ≥ threshold → Complex ✓
 	if hasStateWrite {
-		score := ComputeComplexityScore(tc)
-		if score >= complexPenaltyThreshold {
+		stableScore := computeStablePenaltyScore(tc)
+		if stableScore >= complexPenaltyThreshold {
 			return ExecCategoryComplex
 		}
-		// 1-2 SSTORE with low score = Light (still gets partial discount)
-		if tc.SstoreCount <= 2 && score < 10 {
+		// 1-2 SSTORE with low stable score = Light (still gets partial discount)
+		if tc.SstoreCount <= 2 && stableScore < 10 {
 			return ExecCategoryLight
 		}
 		return ExecCategoryMixed
