@@ -21,14 +21,62 @@ type ParallelExecutor struct {
 
 var GlobalParallelExecutor = &ParallelExecutor{}
 
-// ParallelSafetyCheck determines if a set of transactions can be safely
-// executed in parallel. Returns groups of independent transactions.
+// erc20TransferSelector is the 4-byte function selector for transfer(address,uint256).
+var erc20TransferSelector = [4]byte{0xa9, 0x05, 0x9c, 0xbb}
+
+// erc20TransferFromSelector is the 4-byte selector for transferFrom(address,address,uint256).
+var erc20TransferFromSelector = [4]byte{0x23, 0xb8, 0x72, 0xdd}
+
+// conflictKey uniquely identifies a storage-slot "touch zone".
+// For ERC-20 transfers, each (contract, account) pair maps to a distinct
+// balance slot in the mapping, so two transfers conflict only when they
+// share at least one (contract, account) pair.
+type conflictKey struct {
+	contract common.Address
+	account  common.Address
+}
+
+// isERC20Transfer checks if the calldata starts with the transfer(address,uint256)
+// selector and has at least 4+32 bytes for the recipient. Returns the extracted
+// recipient address and true on success.
+func isERC20Transfer(data []byte) (common.Address, bool) {
+	if len(data) < 4+32 {
+		return common.Address{}, false
+	}
+	var sel [4]byte
+	copy(sel[:], data[:4])
+	if sel != erc20TransferSelector {
+		return common.Address{}, false
+	}
+	return common.BytesToAddress(data[4+12 : 4+32]), true
+}
+
+// isERC20TransferFrom checks for transferFrom(address,address,uint256).
+// Returns (from, to, true) on success.
+func isERC20TransferFrom(data []byte) (common.Address, common.Address, bool) {
+	if len(data) < 4+64 {
+		return common.Address{}, common.Address{}, false
+	}
+	var sel [4]byte
+	copy(sel[:], data[:4])
+	if sel != erc20TransferFromSelector {
+		return common.Address{}, common.Address{}, false
+	}
+	from := common.BytesToAddress(data[4+12 : 4+32])
+	to := common.BytesToAddress(data[4+32+12 : 4+64])
+	return from, to, true
+}
+
+// ClassifyTransactions groups transactions into parallel-eligible and
+// sequential buckets.
 //
 // Rules (conservative, per Noven's recommendation):
-// 1. Only simple ETH transfers (no contract calls) are parallelizable
-// 2. No two transactions can have the same sender (nonce ordering)
-// 3. No two transactions can send to the same address (balance conflict)
-// 4. Contract interactions are always sequential (may touch shared storage)
+// 1. Simple ETH transfers are parallelizable if senders/recipients don't overlap
+// 2. ERC-20 transfer() and transferFrom() between non-overlapping account pairs
+//    are parallelizable — they touch disjoint balance-mapping slots
+// 3. No two transactions can have the same sender (nonce ordering)
+// 4. DEX swaps, multisig operations, and other contract calls remain sequential
+//    because they may touch shared storage (reserves, confirmation counts, etc.)
 func (pe *ParallelExecutor) ClassifyTransactions(txs []*types.Transaction, signer types.Signer) (parallel []*types.Transaction, sequential []*types.Transaction) {
 	if vm.GlobalExecutionMode.GetMode() < vm.ModeParallel {
 		return nil, txs
@@ -36,6 +84,9 @@ func (pe *ParallelExecutor) ClassifyTransactions(txs []*types.Transaction, signe
 
 	sendersSeen := make(map[common.Address]bool)
 	recipientsSeen := make(map[common.Address]bool)
+	// slotKeys tracks (contract, account) pairs that would be touched by
+	// ERC-20 transfers. A conflict on any key forces the tx to sequential.
+	slotKeys := make(map[conflictKey]bool)
 
 	for _, tx := range txs {
 		sender, err := types.Sender(signer, tx)
@@ -53,13 +104,65 @@ func (pe *ParallelExecutor) ClassifyTransactions(txs []*types.Transaction, signe
 
 		to := *tx.To()
 
-		// Rule: contract calls always sequential (has data = contract interaction)
+		// ---- Contract call classification ----
 		if len(tx.Data()) > 0 {
+			// Try to recognise ERC-20 transfer(address,uint256).
+			// Two transfer() calls on the same token contract are safe to
+			// parallelise when they touch disjoint (sender, recipient)
+			// account pairs — each pair maps to distinct balance-mapping
+			// storage slots.
+			if recipient, ok := isERC20Transfer(tx.Data()); ok {
+				keySender := conflictKey{contract: to, account: sender}
+				keyRecipient := conflictKey{contract: to, account: recipient}
+
+				if sendersSeen[sender] || slotKeys[keySender] || slotKeys[keyRecipient] {
+					sequential = append(sequential, tx)
+					sendersSeen[sender] = true
+					slotKeys[keySender] = true
+					slotKeys[keyRecipient] = true
+					continue
+				}
+
+				// Safe for parallel
+				parallel = append(parallel, tx)
+				sendersSeen[sender] = true
+				slotKeys[keySender] = true
+				slotKeys[keyRecipient] = true
+				continue
+			}
+
+			// Try to recognise ERC-20 transferFrom(address,address,uint256).
+			if from, recipient, ok := isERC20TransferFrom(tx.Data()); ok {
+				keyFrom := conflictKey{contract: to, account: from}
+				keyRecipient := conflictKey{contract: to, account: recipient}
+				keyCaller := conflictKey{contract: to, account: sender}
+
+				if sendersSeen[sender] || slotKeys[keyFrom] || slotKeys[keyRecipient] || slotKeys[keyCaller] {
+					sequential = append(sequential, tx)
+					sendersSeen[sender] = true
+					slotKeys[keyFrom] = true
+					slotKeys[keyRecipient] = true
+					slotKeys[keyCaller] = true
+					continue
+				}
+
+				parallel = append(parallel, tx)
+				sendersSeen[sender] = true
+				slotKeys[keyFrom] = true
+				slotKeys[keyRecipient] = true
+				slotKeys[keyCaller] = true
+				continue
+			}
+
+			// Any other contract call (DEX swaps, multisig, etc.) → sequential.
+			// These may touch shared state (pool reserves, confirmation counts).
 			sequential = append(sequential, tx)
 			sendersSeen[sender] = true
 			recipientsSeen[to] = true
 			continue
 		}
+
+		// ---- Simple ETH transfer (no calldata) ----
 
 		// Rule: no duplicate senders (nonce ordering)
 		if sendersSeen[sender] {

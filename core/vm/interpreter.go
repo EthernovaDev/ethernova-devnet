@@ -139,13 +139,13 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// Ethernova: record contract call for adaptive gas pattern tracking
 	GlobalPatternTracker.RecordCall(contract.Address())
 
-	// Ethernova: analyze contract for fast-mode eligibility.
-	// The verifier result is still tracked for RPC reporting, but the old code also
-	// performed a second eligibility lookup on every call even though the fast path
-	// itself was hard-disabled. That made fast mode slower than standard while doing
-	// exactly the same work.
-	GlobalContractVerifier.AnalyzeCode(contract.Address(), contract.Code, in.evm.Context.BlockNumber.Uint64())
-	fastMode := false
+	// Ethernova: analyze contract for fast-mode eligibility AND check in one lock.
+	// AnalyzeAndCheckFast combines the old AnalyzeCode + IsFastEligible into a
+	// single lock acquisition. For known contracts (the hot path), this does only
+	// a map lookup + counter bump + eligibility check — no keccak256 hash.
+	// In Standard mode (mode=0), the eligibility check short-circuits to false
+	// via an atomic load, adding zero overhead to the standard execution path.
+	fastMode := GlobalContractVerifier.AnalyzeAndCheckFast(contract.Address(), contract.Code, in.evm.Context.BlockNumber.Uint64())
 
 	// Ethernova Phase 4: bytecode analysis at first encounter
 	GlobalBytecodeAnalyzer.Analyze(contract.Address(), contract.Code)

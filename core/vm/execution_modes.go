@@ -81,23 +81,34 @@ var GlobalContractVerifier = &ContractVerifier{
 	contracts: make(map[common.Address]*VerifiedContract),
 }
 
-// AnalyzeCode scans contract bytecode for dangerous opcodes and marks
-// the contract as verified if it passes all checks.
+// AnalyzeAndCheckFast combines contract analysis with fast-mode eligibility
+// in a single lock acquisition. This eliminates the overhead of a separate
+// IsFastEligible call that previously made fast mode slower than standard.
 //
-// The hot-path optimisation here is deliberate: once the runtime bytecode for an
-// address is already known, we only bump the call counter instead of rescanning the
-// entire bytecode blob on every invocation. Fast-mode benchmarking repeatedly hits
-// the same contracts, so rescanning the same code was pure overhead.
-func (cv *ContractVerifier) AnalyzeCode(addr common.Address, code []byte, blockNum uint64) {
-	codeHash := crypto.Keccak256Hash(code)
+// For KNOWN contracts (the hot path during block processing), this function
+// performs only: one map lookup, one counter increment, and one eligibility
+// check — all under a single lock. No keccak256 hash computation.
+//
+// The keccak256 hash is ONLY computed for NEW contracts (first encounter).
+func (cv *ContractVerifier) AnalyzeAndCheckFast(addr common.Address, code []byte, blockNum uint64) bool {
+	mode := GlobalExecutionMode.GetMode()
 
+	// Hot path: contract already known — bump counter, check eligibility, done.
+	// Uses a write lock because we mutate CallCount.
 	cv.mu.Lock()
-	if existing, ok := cv.contracts[addr]; ok && existing.CodeHash == codeHash {
+	if existing, ok := cv.contracts[addr]; ok {
 		existing.CallCount++
+		eligible := mode >= ModeFast &&
+			!existing.HasSelfDestruct &&
+			!existing.HasDelegateCall &&
+			existing.CallCount >= 5
 		cv.mu.Unlock()
-		return
+		return eligible
 	}
 	cv.mu.Unlock()
+
+	// Cold path: first encounter — full bytecode analysis.
+	codeHash := crypto.Keccak256Hash(code)
 
 	hasSelfDestruct := false
 	hasDelegateCall := false
@@ -130,9 +141,10 @@ func (cv *ContractVerifier) AnalyzeCode(addr common.Address, code []byte, blockN
 	cv.mu.Lock()
 	defer cv.mu.Unlock()
 
-	if existing, ok := cv.contracts[addr]; ok && existing.CodeHash == codeHash {
+	// Double-check: another goroutine may have added it while we scanned.
+	if existing, ok := cv.contracts[addr]; ok {
 		existing.CallCount++
-		return
+		return false // still accumulating calls
 	}
 
 	cv.contracts[addr] = &VerifiedContract{
@@ -144,6 +156,14 @@ func (cv *ContractVerifier) AnalyzeCode(addr common.Address, code []byte, blockN
 		VerifiedAt:      blockNum,
 		CodeHash:        codeHash,
 	}
+	return false // new contract, not yet eligible (need 5+ calls)
+}
+
+// AnalyzeCode is the legacy entry point — delegates to AnalyzeAndCheckFast
+// but discards the eligibility result. Kept for call sites that only need
+// the analysis side-effect.
+func (cv *ContractVerifier) AnalyzeCode(addr common.Address, code []byte, blockNum uint64) {
+	cv.AnalyzeAndCheckFast(addr, code, blockNum)
 }
 
 // IsFastEligible returns true if a contract is safe for fast-mode execution.
