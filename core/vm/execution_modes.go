@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // ExecutionMode defines how the EVM processes contract calls.
@@ -66,7 +67,8 @@ type VerifiedContract struct {
 	HasCreate       bool
 	IsDeterministic bool // true if contract only depends on input + state, not block context
 	CallCount       uint64
-	VerifiedAt      uint64 // block number when verified
+	VerifiedAt      uint64      // block number when verified
+	CodeHash        common.Hash // runtime bytecode hash used to detect upgrades/code changes
 }
 
 // ContractVerifier analyzes and tracks verified contracts.
@@ -81,7 +83,22 @@ var GlobalContractVerifier = &ContractVerifier{
 
 // AnalyzeCode scans contract bytecode for dangerous opcodes and marks
 // the contract as verified if it passes all checks.
+//
+// The hot-path optimisation here is deliberate: once the runtime bytecode for an
+// address is already known, we only bump the call counter instead of rescanning the
+// entire bytecode blob on every invocation. Fast-mode benchmarking repeatedly hits
+// the same contracts, so rescanning the same code was pure overhead.
 func (cv *ContractVerifier) AnalyzeCode(addr common.Address, code []byte, blockNum uint64) {
+	codeHash := crypto.Keccak256Hash(code)
+
+	cv.mu.Lock()
+	if existing, ok := cv.contracts[addr]; ok && existing.CodeHash == codeHash {
+		existing.CallCount++
+		cv.mu.Unlock()
+		return
+	}
+	cv.mu.Unlock()
+
 	hasSelfDestruct := false
 	hasDelegateCall := false
 	hasCreate := false
@@ -113,8 +130,7 @@ func (cv *ContractVerifier) AnalyzeCode(addr common.Address, code []byte, blockN
 	cv.mu.Lock()
 	defer cv.mu.Unlock()
 
-	existing, ok := cv.contracts[addr]
-	if ok {
+	if existing, ok := cv.contracts[addr]; ok && existing.CodeHash == codeHash {
 		existing.CallCount++
 		return
 	}
@@ -126,6 +142,7 @@ func (cv *ContractVerifier) AnalyzeCode(addr common.Address, code []byte, blockN
 		IsDeterministic: isDeterministic,
 		CallCount:       1,
 		VerifiedAt:      blockNum,
+		CodeHash:        codeHash,
 	}
 }
 

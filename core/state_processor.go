@@ -85,28 +85,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
-	// Ethernova Phase 23: Parallel execution analysis and reporting
-	// Classify transactions by sender/recipient independence.
-	// Simple ETH transfers with unique senders and unique recipients could run in parallel.
-	// Currently executes sequentially for consensus safety but tracks potential speedup.
-	if len(block.Transactions()) > 1 {
-		senderSet := make(map[common.Address]bool)
-		recipientSet := make(map[common.Address]bool)
-		parallelCandidates := 0
-		for _, tx := range block.Transactions() {
-			from, _ := types.Sender(signer, tx)
-			to := tx.To()
-			isIndependent := !senderSet[from]
-			if to != nil {
-				isIndependent = isIndependent && !recipientSet[*to]
-				recipientSet[*to] = true
-			}
-			senderSet[from] = true
-			if isIndependent {
-				parallelCandidates++
-			}
-		}
-		vm.GlobalParallelStats.RecordBlock(block.NumberU64(), len(block.Transactions()), parallelCandidates)
+	// Ethernova Phase 23: classify the block through the actual parallel classifier
+	// used by the RPC stats endpoint. Execution stays sequential for consensus safety,
+	// but the classification counters must reflect the real classifier output.
+	if vm.GlobalExecutionMode.GetMode() >= vm.ModeParallel && len(block.Transactions()) > 0 {
+		parallel, sequential := GlobalParallelExecutor.ClassifyTransactions(block.Transactions(), signer)
+		RecordParallelClassification(len(parallel), len(sequential))
 	}
 
 	// Iterate over and process the individual transactions
