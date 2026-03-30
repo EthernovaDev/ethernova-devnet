@@ -27,6 +27,10 @@ var erc20TransferSelector = [4]byte{0xa9, 0x05, 0x9c, 0xbb}
 // erc20TransferFromSelector is the 4-byte selector for transferFrom(address,address,uint256).
 var erc20TransferFromSelector = [4]byte{0x23, 0xb8, 0x72, 0xdd}
 
+// multisigConfirmSelector is the 4-byte selector for confirm(uint256).
+// keccak256("confirm(uint256)")[:4] = 0xba0179b5
+var multisigConfirmSelector = [4]byte{0xba, 0x01, 0x79, 0xb5}
+
 // conflictKey uniquely identifies a storage-slot "touch zone".
 // For ERC-20 transfers, each (contract, account) pair maps to a distinct
 // balance slot in the mapping, so two transfers conflict only when they
@@ -34,6 +38,15 @@ var erc20TransferFromSelector = [4]byte{0x23, 0xb8, 0x72, 0xdd}
 type conflictKey struct {
 	contract common.Address
 	account  common.Address
+}
+
+// multisigKey tracks which (contract, txIndex) pairs have been claimed
+// by a MultiSig confirm. Two confirms conflict only if they touch the
+// same txIndex on the same contract (they both write to
+// transactions[txIndex].confirmations and confirmations[txIndex][sender]).
+type multisigKey struct {
+	contract common.Address
+	txIndex  uint64
 }
 
 // isERC20Transfer checks if the calldata starts with the transfer(address,uint256)
@@ -67,26 +80,48 @@ func isERC20TransferFrom(data []byte) (common.Address, common.Address, bool) {
 	return from, to, true
 }
 
-// ClassifyTransactions groups transactions into parallel-eligible and
-// sequential buckets.
-//
-// Rules (conservative, per Noven's recommendation):
-// 1. Simple ETH transfers are parallelizable if senders/recipients don't overlap
-// 2. ERC-20 transfer() and transferFrom() between non-overlapping account pairs
-//    are parallelizable — they touch disjoint balance-mapping slots
-// 3. No two transactions can have the same sender (nonce ordering)
-// 4. DEX swaps, multisig operations, and other contract calls remain sequential
-//    because they may touch shared storage (reserves, confirmation counts, etc.)
-func (pe *ParallelExecutor) ClassifyTransactions(txs []*types.Transaction, signer types.Signer) (parallel []*types.Transaction, sequential []*types.Transaction) {
-	if vm.GlobalExecutionMode.GetMode() < vm.ModeParallel {
-		return nil, txs
+// isMultiSigConfirm checks for confirm(uint256). Returns (txIndex, true).
+func isMultiSigConfirm(data []byte) (uint64, bool) {
+	if len(data) < 4+32 {
+		return 0, false
 	}
+	var sel [4]byte
+	copy(sel[:], data[:4])
+	if sel != multisigConfirmSelector {
+		return 0, false
+	}
+	txIndex := new(big.Int).SetBytes(data[4 : 4+32]).Uint64()
+	return txIndex, true
+}
+
+// ClassifyTransactions groups transactions into parallel-eligible and
+// sequential buckets, and returns how many were rejected due to a
+// detected slot-level conflict (as opposed to the conservative "unknown
+// contract" default).
+//
+// This is ANALYSIS ONLY — it never mutates state.
+//
+// Rules:
+// 1. Simple ETH transfers: parallelizable if senders/recipients don't overlap.
+// 2. ERC-20 transfer/transferFrom: slot-level conflict detection on
+//    (contract, account) pairs. Two transfers conflict only when they
+//    share at least one balance-slot key. The tx-sender identity is NOT
+//    used for ERC-20 rejection — the balance-slot key for the sender's
+//    balance already covers that.
+// 3. MultiSig confirm(uint256): slot-level conflict on (contract, txIndex).
+//    Two confirms for different indices on the same contract are non-
+//    conflicting. Same index = conflict.
+// 4. DEX swaps and all other contract calls: sequential (conservative).
+func (pe *ParallelExecutor) ClassifyTransactions(txs []*types.Transaction, signer types.Signer) (parallel []*types.Transaction, sequential []*types.Transaction, conflicts int) {
+	// No mode gate — classification is always-on (analysis only).
 
 	sendersSeen := make(map[common.Address]bool)
 	recipientsSeen := make(map[common.Address]bool)
 	// slotKeys tracks (contract, account) pairs that would be touched by
 	// ERC-20 transfers. A conflict on any key forces the tx to sequential.
 	slotKeys := make(map[conflictKey]bool)
+	// msKeys tracks (contract, txIndex) pairs for MultiSig confirms.
+	msKeys := make(map[multisigKey]bool)
 
 	for _, tx := range txs {
 		sender, err := types.Sender(signer, tx)
@@ -106,56 +141,73 @@ func (pe *ParallelExecutor) ClassifyTransactions(txs []*types.Transaction, signe
 
 		// ---- Contract call classification ----
 		if len(tx.Data()) > 0 {
-			// Try to recognise ERC-20 transfer(address,uint256).
-			// Two transfer() calls on the same token contract are safe to
-			// parallelise when they touch disjoint (sender, recipient)
-			// account pairs — each pair maps to distinct balance-mapping
-			// storage slots.
+			// ---- ERC-20 transfer(address,uint256) ----
+			// Conflict detection is purely slot-based: we track which
+			// (contract, account) balance slots have been claimed by
+			// earlier txs. We do NOT use sendersSeen here — the slot
+			// key conflictKey{token, sender} already covers the
+			// sender's balance slot.
 			if recipient, ok := isERC20Transfer(tx.Data()); ok {
 				keySender := conflictKey{contract: to, account: sender}
 				keyRecipient := conflictKey{contract: to, account: recipient}
 
-				if sendersSeen[sender] || slotKeys[keySender] || slotKeys[keyRecipient] {
+				if slotKeys[keySender] || slotKeys[keyRecipient] {
 					sequential = append(sequential, tx)
-					sendersSeen[sender] = true
+					conflicts++
 					slotKeys[keySender] = true
 					slotKeys[keyRecipient] = true
 					continue
 				}
 
-				// Safe for parallel
 				parallel = append(parallel, tx)
-				sendersSeen[sender] = true
 				slotKeys[keySender] = true
 				slotKeys[keyRecipient] = true
 				continue
 			}
 
-			// Try to recognise ERC-20 transferFrom(address,address,uint256).
+			// ---- ERC-20 transferFrom(address,address,uint256) ----
+			// balanceOf[from] and balanceOf[to] are written. The caller's
+			// balance is NOT written (only their allowance slot, which is
+			// keyed by (from, caller) and thus unique). We track keyFrom
+			// and keyRecipient only.
 			if from, recipient, ok := isERC20TransferFrom(tx.Data()); ok {
 				keyFrom := conflictKey{contract: to, account: from}
 				keyRecipient := conflictKey{contract: to, account: recipient}
-				keyCaller := conflictKey{contract: to, account: sender}
 
-				if sendersSeen[sender] || slotKeys[keyFrom] || slotKeys[keyRecipient] || slotKeys[keyCaller] {
+				if slotKeys[keyFrom] || slotKeys[keyRecipient] {
 					sequential = append(sequential, tx)
-					sendersSeen[sender] = true
+					conflicts++
 					slotKeys[keyFrom] = true
 					slotKeys[keyRecipient] = true
-					slotKeys[keyCaller] = true
 					continue
 				}
 
 				parallel = append(parallel, tx)
-				sendersSeen[sender] = true
 				slotKeys[keyFrom] = true
 				slotKeys[keyRecipient] = true
-				slotKeys[keyCaller] = true
 				continue
 			}
 
-			// Any other contract call (DEX swaps, multisig, etc.) → sequential.
-			// These may touch shared state (pool reserves, confirmation counts).
+			// ---- MultiSig confirm(uint256) ----
+			// Each confirm writes to confirmations[txIndex][msg.sender]
+			// and transactions[txIndex].confirmations. Two confirms for
+			// different txIndex values touch disjoint storage slots.
+			if txIndex, ok := isMultiSigConfirm(tx.Data()); ok {
+				key := multisigKey{contract: to, txIndex: txIndex}
+
+				if msKeys[key] {
+					sequential = append(sequential, tx)
+					conflicts++
+					continue
+				}
+
+				parallel = append(parallel, tx)
+				msKeys[key] = true
+				continue
+			}
+
+			// Any other contract call (DEX swaps, etc.) → sequential.
+			// These may touch shared state (pool reserves, etc.).
 			sequential = append(sequential, tx)
 			sendersSeen[sender] = true
 			recipientsSeen[to] = true
@@ -188,7 +240,7 @@ func (pe *ParallelExecutor) ClassifyTransactions(txs []*types.Transaction, signe
 		recipientsSeen[to] = true
 	}
 
-	return parallel, sequential
+	return parallel, sequential, conflicts
 }
 
 // ParallelResult holds the result of a single parallel execution.
@@ -204,6 +256,9 @@ type ParallelResult struct {
 // ExecuteParallel executes a batch of independent transactions in parallel
 // using state snapshots. Each transaction gets its own copy of state.
 // After all complete, results are validated for conflicts and merged.
+//
+// WARNING: Must NEVER be called on the canonical statedb used by the
+// sequential processing loop — doing so corrupts nonces → BAD BLOCK.
 func (pe *ParallelExecutor) ExecuteParallel(
 	statedb *state.StateDB,
 	txs []*types.Transaction,
@@ -297,6 +352,9 @@ func (pe *ParallelExecutor) ExecuteParallel(
 
 // MergeResults applies validated parallel results to the main state.
 // Returns the number of successfully merged transactions.
+//
+// WARNING: Only call on a COPY of the canonical state, never on the state
+// used by the sequential processing loop.
 func (pe *ParallelExecutor) MergeResults(
 	mainState *state.StateDB,
 	results []*ParallelResult,

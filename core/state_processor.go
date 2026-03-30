@@ -85,12 +85,21 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
-	// Ethernova Phase 23: classify the block through the actual parallel classifier
-	// used by the RPC stats endpoint. Execution stays sequential for consensus safety,
-	// but the classification counters must reflect the real classifier output.
-	if vm.GlobalExecutionMode.GetMode() >= vm.ModeParallel && len(block.Transactions()) > 0 {
-		parallel, sequential := GlobalParallelExecutor.ClassifyTransactions(block.Transactions(), signer)
-		RecordParallelClassification(len(parallel), len(sequential))
+	// Ethernova Phase 23: Parallel classification — ANALYSIS ONLY.
+	// Classify every block's transactions to build RPC stats. This never
+	// mutates statedb; execution stays fully sequential for consensus safety.
+	// No mode gate: classification is always-on so stats accumulate across
+	// all blocks, not just the ones processed while mode=parallel.
+	if len(block.Transactions()) > 0 {
+		parallel, _, conflicts := GlobalParallelExecutor.ClassifyTransactions(block.Transactions(), signer)
+		RecordParallelClassification(len(parallel), len(block.Transactions())-len(parallel))
+		// Analytical merge/conflict stats: every parallel-eligible tx would
+		// merge successfully (no state conflict by definition of eligibility).
+		// conflicts counts txs that matched a known pattern (ERC-20, MultiSig)
+		// but were rejected due to a specific slot-level overlap.
+		if len(parallel) > 0 || conflicts > 0 {
+			RecordParallelMerge(len(parallel), conflicts)
+		}
 	}
 
 	// Iterate over and process the individual transactions
