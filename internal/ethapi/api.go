@@ -1155,6 +1155,20 @@ func (s *BlockChainAPI) Call(ctx context.Context, args TransactionArgs, blockNrO
 		latest := rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
 		blockNrOrHash = &latest
 	}
+ 
+	// Ethernova: check call cache for pure read-only calls.
+	// Only use cache when: target is a contract (To != nil), no value transfer,
+	// no state/block overrides, and cache is enabled.
+	cacheable := args.To != nil &&
+		(args.Value == nil || args.Value.ToInt().Sign() == 0) &&
+		(overrides == nil || len(*overrides) == 0) &&
+		blockOverrides == nil
+	if cacheable {
+		if entry, ok := vm.GlobalCallCache.Get(*args.To, args.data()); ok {
+			return entry.Result, nil
+		}
+	}
+ 
 	result, err := DoCall(ctx, s.b, args, *blockNrOrHash, overrides, blockOverrides, s.b.RPCEVMTimeout(), s.b.RPCGasCap())
 	if err != nil {
 		return nil, err
@@ -1163,6 +1177,12 @@ func (s *BlockChainAPI) Call(ctx context.Context, args TransactionArgs, blockNrO
 	if len(result.Revert()) > 0 {
 		return nil, newRevertError(result.Revert())
 	}
+ 
+	// Ethernova: store successful result in call cache.
+	if cacheable {
+		vm.GlobalCallCache.Put(*args.To, args.data(), result.Return(), result.UsedGas)
+	}
+ 
 	return result.Return(), result.Err
 }
 
