@@ -151,6 +151,13 @@ type EVM struct {
 	// is shared across the entire call tree.
 	TraceCounters TraceCounters
 
+	// Ethernova v3.0: Block-level trace aggregator for convergent auto-tuner.
+	// Set by the block processor (state_processor.go) at the start of each block.
+	// nil for non-block-processing contexts (eth_call, eth_estimateGas, tracers).
+	// The aggregator collects per-tx classification data and produces a
+	// BlockWorkloadSample that feeds the ConvergentTuner's EMA.
+	BlockAggregator *BlockTraceAggregator
+
 	// Ethernova Phase 17 (FIX): per-EVM reentrancy guard.
 	// CRITICAL CONSENSUS FIX: Previously this was a global variable
 	// (GlobalReentrancyGuard) shared across ALL concurrent EVM instances.

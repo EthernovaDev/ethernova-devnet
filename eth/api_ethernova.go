@@ -386,15 +386,21 @@ func (api *EthernovaAPI) OptimizerReset() bool {
 	return true
 }
 
-// AutoTuner returns the auto-tuner status.
-func (api *EthernovaAPI) AutoTuner() vm.AutoTunerStats {
-	return vm.GlobalAutoTuner.Stats()
+// AutoTuner returns the convergent auto-tuner status.
+// Ethernova v3.0: Includes both convergent tuner EMA metrics and
+// safety envelope status (scaleFactor, cautious mode, etc.).
+func (api *EthernovaAPI) AutoTuner() map[string]interface{} {
+	return map[string]interface{}{
+		"convergent": vm.GlobalConvergentTuner.Stats(),
+		"safety":     vm.GlobalSafeTuner.Stats(),
+	}
 }
 
-// AutoTunerToggle enables or disables auto-tuning.
+// AutoTunerToggle enables or disables the convergent auto-tuner.
 func (api *EthernovaAPI) AutoTunerToggle(enabled bool) bool {
-	vm.GlobalAutoTuner.SetEnabled(enabled)
-	return vm.GlobalAutoTuner.IsEnabled()
+	vm.GlobalConvergentTuner.SetEnabled(enabled)
+	vm.GlobalSafeTuner.SetEnabled(enabled)
+	return vm.GlobalConvergentTuner.IsEnabled()
 }
 
 // PrecompileInfo describes a custom Ethernova precompiled contract.

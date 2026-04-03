@@ -500,12 +500,39 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		var newRemaining uint64
 		var adjustPct int64
 		var classification *vm.ExecutionClassification
+
+		// Save gasRemaining BEFORE adjustment for safety envelope interpolation.
+		// This is the gas remaining after EVM execution, before any adaptive change.
+		gasRemainingBeforeAdjust := st.gasRemaining
+
 		newRemaining, adjustPct, classification = vm.ApplyAdaptiveGasV2(
 			&st.evm.TraceCounters,
 			st.gasUsed(),
 			st.gasRemaining,
 			gas, // intrinsicGas
 		)
+
+		// Ethernova v3.0: Safety envelope scaling.
+		// Modulate the adjustment magnitude based on the SafeTuner's scaleFactor.
+		// This prevents adaptive gas penalties from depleting the block GasPool,
+		// which would cause late transactions to fail with ErrGasLimitReached.
+		//
+		// At scale=10000 (100%): full adjustment (normal behavior)
+		// At scale=5000 (50%):   half the adjustment
+		// At scale=0 (0%):       no adjustment (adaptive gas effectively disabled)
+		//
+		// The scaleFactor is computed deterministically from previous block's
+		// safety metrics. All nodes produce the same value.
+		if adjustPct != 0 && vm.GlobalSafeTuner.IsEnabled() {
+			scale := vm.GlobalSafeTuner.GetScaleFactor()
+			if scale < vm.MaxScaleFactorValue() {
+				newRemaining = vm.ApplyScaleFactor(
+					gasRemainingBeforeAdjust,
+					newRemaining,
+					scale,
+				)
+			}
+		}
 
 		// SAFETY ASSERTION: gasRemaining must never exceed initialGas.
 		// If a discount pushes gasRemaining above initialGas, clamp it.
@@ -525,6 +552,29 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 			vm.LastTxClassification = classification
 		}
 
+		// Ethernova v3.0: Feed per-tx classification to block aggregator
+		// for the convergent auto-tuner. The aggregator accumulates all txs
+		// in this block and produces a BlockWorkloadSample at block end.
+		// This is a pure append — no consensus impact.
+		if st.evm.BlockAggregator != nil && classification != nil {
+			st.evm.BlockAggregator.AddTransaction(
+				&st.evm.TraceCounters,
+				classification.Category,
+			)
+		}
+
+		// Ethernova v3.0: Record gas pool safety data for the SafeTuner.
+		// Tracks penalty/discount gas, headroom, and failures per block.
+		if st.evm.BlockAggregator != nil {
+			st.evm.BlockAggregator.RecordGasSafety(
+				gasRemainingBeforeAdjust,
+				st.gasRemaining,
+				st.initialGas,
+				adjustPct,
+				vmerr != nil,
+			)
+		}
+
 		log.Debug("[AdaptiveGasV2] post-execution adjustment",
 			"block", currentBlock,
 			"from", msg.From.Hex(),
@@ -536,6 +586,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 				return "none"
 			}(),
 			"adjustPct", fmt.Sprintf("%+d%%", adjustPct),
+			"scale", vm.GlobalSafeTuner.GetScaleFactor(),
 			"gasUsed", st.gasUsed(),
 			"gasRemaining", st.gasRemaining,
 			"traceOps", st.evm.TraceCounters.TotalOpsExecuted,

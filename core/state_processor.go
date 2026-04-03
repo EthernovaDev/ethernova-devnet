@@ -82,6 +82,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		vmenv   = vm.NewEVM(context, vm.TxContext{}, statedb, p.config, cfg)
 		signer  = types.MakeSigner(p.config, header.Number, header.Time)
 	)
+
+	// Ethernova v3.0: Create per-block trace aggregator for convergent tuner.
+	// Collects classification data from every tx and produces a
+	// BlockWorkloadSample at block end. Set on the EVM so state_transition.go
+	// can feed each tx's classification into it.
+	blockAgg := vm.NewBlockTraceAggregator(block.NumberU64())
+	vmenv.BlockAggregator = blockAgg
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
@@ -116,6 +123,23 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
+
+	// Ethernova v3.0: Feed completed block workload sample to convergent tuner.
+	// This runs after all txs are processed and produces deterministic EMA
+	// updates from the block-level aggregate trace data.
+	if vm.GlobalConvergentTuner.IsEnabled() {
+		sample := blockAgg.Finalize()
+		vm.GlobalConvergentTuner.FeedBlock(sample)
+	}
+
+	// Ethernova v3.0: Feed gas pool safety metrics to SafeTuner.
+	// Updates the scaleFactor for the NEXT block based on this block's
+	// penalty gas accumulation, failure count, and headroom.
+	if vm.GlobalSafeTuner.IsEnabled() {
+		safetySample := blockAgg.FinalizeSafety(block.GasLimit())
+		vm.GlobalSafeTuner.UpdateAfterBlock(safetySample)
+	}
+
 	// Fail if Shanghai not enabled and len(withdrawals) is non-zero.
 	withdrawals := block.Withdrawals()
 	blockTime := block.Time()
