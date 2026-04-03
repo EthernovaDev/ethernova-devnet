@@ -254,7 +254,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Ethernova: opcode sequence optimizer — refund redundant ops
 		// Ethernova: optimizer pattern detection (monitoring only, v1.0.2)
 		// Gas refunds DISABLED - caused non-deterministic gas across nodes.
-		GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost)
+		// v3.1: gated behind IsEnabled() to avoid contract.Address().Hex()
+		// string allocation on every opcode (~millions/block) when disabled.
+		if GlobalOpcodeOptimizer.IsEnabled() {
+			GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost)
+		}
 
 		// Ethernova v2.0 (Noven): adaptive gas adjustment applied POST-EXECUTION
 		// in state_transition.go, not per-opcode. This ensures:

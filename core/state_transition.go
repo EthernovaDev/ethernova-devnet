@@ -512,27 +512,31 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 			gas, // intrinsicGas
 		)
 
-		// Ethernova v3.0: Safety envelope scaling.
-		// Modulate the adjustment magnitude based on the SafeTuner's scaleFactor.
-		// This prevents adaptive gas penalties from depleting the block GasPool,
-		// which would cause late transactions to fail with ErrGasLimitReached.
+		// Ethernova v3.1: SafeTuner scaling REMOVED from consensus path.
 		//
-		// At scale=10000 (100%): full adjustment (normal behavior)
-		// At scale=5000 (50%):   half the adjustment
-		// At scale=0 (0%):       no adjustment (adaptive gas effectively disabled)
+		// CONSENSUS FIX: The SafeTuner's scaleFactor was non-deterministic
+		// across nodes for three independent reasons:
 		//
-		// The scaleFactor is computed deterministically from previous block's
-		// safety metrics. All nodes produce the same value.
-		if adjustPct != 0 && vm.GlobalSafeTuner.IsEnabled() {
-			scale := vm.GlobalSafeTuner.GetScaleFactor()
-			if scale < vm.MaxScaleFactorValue() {
-				newRemaining = vm.ApplyScaleFactor(
-					gasRemainingBeforeAdjust,
-					newRemaining,
-					scale,
-				)
-			}
-		}
+		//   1. MINER VS VALIDATOR DIVERGENCE: The miner uses
+		//      WriteBlockAndSetHead() which bypasses StateProcessor.Process(),
+		//      so SafeTuner.UpdateAfterBlock() is never called on miners.
+		//      Validators call Process() which DOES update the SafeTuner.
+		//      After any safety event, the miner's scaleFactor stays at 10000
+		//      while validators reduce it → different gas → BAD BLOCK.
+		//
+		//   2. REORG POLLUTION: SafeTuner state is never reverted during
+		//      chain reorganizations. A node that processed orphaned blocks
+		//      [3,4] before reorging to [3',4'] has a different SafeTuner
+		//      state than a node that only ever processed [3',4'].
+		//
+		//   3. RPC TOGGLE: The AutoTunerToggle RPC controls SafeTuner.enabled,
+		//      and the old code checked IsEnabled() here — meaning any node
+		//      operator could change consensus behavior via RPC.
+		//
+		// The adaptive gas v2 system's compile-time constants (max -25%
+		// discount, max +10% penalty) are deterministic by design. The
+		// SafeTuner remains active for MONITORING (stats/RPC) but no longer
+		// modulates the consensus-critical gas adjustment.
 
 		// SAFETY ASSERTION: gasRemaining must never exceed initialGas.
 		// If a discount pushes gasRemaining above initialGas, clamp it.

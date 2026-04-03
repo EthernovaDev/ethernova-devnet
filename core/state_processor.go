@@ -133,8 +133,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	}
 
 	// Ethernova v3.0: Feed gas pool safety metrics to SafeTuner.
-	// Updates the scaleFactor for the NEXT block based on this block's
-	// penalty gas accumulation, failure count, and headroom.
+	// MONITORING ONLY (v3.1): SafeTuner scaleFactor is no longer used in
+	// the consensus-critical gas adjustment path (see state_transition.go).
+	// The SafeTuner continues to collect metrics for RPC observability.
+	// NOTE: This code only runs via Process() (validators), NOT on miners
+	// (who use WriteBlockAndSetHead). This asymmetry is why the SafeTuner
+	// was removed from the consensus path — miners and validators would
+	// have different SafeTuner states.
 	if vm.GlobalSafeTuner.IsEnabled() {
 		safetySample := blockAgg.FinalizeSafety(block.GasLimit())
 		vm.GlobalSafeTuner.UpdateAfterBlock(safetySample)
