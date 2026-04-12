@@ -137,12 +137,6 @@ type StateDB struct {
 
 	// Testing hooks
 	onCommit func(states *triestate.Set) // Hook invoked when commit is performed
-
-	// Ethernova: state expiry tracking
-	currentBlockNumber    uint64                    // Current block being processed
-	expiredAccounts       map[common.Address][]byte // Archived accounts (merkle proof receipts)
-	touchedContracts      []common.Address           // Contracts touched during this block (for expiry index)
-	stateExpiryEngine     *StateExpiryEngine         // External expiry engine (nil if not set)
 }
 
 // New creates a new state from a given trie.
@@ -397,10 +391,6 @@ func (s *StateDB) SetBalance(addr common.Address, amount *uint256.Int) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetBalance(amount)
-		// Ethernova: TouchAccount DISABLED in v1.0.7 - writing LastTouched changes
-		// the account RLP encoding which changes the state root. Since Windows and
-		// Linux builds may process transactions differently, this causes merkle root
-		// divergence. Will re-enable when LastTouched is stored outside the account trie.
 	}
 }
 
@@ -415,7 +405,6 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetCode(crypto.Keccak256Hash(code), code)
-		s.TrackContractTouch(addr) // Ethernova: track for state expiry (external index)
 	}
 }
 
@@ -423,47 +412,7 @@ func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetState(key, value)
-		s.TrackContractTouch(addr) // Ethernova: track for state expiry (external index)
 	}
-}
-
-// SetCurrentBlock sets the current block number for state expiry tracking.
-func (s *StateDB) SetCurrentBlock(blockNumber uint64) {
-	s.currentBlockNumber = blockNumber
-}
-
-// SetStateExpiryEngine sets the external expiry engine for v2 tracking.
-func (s *StateDB) SetStateExpiryEngine(engine *StateExpiryEngine) {
-	s.stateExpiryEngine = engine
-}
-
-// TrackContractTouch records a contract address as touched during this block.
-// Only tracks contracts (non-empty code hash). Called from SetState, SetCode, etc.
-func (s *StateDB) TrackContractTouch(addr common.Address) {
-	if s.stateExpiryEngine == nil || s.currentBlockNumber == 0 {
-		return
-	}
-	obj := s.getStateObject(addr)
-	if obj == nil || !obj.IsContract() {
-		return
-	}
-	s.touchedContracts = append(s.touchedContracts, addr)
-	s.stateExpiryEngine.TouchContract(addr, s.currentBlockNumber)
-}
-
-// FinalizeExpiry writes the block's touched contracts to the index and runs the sweep.
-// Called from consensus Finalize BEFORE computing the state root.
-// Returns number of expired contracts.
-func (s *StateDB) FinalizeExpiry(currentBlock, expiryPeriod uint64) int {
-	if s.stateExpiryEngine == nil {
-		return 0
-	}
-	// 1. Record which contracts were touched this block
-	s.stateExpiryEngine.RecordBlockTouches(currentBlock, s.touchedContracts)
-
-	// 2. Run the sweep using the external index (deterministic order)
-	expired := s.stateExpiryEngine.SweepExpired(s, currentBlock, expiryPeriod)
-	return len(expired)
 }
 
 // SetStorage replaces the entire storage for the specified account with given
@@ -988,8 +937,6 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 func (s *StateDB) SetTxContext(thash common.Hash, ti int) {
 	s.thash = thash
 	s.txIndex = ti
-	// Ethernova Phase 17: Reset reentrancy guard for each new transaction
-	s.touchedContracts = nil
 }
 
 func (s *StateDB) clearJournalAndRefund() {

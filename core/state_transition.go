@@ -457,8 +457,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// - reset transient storage(eip 1153)
 	st.state.Prepare(eip2930f, eip3651f, msg.From, st.evm.Context.Coinbase, msg.To, st.evm.ActivePrecompiles(), msg.AccessList)
 
-	// Ethernova v2.0: reset trace counters before execution.
-	// This ensures each transaction starts with fresh counters.
+	// Ethernova v2.0 (Noven Fork): reset trace counters before execution.
 	st.evm.TraceCounters.Reset()
 
 	var (
@@ -473,28 +472,14 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, value)
 	}
 
-	// Ethernova v2.0: Trace-based adaptive gas adjustment (POST-EXECUTION)
+	// Ethernova v2.0 (Noven Fork): Trace-based adaptive gas adjustment (POST-EXECUTION)
 	// ================================================================
-	// CONSENSUS RULE — activated at AdaptiveGasV2ForkBlock.
-	// This replaces the old per-opcode approach that caused consensus splits.
-	// The adjustment is computed from TraceCounters collected during execution:
-	//   - Pure contracts (no SSTORE, no CALL) → discount up to -25%
-	//   - Complex contracts (heavy SSTORE/CALL) → penalty up to +10%
-	//   - Mixed contracts → no adjustment
-	//
+	// CONSENSUS RULE — activated at AdaptiveGasV2ForkBlock (block 460,000).
 	// Applied to execution gas only (gasUsed - intrinsicGas).
 	// Intrinsic gas (21000 for transfer, etc.) is never modified.
-	//
-	// DETERMINISM: This is a pure function of TraceCounters (uint64 fields
-	// on the EVM struct) → same tx = same counters = same adjustment.
-	// No floats, no maps, no caching, no global mutable state.
-	//
-	// ACTIVATION: Fork-block gated, NOT runtime-toggled.
-	// All nodes running the same binary produce identical results.
+	// DETERMINISM: Pure function of TraceCounters → same tx = same adjustment.
 	// ================================================================
 	currentBlock := st.evm.Context.BlockNumber.Uint64()
-	// Adaptive gas v2: trace-based post-execution adjustment.
-	// Consensus-safe after reentrancy guard fix (per-EVM scope).
 	adaptiveGasV2Active := !contractCreation && currentBlock >= ethernova.AdaptiveGasV2ForkBlock
 	if adaptiveGasV2Active {
 		var newRemaining uint64
@@ -511,47 +496,8 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 			st.gasRemaining,
 			gas, // intrinsicGas
 		)
-
-		// Ethernova v3.1: SafeTuner scaling REMOVED from consensus path.
-		//
-		// CONSENSUS FIX: The SafeTuner's scaleFactor was non-deterministic
-		// across nodes for three independent reasons:
-		//
-		//   1. MINER VS VALIDATOR DIVERGENCE: The miner uses
-		//      WriteBlockAndSetHead() which bypasses StateProcessor.Process(),
-		//      so SafeTuner.UpdateAfterBlock() is never called on miners.
-		//      Validators call Process() which DOES update the SafeTuner.
-		//      After any safety event, the miner's scaleFactor stays at 10000
-		//      while validators reduce it → different gas → BAD BLOCK.
-		//
-		//   2. REORG POLLUTION: SafeTuner state is never reverted during
-		//      chain reorganizations. A node that processed orphaned blocks
-		//      [3,4] before reorging to [3',4'] has a different SafeTuner
-		//      state than a node that only ever processed [3',4'].
-		//
-		//   3. RPC TOGGLE: The AutoTunerToggle RPC controls SafeTuner.enabled,
-		//      and the old code checked IsEnabled() here — meaning any node
-		//      operator could change consensus behavior via RPC.
-		//
-		// The adaptive gas v2 system's compile-time constants (max -25%
-		// discount, max +10% penalty) are deterministic by design. The
-		// SafeTuner remains active for MONITORING (stats/RPC) but no longer
-		// modulates the consensus-critical gas adjustment.
-
-		// SAFETY ASSERTION: gasRemaining must never exceed initialGas.
-		// If a discount pushes gasRemaining above initialGas, clamp it.
-		// This prevents negative gasUsed (uint64 underflow in receipts).
-		if newRemaining > st.initialGas {
-			log.Warn("[AdaptiveGasV2] SAFETY: clamping gasRemaining to initialGas",
-				"newRemaining", newRemaining,
-				"initialGas", st.initialGas,
-				"adjustPct", adjustPct,
-			)
-			newRemaining = st.initialGas
-		}
 		st.gasRemaining = newRemaining
 
-		// Store for RPC introspection
 		if classification != nil {
 			vm.LastTxClassification = classification
 		}
@@ -582,7 +528,6 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		log.Debug("[AdaptiveGasV2] post-execution adjustment",
 			"block", currentBlock,
 			"from", msg.From.Hex(),
-			"nonce", msg.Nonce,
 			"category", func() string {
 				if classification != nil {
 					return classification.Category.String()
@@ -593,33 +538,20 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 			"scale", vm.GlobalSafeTuner.GetScaleFactor(),
 			"gasUsed", st.gasUsed(),
 			"gasRemaining", st.gasRemaining,
-			"traceOps", st.evm.TraceCounters.TotalOpsExecuted,
-			"traceSSTORE", st.evm.TraceCounters.SstoreCount,
-			"traceSLOAD", st.evm.TraceCounters.SloadCount,
-			"traceCALL", st.evm.TraceCounters.CallCount,
 		)
 	}
 
-	// Legacy gas trace log (kept for backward compat monitoring)
-	log.Debug("[AdaptiveGas] tx gas trace",
-		"from", msg.From.Hex(),
-		"nonce", msg.Nonce,
-		"isContractCreation", contractCreation,
-		"intrinsicGas", gas,
-		"gasUsed", st.gasUsed(),
-		"gasRemaining", st.gasRemaining,
-		"adaptiveV2Active", adaptiveGasV2Active,
-	)
-
-	// Ethernova Phase 18: Extra gas refund on revert
+	// Ethernova v2.0 (Noven Fork): Extra gas refund on revert
 	// If the transaction reverted, refund 90% of execution gas.
-	// User only pays base intrinsic gas + 10% penalty.
-	if vmerr != nil && vm.RevertRefundEnabled {
-		extraRefund := vm.CalculateRevertRefund(st.gasUsed(), gas) // gas = intrinsic gas
-		st.gasRemaining += extraRefund
-		// SAFETY: clamp after revert refund too (adaptive discount + revert refund could stack)
-		if st.gasRemaining > st.initialGas {
-			st.gasRemaining = st.initialGas
+	// Anti-DoS: only applies if execution gas < 100,000.
+	if vmerr == vm.ErrExecutionReverted && vm.RevertRefundEnabled && currentBlock >= ethernova.NovenForkBlock {
+		executionGas := st.gasUsed()
+		if executionGas > gas {
+			executionGas -= gas
+		}
+		refund := vm.CalculateRevertRefund(executionGas, gas)
+		if refund > 0 {
+			st.gasRemaining += refund
 		}
 	}
 

@@ -7,37 +7,45 @@ const (
 	EIP658ForkBlock uint64 = 0
 	// MegaForkBlock enables missing historical EVM forks for compatibility.
 	MegaForkBlock uint64 = 0
-	// NovenForkBlock activates state rent surcharge and smart wallet features.
-	// Named after community member Noven who proposed going public with the devnet.
-	// Devnet activation: block 20,500 (~20 min from deployment)
-	// Mainnet: TBD after devnet validation
-	NovenForkBlock uint64 = 20500
-	// StateExpiryForkBlock activates the state expiry garbage collector.
-	// Contracts/tokens with no activity for StateExpiryPeriod blocks get archived.
-	// EOA wallets are NEVER expired. Archived state can be restored with merkle proof.
-	// Devnet activation: block 21,500
-	StateExpiryForkBlock uint64 = 25200
-	// StateExpiryPeriod is the number of blocks of inactivity before a contract is archived.
-	StateExpiryPeriod uint64 = 1000
-	// TempoTxForkBlock activates Tempo-style smart transactions.
-	// Enables: atomic batching, fee delegation, scheduled transactions.
-	// Gas is always paid in NOVA (no ERC-20 gas payments).
-	TempoTxForkBlock uint64 = 23300
-	// FrameAAForkBlock activates Frame-style Account Abstraction.
-	// Smart contract wallets can validate and approve transactions.
-	// Precompiles 0x23 (novaFrameApprove) and 0x24 (novaFrameIntrospect).
-	// Inspired by EIP-8141 Frame Transactions.
-	FrameAAForkBlock uint64 = 24000
+
+	// ============================================================
+	// NOVEN FORK — Ethernova 2.0 (devnet baseline)
+	// Named after community developer Noven who built the adaptive
+	// gas system and parallel execution classifier.
+	// On devnet all Noven Fork features activate at block 0 so the
+	// chain starts with the full v2.0.0 feature set enabled.
+	// ============================================================
+
+	// NovenForkBlock activates ALL Noven Fork features simultaneously:
+	//   - Adaptive Gas V2 (trace-based post-execution adjustment)
+	//   - Per-EVM reentrancy guard
+	//   - Gas refund on revert (90% execution gas)
+	//   - Native precompiles (0x20-0x28)
+	//   - State expiry (contract garbage collection)
+	//   - Tempo transactions (atomic batching)
+	//   - Frame Account Abstraction
+	NovenForkBlock uint64 = 0
 
 	// AdaptiveGasV2ForkBlock activates trace-based adaptive gas pricing.
 	// Replaces the v1 bytecode-based system that caused consensus splits.
 	// Pure computation contracts get up to -25% gas discount.
 	// Storage-heavy contracts get up to +10% gas penalty.
-	// This is a CONSENSUS RULE — all nodes MUST apply the same adjustment.
-	// Classification is deterministic: pure function of execution trace counters.
-	// v1.1.5: Fork block set to FUTURE so ALL nodes must upgrade first.
-	// Before: block 0 (active from genesis) caused BAD BLOCK because
-	// nodes with old binary validated blocks without adaptive gas adjustment.
-	// Now: all nodes update to v1.1.5, then adaptive gas activates at block 14400.
+	// CONSENSUS RULE — all nodes MUST apply the same adjustment.
 	AdaptiveGasV2ForkBlock uint64 = 0
+
+	// StateExpiryForkBlock activates the state expiry garbage collector.
+	// Contracts with no activity for StateExpiryPeriod blocks get archived.
+	// EOA wallets are NEVER expired. Archived state can be restored.
+	StateExpiryForkBlock uint64 = 0
+	// StateExpiryPeriod is the number of blocks of inactivity before archival.
+	// Short period for devnet testing (~3 hours at 11s/block). Mainnet uses 900000 (~115 days).
+	StateExpiryPeriod uint64 = 1000
+
+	// TempoTxForkBlock activates Tempo-style smart transactions.
+	// Enables: atomic batching, fee delegation, scheduled transactions.
+	TempoTxForkBlock uint64 = 0
+
+	// FrameAAForkBlock activates Frame-style Account Abstraction.
+	// Precompiles 0x23 (novaFrameApprove) and 0x24 (novaFrameIntrospect).
+	FrameAAForkBlock uint64 = 0
 )

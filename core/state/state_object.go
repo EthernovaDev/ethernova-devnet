@@ -436,7 +436,6 @@ func (s *stateObject) SetBalance(amount *uint256.Int) {
 
 func (s *stateObject) setBalance(amount *uint256.Int) {
 	s.data.Balance = amount
-	// Ethernova: touch on balance change (block number set by StateDB)
 }
 
 func (s *stateObject) deepCopy(db *StateDB) *stateObject {
@@ -536,36 +535,6 @@ func (s *stateObject) CodeHash() []byte {
 
 func (s *stateObject) Balance() *uint256.Int {
 	return s.data.Balance
-}
-
-// LastTouched returns the block number when this account was last accessed.
-func (s *stateObject) LastTouched() uint64 {
-	return s.data.LastTouched
-}
-
-// TouchAccount updates the LastTouched field to the given block number.
-// Only applies to contract accounts (non-empty code hash).
-func (s *stateObject) TouchAccount(blockNumber uint64) {
-	if s.data.LastTouched != blockNumber {
-		s.data.LastTouched = blockNumber
-	}
-}
-
-// IsContract returns true if this account has code (is a contract, not an EOA).
-func (s *stateObject) IsContract() bool {
-	return !bytes.Equal(s.data.CodeHash, types.EmptyCodeHash.Bytes())
-}
-
-// IsExpired returns true if this contract has not been touched for more than
-// the given period of blocks. Only contracts can expire, never EOAs.
-func (s *stateObject) IsExpired(currentBlock, expiryPeriod uint64) bool {
-	if !s.IsContract() {
-		return false // EOAs never expire
-	}
-	if s.data.LastTouched == 0 {
-		return false // never touched = pre-fork account, don't expire yet
-	}
-	return currentBlock > s.data.LastTouched+expiryPeriod
 }
 
 func (s *stateObject) Nonce() uint64 {

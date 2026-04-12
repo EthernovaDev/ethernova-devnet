@@ -142,7 +142,7 @@ type EVM struct {
 	// NOTE: it's being used only for tracers
 	CallErrorTemp error
 
-	// Ethernova v2.0: Trace-based adaptive gas counters.
+	// Ethernova v2.0 (Noven Fork): Trace-based adaptive gas counters.
 	// Collects opcode execution counts during EVM execution for post-execution
 	// gas adjustment. These are simple uint64 counters — no allocations, no maps.
 	// Reset at the start of each transaction by state_transition.go.
@@ -151,25 +151,10 @@ type EVM struct {
 	// is shared across the entire call tree.
 	TraceCounters TraceCounters
 
-	// Ethernova v3.0: Block-level trace aggregator for convergent auto-tuner.
-	// Set by the block processor (state_processor.go) at the start of each block.
-	// nil for non-block-processing contexts (eth_call, eth_estimateGas, tracers).
-	// The aggregator collects per-tx classification data and produces a
-	// BlockWorkloadSample that feeds the ConvergentTuner's EMA.
-	BlockAggregator *BlockTraceAggregator
-
-	// Ethernova Phase 17 (FIX): per-EVM reentrancy guard.
-	// CRITICAL CONSENSUS FIX: Previously this was a global variable
-	// (GlobalReentrancyGuard) shared across ALL concurrent EVM instances.
-	// When eth_call, miner, or tracer EVM instances ran concurrently with
-	// block processing, they would interfere with each other's reentrancy
-	// state — causing inner CALLs to be falsely blocked with
-	// ErrExecutionReverted on some nodes but not others.
-	// This produced different execution paths → different TraceCounters →
-	// different adaptive gas adjustment → BAD BLOCK.
-	//
-	// Now each EVM instance has its own reentrancy guard. Initialized in
-	// NewEVM(), reset in Reset(). No cross-instance interference possible.
+	// Ethernova v2.0 (Noven Fork): per-EVM reentrancy guard.
+	// Each EVM instance has its own reentrancy guard to prevent
+	// concurrent EVM instances (eth_call, miner, tracer) from
+	// interfering with block processing.
 	reentrancyGuard PerEVMReentrancyGuard
 }
 
@@ -206,7 +191,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 
 	evm.interpreter = evm.interpreters[0]
 
-	// Ethernova: initialize per-EVM reentrancy guard
+	// Ethernova v2.0 (Noven Fork): initialize per-EVM reentrancy guard
 	evm.reentrancyGuard.Init()
 
 	return evm
@@ -217,9 +202,8 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 func (evm *EVM) Reset(txCtx TxContext, statedb StateDB) {
 	evm.TxContext = txCtx
 	evm.StateDB = statedb
-	// Ethernova v2.0: reset trace counters for the new transaction
+	// Ethernova v2.0 (Noven Fork): reset trace counters and reentrancy guard
 	evm.TraceCounters.Reset()
-	// eset per-EVM reentrancy guard for the new transaction
 	evm.reentrancyGuard.Reset()
 }
 
@@ -291,18 +275,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	if isPrecompile {
-		// Ethernova: check if precompile needs EVM state access (stateful precompile)
-		if sp, ok := p.(StatefulPrecompiledContract); ok {
-			gasCost := sp.RequiredGas(input)
-			if gas < gasCost {
-				ret, gas, err = nil, 0, ErrOutOfGas
-			} else {
-				gas -= gasCost
-				ret, err = sp.RunStateful(evm, caller.Address(), input)
-			}
-		} else {
-			ret, gas, err = RunPrecompiledContract(p, input, gas)
-		}
+		ret, gas, err = RunPrecompiledContract(p, input, gas)
 	} else {
 		// Initialise a new contract and set the code that is to be used by the EVM.
 		// The contract is a scoped environment for this execution context only.
@@ -310,11 +283,9 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		if len(code) == 0 {
 			ret, err = nil, nil // gas is unchanged
 		} else {
-			// Ethernova Phase 17: Native reentrancy protection
-			// Block reentrant calls to contracts by default.
-			// Only applies to contract-to-contract calls (depth > 0).
-			// FIX: uses per-EVM guard instead of GlobalReentrancyGuard
-			// to prevent concurrent EVM instances from interfering.
+			// Ethernova v2.0 (Noven Fork): Native reentrancy protection.
+			// Block reentrant calls to contracts (depth > 0 only).
+			// Uses per-EVM guard to prevent concurrent EVM instances from interfering.
 			if evm.depth > 0 && !evm.reentrancyGuard.Enter(addr) {
 				return nil, gas, ErrExecutionReverted
 			}

@@ -982,14 +982,7 @@ func (w *worker) commitTransactions(env *environment, plainTxs, blobTxs *transac
 		case bltx == nil:
 			txs, ltx = plainTxs, pltx
 		default:
-			// Ethernova Phase 19: Fair ordering (anti-MEV)
-			// Always prefer plain txs over blob txs for FIFO ordering.
-			// Within the same type, transactions are ordered by arrival
-			// time from the txpool, not by gas price bidding.
-			// This eliminates front-running and sandwich attacks.
-			if vm.GlobalFairOrdering.Enabled {
-				txs, ltx = plainTxs, pltx // FIFO: plain txs first
-			} else if ptip.Lt(btip) {
+			if ptip.Lt(btip) {
 				txs, ltx = blobTxs, bltx
 			} else {
 				txs, ltx = plainTxs, pltx
@@ -1099,40 +1092,12 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 	}
 	// Sanity check the timestamp correctness, recap the timestamp
 	// to parent+1 if the mutation is allowed.
-	// Ethernova fix: prevent timestamp from racing ahead of real time.
-	// If the parent block's timestamp is already at or ahead of wall clock,
-	// use max(now, parent+1) so the chain doesn't cascade into the future.
 	timestamp := genParams.timestamp
 	if parent.Time >= timestamp {
 		if genParams.forceTime {
 			return nil, fmt.Errorf("invalid timestamp, parent %d given %d", parent.Time, timestamp)
 		}
-		// The minimum valid timestamp is parent + 1, but we should not
-		// produce blocks with timestamps far in the future. If the parent
-		// is already ahead, wait briefly for wall clock to catch up, then
-		// clamp to max(now, parent+1) to prevent cascading drift.
-		minTimestamp := parent.Time + 1
-		now := uint64(time.Now().Unix())
-		if now >= minTimestamp {
-			timestamp = now
-		} else {
-			// Parent is in the future — wait up to 5s for clock to catch up.
-			drift := minTimestamp - now
-			if drift <= 5 {
-				time.Sleep(time.Duration(drift) * time.Second)
-				timestamp = uint64(time.Now().Unix())
-				// After sleeping, re-check: use the larger of now and parent+1
-				if timestamp < minTimestamp {
-					timestamp = minTimestamp
-				}
-			} else {
-				// Drift is too large to wait; log and use parent+1 so chain
-				// stays valid, but cap the forward jump.
-				log.Warn("Parent block timestamp is far in the future, clamping",
-					"parentTime", parent.Time, "now", now, "drift", drift)
-				timestamp = minTimestamp
-			}
-		}
+		timestamp = parent.Time + 1
 	}
 	// Construct the sealing block header.
 	header := &types.Header{

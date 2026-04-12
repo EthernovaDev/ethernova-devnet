@@ -1,5 +1,9 @@
 #!/bin/bash
 # Reset all devnet data (wipes chain, keeps genesis)
+#
+# REQUIRED after pulling the v2.0.0 baseline: this release changes the
+# genesis block, so any existing chaindata from the v1.x line is
+# incompatible and must be wiped before start-all.sh.
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

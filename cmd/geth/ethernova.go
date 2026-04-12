@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/cmd/utils"
@@ -26,7 +27,7 @@ import (
 )
 
 const (
-	ethernovaGenesisFilename = "genesis-121526-devnet.json"
+	ethernovaGenesisFilename = "genesis-121525-alloc.json"
 	ethernovaLockFilename    = "ethernova.lock.json"
 )
 
@@ -105,7 +106,11 @@ func applyEthernovaDefaults(ctx *cli.Context) (*ethernovaPaths, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !ctx.IsSet(utils.NetworkIdFlag.Name) {
+	if ctx.IsSet(utils.NetworkIdFlag.Name) {
+		if ctx.Uint64(utils.NetworkIdFlag.Name) != ethernova.NewChainID {
+			return nil, fmt.Errorf("networkId mismatch: have %d want %d", ctx.Uint64(utils.NetworkIdFlag.Name), ethernova.NewChainID)
+		}
+	} else {
 		if err := ctx.Set(utils.NetworkIdFlag.Name, strconv.FormatUint(ethernova.NewChainID, 10)); err != nil {
 			return nil, fmt.Errorf("failed to set networkid: %w", err)
 		}
@@ -113,20 +118,11 @@ func applyEthernovaDefaults(ctx *cli.Context) (*ethernovaPaths, error) {
 	return paths, nil
 }
 
-const devnetBootnodes = "enode://d6ae8703340328f6be7b8c3abd45611f759b7a55046edf1436255378c20b4ceb0fa3fb42b4f32f678735c6cad08a8a4fb5b3e4c5cfa0c556b09ef07a98d0807d@207.180.230.125:30301,enode://2f8812b73e761fb62d5805f0971cd2b44480803dcb092ec8c1d9059b3867fdc0bddd05c0e317ee6e2c81fe3cb547f507d7c9e28b73d75910d348d8fc026c243a@75.86.96.101:30301"
-
 func applyEthernovaOneClickDefaults(ctx *cli.Context) (uint64, error) {
 	if len(os.Args) > 1 {
 		return 0, nil
 	}
 	apiList := "eth,net,web3,debug,txpool,ethernova"
-
-	// Set devnet bootnodes for auto-peer discovery
-	if !ctx.IsSet(utils.BootnodesFlag.Name) {
-		if err := ctx.Set(utils.BootnodesFlag.Name, devnetBootnodes); err != nil {
-			return 0, err
-		}
-	}
 
 	if !ctx.IsSet(utils.HTTPEnabledFlag.Name) {
 		if err := ctx.Set(utils.HTTPEnabledFlag.Name, "true"); err != nil {
@@ -320,33 +316,40 @@ func genesisPathUsed(info *ethernovaGenesisInfo) string {
 }
 
 func printEthernovaStartup(info *ethernovaGenesisInfo) {
-	fmt.Println()
-	fmt.Println("  ######  ######## ##     ## ######## ########  ##    ##  #######  ##     ##    ###")
-	fmt.Println("  ##         ##    ##     ## ##       ##     ## ###   ## ##     ## ##     ##   ## ##")
-	fmt.Println("  ##         ##    ##     ## ##       ##     ## ####  ## ##     ## ##     ##  ##   ##")
-	fmt.Println("  ######     ##    ######### ######   ########  ## ## ## ##     ## ##     ## ##     ##")
-	fmt.Println("  ##         ##    ##     ## ##       ##   ##   ##  #### ##     ##  ##   ##  #########")
-	fmt.Println("  ##         ##    ##     ## ##       ##    ##  ##   ### ##     ##   ## ##   ##     ##")
-	fmt.Println("  ######     ##    ##     ## ######## ##     ## ##    ##  #######     ###    ##     ##")
-	fmt.Println()
-	fmt.Println("                         D E V N E T   N O D E")
-	fmt.Println()
-	fmt.Printf("  Version:    v%s\n", params.VersionWithMeta)
-	fmt.Printf("  Chain ID:   %d\n", info.ChainID)
-	fmt.Printf("  Network ID: %d\n", info.NetworkID)
-	fmt.Printf("  Consensus:  Ethash (Proof of Work)\n")
+	fmt.Println("==========================================================")
+	fmt.Println("  ETHERNOVA NODE v" + params.Version)
+	fmt.Println("  PoW (Ethash) | Chain ID: 121525 | Network ID: 121525")
+	fmt.Println("==========================================================")
 	fmt.Println()
 	fmt.Printf("  Datadir:    %s\n", info.Paths.DataDir)
 	fmt.Printf("  Genesis:    %s\n", genesisPathUsed(info))
 	fmt.Printf("  Hash:       %s\n", info.GenesisHash.Hex())
 	fmt.Println()
-	fmt.Println("  RPC Endpoints: ethernova_forkStatus, ethernova_chainConfig,")
-	fmt.Println("                 ethernova_nodeHealth, ethernova_evmProfile,")
-	fmt.Println("                 ethernova_adaptiveGas, ethernova_executionMode")
+	fmt.Println("  Fork Schedule:")
+	fmt.Printf("    Constantinople/Petersburg/Istanbul .. block %s\n", ethernova.FormatBlockWithCommas(ethernova.EVMCompatibilityForkBlock))
+	fmt.Printf("    EIP-658 (Receipt Status) ........... block %s\n", ethernova.FormatBlockWithCommas(ethernova.EIP658ForkBlock))
+	fmt.Printf("    MegaFork (Historical EVM) .......... block %s\n", ethernova.FormatBlockWithCommas(ethernova.MegaForkBlock))
+	fmt.Printf("    Legacy Chain Enforcement ........... block %s\n", ethernova.FormatBlockWithCommas(ethernova.LegacyForkEnforcementBlock))
 	fmt.Println()
+	fmt.Println("  RPC: ethernova_forkStatus, ethernova_chainConfig, ethernova_nodeHealth")
+	fmt.Println("==========================================================")
 }
 func validateEthernovaGenesisInfo(info *ethernovaGenesisInfo) error {
-	// Devnet: skip strict mainnet validation to allow custom genesis/chainId
+	if info.ChainID != ethernova.NewChainID {
+		return fmt.Errorf("chainId mismatch: have %d want %d", info.ChainID, ethernova.NewChainID)
+	}
+	if info.NetworkID != ethernova.NewChainID {
+		return fmt.Errorf("networkId mismatch: have %d want %d", info.NetworkID, ethernova.NewChainID)
+	}
+	if info.GenesisSource != "embedded" {
+		expectedSHA := ethernova.EmbeddedGenesisSHA256Hex()
+		if !strings.EqualFold(info.GenesisSHA256, expectedSHA) {
+			return fmt.Errorf("genesis file sha256 mismatch: have %s want %s", info.GenesisSHA256, expectedSHA)
+		}
+	}
+	if info.GenesisHash != info.ExpectedGenesisHash {
+		return errors.New(wrongGenesisMessage)
+	}
 	return nil
 }
 
@@ -399,7 +402,9 @@ func ensureEthernovaGenesis(ctx *cli.Context, info *ethernovaGenesisInfo) (commo
 		}
 		return common.Hash{}, err
 	}
-	// Devnet: skip ExpectedGenesisHash check to allow custom genesis
+	if hash != info.ExpectedGenesisHash {
+		return common.Hash{}, errors.New(wrongGenesisMessage)
+	}
 
 	if !lockExists {
 		if err := writeEthernovaLock(lockPath, info); err != nil {
@@ -424,9 +429,25 @@ func resolveChainPaths(datadir, ancient string) (string, string) {
 }
 
 func checkEthernovaLock(path string, info *ethernovaGenesisInfo) (bool, error) {
-	// Devnet: skip lock file validation to allow custom genesis
 	if !fileExists(path) {
 		return false, nil
+	}
+	payload, err := os.ReadFile(path)
+	if err != nil {
+		return true, fmt.Errorf("failed to read lock file: %w", err)
+	}
+	var lock ethernovaLock
+	if err := json.Unmarshal(payload, &lock); err != nil {
+		return true, fmt.Errorf("failed to parse lock file: %w", err)
+	}
+	if lock.ChainID != info.ChainID || lock.NetworkID != info.NetworkID {
+		return true, errors.New(wrongGenesisMessage)
+	}
+	if !strings.EqualFold(lock.ExpectedGenesisHash, info.ExpectedGenesisHash.Hex()) {
+		return true, errors.New(wrongGenesisMessage)
+	}
+	if !strings.EqualFold(lock.GenesisSHA256, info.GenesisSHA256) {
+		return true, errors.New(wrongGenesisMessage)
 	}
 	return true, nil
 }

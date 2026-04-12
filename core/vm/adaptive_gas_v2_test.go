@@ -921,9 +921,9 @@ func TestCalculateRevertRefund_Deterministic(t *testing.T) {
 	}{
 		{21000, 21000, 0, "no execution gas"},
 		{50000, 21000, 26100, "normal small tx: (50000-21000)*90/100"},
-		{121000, 21000, 0, "over MaxRefundableGas: no refund"},
-		{100000, 21000, 71100, "at boundary: (100000-21000)=79000, 79000*90/100=71100"},
-		{121001, 21000, 0, "just over boundary: no refund"},
+		{121000, 21000, 90000, "at MaxRefundableGas boundary: (121000-21000)=100000, 100000*90/100=90000"},
+		{100000, 21000, 71100, "below boundary: (100000-21000)=79000, 79000*90/100=71100"},
+		{121001, 21000, 0, "over MaxRefundableGas: (121001-21000)=100001 > 100000, no refund"},
 	}
 
 	for _, tc := range testCases {

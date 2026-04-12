@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/holiman/uint256"
 )
 
@@ -61,14 +60,8 @@ type txByPriceAndTime []*txWithMinerFee
 
 func (s txByPriceAndTime) Len() int { return len(s) }
 func (s txByPriceAndTime) Less(i, j int) bool {
-	// Ethernova Phase 19: Fair ordering (anti-MEV)
-	// When fair ordering is enabled, sort by arrival time ONLY (FIFO).
-	// This prevents front-running and sandwich attacks because
-	// miners cannot reorder transactions by gas price.
-	if vm.GlobalFairOrdering.Enabled {
-		return s[i].tx.Time.Before(s[j].tx.Time)
-	}
-	// Original: sort by gas price, then by time
+	// If the prices are equal, use the time the transaction was first seen for
+	// deterministic sorting
 	cmp := s[i].fees.Cmp(s[j].fees)
 	if cmp == 0 {
 		return s[i].tx.Time.Before(s[j].tx.Time)

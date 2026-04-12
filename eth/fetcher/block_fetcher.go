@@ -865,16 +865,7 @@ func (f *BlockFetcher) importBlocks(peer string, block *types.Block) {
 			go f.broadcastBlock(block, true)
 
 		case consensus.ErrFutureBlock:
-			// Ethernova: log future block drift for debugging sync issues
-			drift := int64(block.Time()) - time.Now().Unix()
-			log.Warn("Future block received from peer, not propagating",
-				"peer", peer, "number", block.Number(), "hash", hash,
-				"blockTime", block.Time(), "now", uint64(time.Now().Unix()),
-				"driftSeconds", drift)
-			if drift > 60 {
-				log.Error("Excessive future block drift detected — possible clock skew on mining node",
-					"peer", peer, "number", block.Number(), "driftSeconds", drift)
-			}
+			// Weird future block, don't fail, but neither propagate
 
 		default:
 			// Something went very wrong, drop the peer

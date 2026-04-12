@@ -14,12 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/misc"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/log"
-	ethernova "github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/params/mutations"
 	"github.com/ethereum/go-ethereum/params/types/ctypes"
 	"github.com/ethereum/go-ethereum/params/vars"
@@ -31,7 +27,7 @@ import (
 
 var (
 	maxUncles              = 2                // Maximum number of uncles allowed in a single block
-	allowedFutureBlockTime = 30 * time.Second // Ethernova: increased from 15s to 30s to prevent "block in the future" errors when miner/validator clocks have slight drift
+	allowedFutureBlockTime = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
 
 	two256                   = new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0))
 	big32                    = big.NewInt(32)
@@ -76,7 +72,7 @@ func (lyra2 *Lyra2) VerifyHeader(chain consensus.ChainHeaderReader, header *type
 		return consensus.ErrUnknownAncestor
 	}
 	// Sanity checks passed, do a proper verification
-	return lyra2.verifyHeader(chain, header, parent, false, seal, time.Now().Unix())
+	return lyra2.verifyHeader(chain, header, parent, false, seal)
 }
 
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
@@ -100,16 +96,15 @@ func (lyra2 *Lyra2) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*
 
 	// Create a task channel and spawn the verifiers
 	var (
-		inputs  = make(chan int)
-		done    = make(chan int, workers)
-		errors  = make([]error, len(headers))
-		abort   = make(chan struct{})
-		unixNow = time.Now().Unix() // Ethernova: snapshot time once for all workers (consistent with ethash)
+		inputs = make(chan int)
+		done   = make(chan int, workers)
+		errors = make([]error, len(headers))
+		abort  = make(chan struct{})
 	)
 	for i := 0; i < workers; i++ {
 		go func() {
 			for index := range inputs {
-				errors[index] = lyra2.verifyHeaderWorker(chain, headers, seals, index, unixNow)
+				errors[index] = lyra2.verifyHeaderWorker(chain, headers, seals, index)
 				done <- index
 			}
 		}()
@@ -145,7 +140,7 @@ func (lyra2 *Lyra2) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*
 	return abort, errorsOut
 }
 
-func (lyra2 *Lyra2) verifyHeaderWorker(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool, index int, unixNow int64) error {
+func (lyra2 *Lyra2) verifyHeaderWorker(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool, index int) error {
 	var parent *types.Header
 	if index == 0 {
 		parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
@@ -158,7 +153,7 @@ func (lyra2 *Lyra2) verifyHeaderWorker(chain consensus.ChainHeaderReader, header
 	if chain.GetHeader(headers[index].Hash(), headers[index].Number.Uint64()) != nil {
 		return nil // known block
 	}
-	return lyra2.verifyHeader(chain, headers[index], parent, false, seals[index], unixNow)
+	return lyra2.verifyHeader(chain, headers[index], parent, false, seals[index])
 }
 
 // VerifyUncles verifies that the given block's uncles conform to the consensus
@@ -209,7 +204,7 @@ func (lyra2 *Lyra2) VerifyUncles(chain consensus.ChainReader, block *types.Block
 		if ancestors[uncle.ParentHash] == nil || uncle.ParentHash == block.ParentHash() {
 			return errDanglingUncle
 		}
-		if err := lyra2.verifyHeader(chain, uncle, ancestors[uncle.ParentHash], true, true, time.Now().Unix()); err != nil {
+		if err := lyra2.verifyHeader(chain, uncle, ancestors[uncle.ParentHash], true, true); err != nil {
 			return err
 		}
 	}
@@ -219,15 +214,14 @@ func (lyra2 *Lyra2) VerifyUncles(chain consensus.ChainReader, block *types.Block
 // verifyHeader checks whether a header conforms to the consensus rules of the
 // stock Ethereum ethash and lyra2 engine.
 // See YP section 4.3.4. "Block Header Validity"
-func (lyra2 *Lyra2) verifyHeader(chain consensus.ChainHeaderReader, header, parent *types.Header, uncle bool, seal bool, unixNow int64) error {
+func (lyra2 *Lyra2) verifyHeader(chain consensus.ChainHeaderReader, header, parent *types.Header, uncle bool, seal bool) error {
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > vars.MaximumExtraDataSize {
 		return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), vars.MaximumExtraDataSize)
 	}
 	// Verify the header's timestamp
-	// Ethernova: use pre-snapshotted unixNow for consistency across batch verification
 	if !uncle {
-		if header.Time > uint64(unixNow+int64(allowedFutureBlockTime.Seconds())) {
+		if header.Time > uint64(time.Now().Add(allowedFutureBlockTime).Unix()) {
 			return consensus.ErrFutureBlock
 		}
 	}
@@ -390,64 +384,18 @@ func (lyra2 *Lyra2) Prepare(chain consensus.ChainHeaderReader, header *types.Hea
 
 // Finalize implements consensus.Engine, accumulating the block and uncle rewards,
 // setting the final state on the header
-func (lyra2 *Lyra2) Finalize(chain consensus.ChainHeaderReader, header *types.Header, statedb *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
+func (lyra2 *Lyra2) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
 	// Accumulate any block and uncle rewards and commit the final state root
-	accumulateRewards(chain.Config(), statedb, header, uncles)
-
-	// Ethernova: set current block for LastTouched tracking
-	statedb.SetCurrentBlock(header.Number.Uint64())
-
-	// Ethernova: State Expiry v2 (Phase 15) - uses external index, not state trie
-	// The expiry engine tracks contracts in LevelDB outside the trie.
-	// FinalizeExpiry records touched contracts and sweeps expired ones.
-	// This is deterministic because the sweep reads from a sorted block index.
-	if header.Number.Uint64() >= ethernova.StateExpiryForkBlock {
-		expired := statedb.FinalizeExpiry(header.Number.Uint64(), ethernova.StateExpiryPeriod)
-		if expired > 0 {
-			log.Info("State expiry v2: archived contracts", "block", header.Number, "count", expired)
-		}
-	}
-
-	// Ethernova Phase 22: Native oracle - record gas price and difficulty as price feeds
-	// This creates protocol-level price data that contracts can query via precompile 0x28.
-	// Gas price feed: average gas price of transactions in this block.
-	// Difficulty feed: current mining difficulty (proxy for hashrate/security).
-	if vm.GlobalChainDB != nil {
-		blockNum := header.Number.Uint64()
-		// Record difficulty as a "security" feed
-		diffPairID := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001") // DIFF feed
-		if header.Difficulty != nil {
-			rawdb.WriteOraclePrice(vm.GlobalChainDB, diffPairID, header.Difficulty)
-			rawdb.WriteOraclePriceHistory(vm.GlobalChainDB, diffPairID, blockNum, header.Difficulty)
-		}
-		// Record gas used as an "activity" feed
-		gasPairID := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000002") // GAS feed
-		gasUsed := new(big.Int).SetUint64(header.GasUsed)
-		rawdb.WriteOraclePrice(vm.GlobalChainDB, gasPairID, gasUsed)
-		rawdb.WriteOraclePriceHistory(vm.GlobalChainDB, gasPairID, blockNum, gasUsed)
-	}
-
-	header.Root = statedb.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
+	accumulateRewards(chain.Config(), state, header, uncles)
+	header.Root = state.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 }
 
 // FinalizeAndAssemble implements consensus.Engine, accumulating the block and
 // uncle rewards, setting the final state and assembling the block.
-func (lyra2 *Lyra2) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, statedb *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
+func (lyra2 *Lyra2) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
 	// Accumulate any block and uncle rewards and commit the final state root
-	accumulateRewards(chain.Config(), statedb, header, uncles)
-
-	// Ethernova: set current block for LastTouched tracking
-	statedb.SetCurrentBlock(header.Number.Uint64())
-
-	// Ethernova: State Expiry v2 (Phase 15)
-	if header.Number.Uint64() >= ethernova.StateExpiryForkBlock {
-		expired := statedb.FinalizeExpiry(header.Number.Uint64(), ethernova.StateExpiryPeriod)
-		if expired > 0 {
-			log.Info("State expiry v2: archived contracts", "block", header.Number, "count", expired)
-		}
-	}
-
-	header.Root = statedb.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
+	accumulateRewards(chain.Config(), state, header, uncles)
+	header.Root = state.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 
 	// Header seems complete, assemble into a block and return
 	return types.NewBlock(header, txs, uncles, receipts, trie.NewStackTrie(nil)), nil

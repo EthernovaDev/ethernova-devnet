@@ -20,12 +20,6 @@ func ethernovaPatchConfigIfNeeded(cfg ctypes.ChainConfigurator, head uint64) (bo
 		return false, nil
 	}
 
-	// Devnet: all forks at block 0 means genesis already has everything configured.
-	// Skip migration checks entirely since there's nothing to patch.
-	if ethernova.EVMCompatibilityForkBlock == 0 && ethernova.EIP658ForkBlock == 0 && ethernova.MegaForkBlock == 0 {
-		return false, nil
-	}
-
 	updated := false
 	var errs []string
 

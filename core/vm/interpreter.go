@@ -124,52 +124,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		return nil, nil
 	}
 
-	// Ethernova v1.1.1: detect contract creation.
-	// In go-ethereum, evm.create() calls run(evm, contract, nil, false) —
-	// input is nil ONLY during contract creation. Regular calls always pass
-	// non-nil input (empty []byte{} for no calldata).
-	//
-	// Contract creation executes INIT CODE (constructor), which is transient
-	// and contains ABI-encoded constructor arguments as trailing data bytes.
-	// These raw bytes get misinterpreted as opcodes by bytecode analysis,
-	// producing wrong classifications. Adaptive gas must NEVER apply to
-	// init code execution — only to deployed runtime code being called.
-	isContractCreation := input == nil
-
-	// Ethernova: record contract call for adaptive gas pattern tracking
-	GlobalPatternTracker.RecordCall(contract.Address())
-
-	// Ethernova: analyze contract and track call count (single lock acquisition).
-	// Fast mode DISABLED for consensus safety — skipping stack bounds checks
-	// produces different gas consumption, causing BAD BLOCK when re-executing
-	// historical blocks that were mined with fastMode=false.
-	GlobalContractVerifier.AnalyzeAndCheckFast(contract.Address(), contract.Code, in.evm.Context.BlockNumber.Uint64())
-	fastMode := false
-
-	// Ethernova Phase 4: bytecode analysis at first encounter
-	GlobalBytecodeAnalyzer.Analyze(contract.Address(), contract.Code)
-
-	// Ethernova v1.1.1: only classify deployed runtime code, NEVER init code.
-	// Init code bytecode contains constructor arguments as trailing data that
-	// gets misread as opcodes, producing wrong pureScore. Also, caching an
-	// init code classification under the contract address would poison the
-	// cache — subsequent calls would use the init code result instead of
-	// the actual runtime code classification.
-	if !isContractCreation {
-		GlobalStaticClassifier.Classify(contract.Address(), contract.Code)
-	}
-
-	if isContractCreation {
-		log.Debug("[AdaptiveGas] skipping classification for contract creation",
-			"contract", contract.Address().Hex(),
-			"initCodeLen", len(contract.Code),
-		)
-	}
-
-	// Ethernova Phase 4: call cache DISABLED for consensus safety (v1.0.2)
-	// Cache hits/misses differ per node causing execution divergence.
-	// Bytecode analysis still runs for RPC reporting.
-
 	var (
 		op          OpCode        // current opcode
 		mem         = NewMemory() // bound memory
@@ -191,9 +145,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		res     []byte // result of the opcode execution function
 		debug   = in.evm.Config.Tracer != nil
 	)
-	if fastMode {
-		GlobalFastModeStats.FastExecutions.Add(1)
-	}
 	// Don't move this deferred function, it's placed before the capturestate-deferred method,
 	// so that it gets executed _after_: the capturestate needs the stacks before
 	// they are returned to the pools
@@ -231,41 +182,16 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		op = contract.GetOp(pc)
 		operation := in.table[op]
 		cost = operation.constantGas // For tracing
-
-		// Ethernova: record opcode execution for profiling
-		GlobalProfiler.Record(op, cost)
-		// Ethernova: record opcode for adaptive gas pattern analysis (legacy, monitoring only)
-		GlobalPatternTracker.RecordOp(contract.Address(), op)
-		// Ethernova v2.0: record opcode for trace-based adaptive gas
-		// This is a lightweight integer increment — no allocation, no branching overhead.
+		// Ethernova v2.0 (Noven Fork): record opcode for trace-based adaptive gas.
+		// Lightweight integer increment — no allocation, no branching overhead.
 		// Counters are on the EVM struct (per-tx scope), read after execution completes.
 		in.evm.TraceCounters.RecordOpcode(op)
 		// Validate stack
-		// Ethernova fast mode: skip stack bounds check for verified contracts
-		if !fastMode {
-			if sLen := stack.len(); sLen < operation.minStack {
-				return nil, &ErrStackUnderflow{stackLen: sLen, required: operation.minStack}
-			} else if sLen > operation.maxStack {
-				return nil, &ErrStackOverflow{stackLen: sLen, limit: operation.maxStack}
-			}
-		} else {
-			GlobalFastModeStats.SkippedChecks.Add(1)
+		if sLen := stack.len(); sLen < operation.minStack {
+			return nil, &ErrStackUnderflow{stackLen: sLen, required: operation.minStack}
+		} else if sLen > operation.maxStack {
+			return nil, &ErrStackOverflow{stackLen: sLen, limit: operation.maxStack}
 		}
-		// Ethernova: opcode sequence optimizer — refund redundant ops
-		// Ethernova: optimizer pattern detection (monitoring only, v1.0.2)
-		// Gas refunds DISABLED - caused non-deterministic gas across nodes.
-		// v3.1: gated behind IsEnabled() to avoid contract.Address().Hex()
-		// string allocation on every opcode (~millions/block) when disabled.
-		if GlobalOpcodeOptimizer.IsEnabled() {
-			GlobalOpcodeOptimizer.RecordAndCheck(contract.Address().Hex(), op, cost)
-		}
-
-		// Ethernova v2.0 (Noven): adaptive gas adjustment applied POST-EXECUTION
-		// in state_transition.go, not per-opcode. This ensures:
-		//   1. Zero modification to EVM execution (consensus-safe)
-		//   2. All nodes execute identical opcodes with identical gas
-		//   3. Adjustment computed from TraceCounters after execution completes
-		// See: ApplyAdaptiveGasV2() in adaptive_gas_v2.go
 		// Static portion of gas
 		if !contract.UseGas(cost) {
 			return nil, ErrOutOfGas
@@ -320,14 +246,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 	if err == errStopToken {
 		err = nil // clear stop token error
-	}
-
-	// Ethernova Phase 4: cache result for pure read-only calls
-	if err == nil && readOnly && GlobalCallCache.IsEnabled() {
-		analysis := GlobalBytecodeAnalyzer.GetAnalysis(contract.Address())
-		if analysis != nil && analysis.IsCacheable {
-			GlobalCallCache.Put(contract.Address(), input, res, 0)
-		}
 	}
 
 	return res, err
