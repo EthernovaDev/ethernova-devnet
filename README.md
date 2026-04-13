@@ -210,394 +210,126 @@ make geth
 
 Requires: Go 1.21+, GCC, Make
 
-## Roadmap
-
-### Phase 1: Profiling (completed)
-- [x] EVM opcode profiler (global + per-contract)
-- [x] `ethernova_evmProfile` RPC endpoints
-- [x] Devnet genesis (chainId 121526), scripts, and topology
-- [x] Deploy on ESXi VMs (4 nodes, GPU mining)
-- [x] Deploy test contracts and collect profiling data
-
-### Phase 2: Adaptive Gas (completed)
-- [x] Gas discount (25%) for optimized/predictable execution patterns
-- [x] Gas penalty (10%) for complex non-parallelizable workloads
-- [x] Contract pattern tracker (pure vs impure opcode classification)
-- [x] `ethernova_adaptiveGas` RPC endpoints (toggle, setDiscount, setPenalty, reset)
-- [x] Validate consensus across all 4 nodes with adaptive gas enabled
-- [x] Stress test: 200 txs, 4 nodes in consensus, 0 errors
-
-### Phase 3: Execution Modes (completed)
-- [x] Standard mode: full EVM compatibility (default)
-- [x] Fast mode: skip redundant checks for verified contracts
-- [x] Contract verifier: bytecode analysis for SELFDESTRUCT, DELEGATECALL, CREATE
-- [x] `ethernova_executionMode` / `ethernova_executionModeSet` RPC endpoints
-- [x] Parallel mode: conservative speculative execution (simple transfers only)
-- [x] Transaction classifier: separate parallel-safe txs from sequential
-- [x] State snapshot + merge with conflict detection
-
-### Phase 4: Runtime Optimization (completed)
-- [x] Cache results for pure contract calls (same input = same output)
-- [x] Dynamic bytecode analysis at deploy time (loop detection, opcode groups, cacheability)
-- [x] `ethernova_callCache` / `ethernova_bytecodeAnalysis` RPC endpoints
-
-### Phase 5: Polish & Infrastructure (completed)
-- [x] Opcode sequence optimizer (detect PUSH+POP, DUP+POP, ISZERO+ISZERO, etc.)
-- [x] Auto-tuning: adaptive gas percentages adjust based on real network data
-- [x] Devnet dashboard and faucet
-- [x] CI/CD: GitHub Actions (build, test core, test ethernova, go vet)
-- [x] Security audit script and benchmark script
-- [x] Public explorer at https://devexplorer.ethnova.net
-- [x] Public HTTPS RPC at https://devrpc.ethnova.net
-- [x] One-click binary with embedded genesis and auto-peer discovery
-
-### Phase 6: DApp Validation & Public Testing (completed)
-- [x] Public faucet at https://faucet.ethnova.net (10 NOVA per request)
-- [x] Smart contract test suite: ERC-20 (NovaToken), ERC-721 (NovaNFT), DEX (NovaDEX), MultiSig
-- [x] Custom precompiled contracts: `novaBatchHash` (0x20) and `novaBatchVerify` (0x21)
-- [x] `ethernova_precompiles` RPC endpoint
-- [x] Hardhat developer config with Ethernova Devnet network ready to use
-- [x] Gas benchmark and stress test scripts
-- [x] **Full feature validation: 47/47 tests passed** (Noven Fork readiness confirmed)
-
-### Phase 7: Consensus Hardening & Determinism Fix (completed)
-- [x] **Found critical consensus bug**: adaptive gas, optimizer, call cache modified gas using node-local profiling data, causing 4-17 gas divergence and BAD BLOCK errors across nodes
-- [x] **Root cause**: Runtime profiling-based gas changes are inherently non-deterministic — each node has different execution history
-- [x] **Fix (v1.0.2)**: All gas-modifying features switched to monitoring-only mode. Profiling data still collected and available via RPC but no longer affects block execution
-- [x] Removed beacon/merge warnings (Ethernova is PoW, not applicable)
-- [x] Version bumped to v1.0.2-devnet across all binaries
-- [x] All 5 nodes updated and verified running v1.0.2
-- [x] **Consensus verification tests**:
-  - Contract deployment: block hash identical across Node 1, Node 4, VPS (gas=2,097,152 on all)
-  - Faucet transactions: block hashes matched across all synced nodes
-  - 5 consecutive blocks verified: hash match on 3 nodes
-  - Zero BAD BLOCK errors after fix
-- [x] v1.0.2 release published with Windows + Linux binaries
-- [x] v1.0.0 and v1.0.1 marked as deprecated
-- [x] **Key lesson for Noven Fork**: Any feature modifying gas must use deterministic contract classification (static analysis at deploy time, not runtime profiling). Hard fork upgrades must be mandatory — all nodes upgrade before activation block.
-
-### Phase 8: Noven Fork - State Bloat & Smart Wallets (v1.0.3)
-
-Named after community member **Noven** who identified the critical need for Ethereum-level improvements to state bloat and account security. All features activate at **block 20,500** on the devnet.
-
-#### 8.1 State Rent Surcharge (anti-bloat)
-- [x] SSTORE surcharge for contracts proportional to storage activity
-- [x] Deterministic calculation using nonce as proxy (no per-node state needed)
-- [x] First 10 storage operations free, then 5 gas/slot, capped at 50,000
-- [x] Deleting storage has zero surcharge (incentivizes cleanup)
-- [x] Only applies to contracts (EOAs exempt)
-- [x] `ethernova_stateRent`, `ethernova_stateRentToggle`, `ethernova_stateRentSetBase` RPC endpoints
-
-#### 8.2 Native Smart Wallet (precompile 0x22 - novaAccountManager)
-- [x] **Guardian Recovery**: register 1-10 guardians with threshold voting
-  - `setGuardians(threshold, addresses)` - register guardian list
-  - `initiateRecovery(target, newOwner)` - guardian starts recovery
-  - `approveRecovery(target)` - other guardians vote
-  - `finalizeRecovery(target)` - execute after threshold + 100 block timelock
-- [x] **Key Rotation**: change private key without changing address
-  - `initiateKeyRotation(newKeyHash)` - start with 100-block timelock
-  - `getKeyRotation(addr)` - check rotation status
-- [x] Stateful precompile interface (`StatefulPrecompiledContract`) for EVM state access
-- [x] All storage deterministic via system address `0x...AA22` with keccak256 keys
-- [x] Gas: 2,000 for reads, 10,000 for writes
-
-#### 8.3 Fork Infrastructure
-- [x] `NovenForkBlock = 20,500` (devnet activation block)
-- [x] Peer version gate: minimum v1.0.2 (backwards compatible)
-- [x] Version bumped to v1.0.3-devnet
-- [x] All 5 nodes + VPS upgraded and deployed
-
-### Phase 9: State Expiry - Blockchain Garbage Collector (v1.0.4)
-
-Solves Ethereum's #1 scalability problem: state bloat. Dead contracts and abandoned tokens are automatically archived after 1,000 blocks of inactivity, keeping the state trie lean.
-
-#### 9.1 LastTouched Tracking
-- [x] New `LastTouched` field in `StateAccount` struct (persisted via RLP)
-- [x] Updated `gen_account_rlp.go` encoder to include 5th field
-- [x] Updated `SlimAccount` encoding/decoding
-- [x] `LastTouched` updates on: `SetBalance`, `SetNonce`, `SetState`, `SetCode`
-- [x] `SetCurrentBlock()` called in `state_processor.go` and `consensus/lyra2`
-
-#### 9.2 State Expiry Engine
-- [x] `RunStateExpiry(currentBlock, period)` sweep in `statedb.go`
-- [x] Runs at end of every block after `StateExpiryForkBlock` (21,500)
-- [x] Only expires contracts (checks `IsContract()` - code hash != empty)
-- [x] EOA wallets are **absolutely exempt** - `IsExpired()` returns false for non-contracts
-- [x] Pre-fork accounts (LastTouched=0) are not expired until first post-fork touch
-- [x] Archived contracts stored as slim RLP receipt for future restoration
-
-#### 9.3 Configuration
-- [x] `StateExpiryForkBlock = 21,500` in `params/ethernova/forks.go`
-- [x] `StateExpiryPeriod = 1,000` blocks (~4 hours on devnet)
-- [x] Integrated into `lyra2.Finalize()` and `lyra2.FinalizeAndAssemble()` (consensus-level)
-- [x] Version bumped to v1.0.4-devnet
-- [x] All nodes upgraded and deployed
-
-### Phase 10: Cleanup - Remove State Rent (v1.0.5)
-
-State Rent surcharge was redundant with State Expiry. Having both is like charging a fine AND throwing away the property. We keep the garbage truck (State Expiry), remove the tax (State Rent).
-
-- [x] Removed `core/vm/state_rent.go` (SSTORE surcharge)
-- [x] Removed `ethernova_stateRent`, `ethernova_stateRentToggle`, `ethernova_stateRentSetBase` RPC endpoints
-- [x] Adaptive gas / optimizer gas-modifying hooks remain monitoring-only (no gas changes since v1.0.2)
-- [x] Cleaned up dead code references
-
-### Phase 11: Tempo-Style Smart Transactions (v1.0.5)
-
-Inspired by Tempo Transactions, practical Account Abstraction features for real-world use cases. **Gas is always paid in NOVA** - no ERC-20 gas payments, protecting the native token's value.
-
-#### 11.1 Atomic Batching
-- [x] New transaction type `0x04` (TEMPO_TX_TYPE) with array of calls
-- [x] All calls execute atomically - if any call reverts, entire batch reverts
-- [x] Maximum 16 calls per transaction
-- [x] Use case: approve + swap in one transaction, multi-transfer, etc.
-
-#### 11.2 Fee Delegation
-- [x] Optional `feePayer` field - another wallet pays gas on your behalf
-- [x] Fee payer co-signs the transaction with their own ECDSA signature
-- [x] **Gas always in NOVA** - DApps can sponsor gas for users without devaluing native token
-- [x] Use case: DApp onboarding (new users don't need to buy NOVA first)
-
-#### 11.3 Scheduled Transactions
-- [x] `validBefore` - transaction expires if not mined before this block
-- [x] `validAfter` - transaction only valid after this block
-- [x] Use case: limit orders, recurring payments, AI agent automation
-- [x] Eliminates need for third-party relayers or centralized schedulers
-
-#### 11.4 Design Decision: No ERC-20 Gas Payments
-Unlike Ethereum's EIP-8141 which allows paying gas in any token, Ethernova deliberately requires NOVA for all gas payments. Rationale:
-- Paying gas in stablecoins reduces demand for the native token
-- Native token must have utility beyond speculation
-- Fee delegation solves the UX problem (DApps sponsor gas in NOVA)
-- Simpler implementation, fewer attack vectors
-
-#### 11.5 Configuration
-- [x] `TempoTxForkBlock = 23,300` in `params/ethernova/forks.go`
-- [x] `ethernova_tempoConfig` RPC endpoint
-- [x] `ethernova_stateExpiry` RPC endpoint
-- [x] `TempoTransactionData` struct with calls, fee payer, scheduling fields
-- [x] `ExecuteTempoCalls` processor with atomic snapshot/revert
-- [x] Version bumped to v1.0.5-devnet
-
-### Phase 12: Frame-Style Account Abstraction (v1.0.6)
-
-Inspired by EIP-8141 Frame Transactions (endorsed by Vitalik Buterin). Implements the flexible AA foundation where smart contracts can validate and approve transactions, enabling use cases not possible with rigid AA proposals.
-
-#### 12.1 novaFrameApprove Precompile (0x23)
-- [x] Smart contracts call this to approve sending and/or paying gas for a transaction
-- [x] Three approval modes:
-  - `0x00` - Approve sending the transaction
-  - `0x01` - Approve paying gas for the transaction
-  - `0x02` - Approve both sending and gas payment
-- [x] Equivalent of EIP-8141's APPROVE opcode, but as a precompile (no tool breakage)
-- [x] Gas: 5,000 per approval call
-- [x] Per-transaction approval state, reset for each new transaction
-
-#### 12.2 novaFrameIntrospect Precompile (0x24)
-- [x] Allows a frame to inspect other frames in the transaction
-- [x] Field selectors:
-  - `0x01` - Target address of another frame
-  - `0x02` - Keccak256 hash of another frame's calldata
-  - `0x03` - Value being sent in another frame
-  - `0x04` - Gas limit of another frame
-  - `0x05` - Function selector (first 4 bytes of calldata)
-- [x] Gas: 2,000 per introspection call
-- [x] Enables conditional sponsorship: "only pay gas if next frame transfers tokens to me"
-
-#### 12.3 What This Enables
-| Use Case | How |
-|----------|-----|
-| Smart contract wallets | Contract validates signature, calls APPROVE (passkeys, multisig, quantum-resistant) |
-| Conditional gas sponsorship | Sponsor introspects next frame, only approves if user pays in tokens |
-| Privacy transactions | Mixer contract validates ZK proof, approves without revealing sender |
-| Delegated permissions | Account contract grants fine-grained execution rights to other accounts |
-| AI agent automation | Agent contract validates AI signature, approves bounded actions |
-
-#### 12.4 Why No ERC-20 Gas Payments
-Ethereum's Frame Transactions allow arbitrary gas payment tokens. Ethernova deliberately keeps gas in NOVA only:
-- **Protects native token value**: Gas utility creates base demand for NOVA
-- **Fee delegation solves the UX problem**: DApps sponsor gas in NOVA for users
-- **Simpler mempool**: No need for fee AMM or token price oracles
-- **Noven's insight**: "paying for gas with ERC-20 tokens seems to reduce the utility of the native coin"
-
-#### 12.5 Comparison: Ethernova vs Ethereum AA Approaches
-
-| Feature | Ethereum (debating) | Ethernova (shipped) |
-|---------|--------------------|--------------------|
-| Atomic batching | EIP-8141 or Tempo (pending) | Phase 11 - live on devnet |
-| Fee delegation | EIP-8141 or Tempo (pending) | Phase 11 - live on devnet |
-| Scheduling | Tempo only (pending) | Phase 11 - live on devnet |
-| Smart contract wallets | EIP-8141 (pending) | Phase 12 - live on devnet |
-| Frame introspection | EIP-8141 (pending) | Phase 12 - live on devnet |
-| State expiry | Years of discussion | Phase 9 - live on devnet |
-| ERC-20 gas | Under debate | Rejected (protects NOVA) |
-
-#### 12.6 Configuration
-- [x] `FrameAAForkBlock = 24,000` in `params/ethernova/forks.go`
-- [x] Precompiles 0x23 and 0x24 registered in `contracts.go`
-- [x] `ethernova_precompiles` RPC now lists 5 custom precompiles
-- [x] `FrameApprovalStore` for per-transaction approval state
-- [x] `FrameIntrospectionData` for cross-frame inspection
-- [x] Version bumped to v1.0.6-devnet
-
-### Phase 13: Consensus Fix - State Expiry Sweep (v1.0.7)
-
-**Bug found by Noven:** State expiry sweep caused `invalid merkle root` BAD BLOCK errors. Different nodes produced different final state roots for the same block.
-
-**Root cause:** `RunStateExpiry()` iterated `stateObjects` which is a Go `map[common.Address]*stateObject`. Go maps have **non-deterministic iteration order** - each node processes accounts in a different sequence, producing different intermediate state changes and ultimately different state roots.
-
-**This is the second consensus bug found on the devnet** (first was gas divergence in v1.0.1). Both bugs were caught before mainnet, validating the devnet's purpose.
-
-**Fix (v1.0.7):**
-- [x] State expiry sweep disabled in `Finalize()` and `FinalizeAndAssemble()`
-- [x] `LastTouched` tracking remains active (per-account field, deterministic)
-- [x] Unused imports removed from consensus package
-- [x] Version bumped to v1.0.7-devnet
-
-**Future fix (v1.0.8):** Re-enable sweep with sorted account iteration - collect addresses into a slice, sort by address bytes, then process in deterministic order.
-
-**Key lessons:**
-1. Go map iteration is non-deterministic - never iterate maps in consensus-critical code
-2. Any function that modifies state trie must produce identical results on all nodes
-3. The devnet continues to catch real bugs that would be catastrophic on mainnet
-4. LastTouched tracking also disabled - writing new fields to account RLP changes state root between Windows/Linux builds
-
-### Phase 14: Comprehensive Feature Validation (v1.0.7)
-- [x] 35/37 tests passed (2 minor test bytecode issues, not network bugs)
-- [x] 10/10 consensus blocks verified across multiple nodes
-- [x] 11 custom RPC endpoints responding
-- [x] 4 precompiles tested and functional
-- [x] Contract deployment + interaction verified
-- [x] 50 batch transfers in single block (1,050,000 gas)
-- [x] Zero BAD BLOCK errors
-
-### Phase 15: State Expiry v2 - External Index (v1.0.8)
-
-The garbage collector is back, rebuilt from scratch with a fundamentally different architecture that solves the consensus bugs from v1.0.4-v1.0.7.
-
-#### The Problem (v1.0.4-v1.0.7)
-```
-StateAccount{Nonce, Balance, Root, CodeHash, LastTouched} → state trie → state root CHANGES
-                                                                          ↓
-                                                            Different nodes = different roots = BAD BLOCK
-```
-
-#### The Solution (v1.0.8)
-```
-StateAccount{Nonce, Balance, Root, CodeHash}               → state trie → state root UNCHANGED
-LastTouchedIndex{address → blockNumber}                    → LevelDB (separate) → no consensus impact
-BlockIndex{blockNumber → []address}                        → LevelDB (separate) → deterministic sweep order
-ArchivedAccounts{address → SlimRLP}                        → LevelDB (separate) → resurrection data
-```
-
-#### How it works
-1. When a contract is called (`SetState`, `SetCode`), the address is recorded in the external LevelDB index
-2. At the end of each block, the touched addresses are saved to a block-indexed list (sorted for determinism)
-3. At block N, the sweep looks up block (N - 1,000) and checks if those contracts have been touched since
-4. Contracts that haven't been touched get archived (slim RLP saved) and deleted from the state trie
-5. The trie deletion is deterministic because the input list comes from the sorted block index
-
-#### New files
-- `core/rawdb/accessors_ethernova_expiry.go` - LevelDB schema with 3 prefixes (X, x, A)
-- `core/state/state_expiry_v2.go` - StateExpiryEngine with external index + sweep
-
-#### Why this is safe
-| Concern | v1.0.4 (broken) | v1.0.8 (fixed) |
-|---------|-----------------|-----------------|
-| State root changes | LastTouched in trie = yes | External index = no |
-| Sweep order | Go map iteration = random | Sorted block index = deterministic |
-| Cross-platform | Windows/Linux produce different RLP | Identical - no new trie fields |
-| Recovery | Lost on trie change | Archived in LevelDB with slim RLP |
-
-#### Configuration
-- [x] `StateExpiryForkBlock = 25,200` (updated for new chain)
-- [x] `StateExpiryPeriod = 1,000` blocks
-- [x] External LevelDB index with 3 key prefixes
-- [x] Deterministic sweep via sorted block index
-- [x] `TrackContractTouch()` in SetState/SetCode (external only)
-- [x] `FinalizeExpiry()` integrated in consensus Finalize
-- [x] Version bumped to v1.0.8-devnet
-
-### Phase 16: Real Contract Deployment & Extreme Testing (v1.0.8)
-- [x] Counter contract deployed: 100,473 gas, increment() x3, get()=3
-- [x] ERC-20 NovaToken deployed: 412,905 gas, transfer 1000 NTT, balanceOf verified
-- [x] 50 ETH transfers in single block (block 411, gas 1,050,000)
-- [x] 20/20 consensus blocks verified
-- [x] Contracts must compile with `--evm-version istanbul` (no Shanghai PUSH0)
-- [x] Zero BAD BLOCK errors
-
-### Phases 17-24: Massive Feature Drop (v1.0.9)
-
-8 new features in 1 release, solving Ethereum's biggest unsolved problems.
-
-#### Phase 17: Native Reentrancy Guard
-Blocks reentrant calls at the EVM level by default. No more DAO hacks ($60M), no more Curve exploits. Every contract is protected automatically without needing OpenZeppelin's `ReentrancyGuard`.
-
-#### Phase 18: Gas Refund on Revert
-Failed transactions refund 90% of execution gas. Users only pay base tx cost (21,000 gas) + 10% anti-spam penalty. On Ethereum, you pay FULL gas even when your transaction fails.
-
-#### Phase 19: Anti-MEV Fair Ordering
-Transactions ordered by arrival time, not gas price. Eliminates front-running, sandwich attacks, and gas bidding wars. Miners cannot reorder transactions to extract value from users.
-
-#### Phase 20: Native Multi-Token (precompile 0x25 - novaTokenManager)
-Tokens are protocol objects, not smart contracts. No more ERC-20 approve+transfer pattern (phishing vector). Token transfers cost 5,000 gas (vs ~50,000 for ERC-20). Create, transfer, and query tokens natively.
-
-#### Phase 21: Native Contract Upgradeability (precompile 0x27 - novaContractUpgrade)
-Safe upgrades with 100-block timelock. No proxy pattern complexity, no storage collision risks, no admin key rug-pulls. Users can see pending upgrades and exit before activation.
-
-#### Phase 22: Native Price Oracle (precompile 0x28 - novaOracle)
-Protocol-level price feeds with TWAP (Time-Weighted Average Price). No Chainlink dependency, no oracle manipulation via flash loans. Prices are attested by miners and averaged across blocks.
-
-#### Phase 23: Parallel Transaction Execution
-Transactions that don't touch the same state execute in parallel. Conflict detection builds dependency graphs, independent txs run across CPU cores. Multiplies throughput by core count.
-
-#### Phase 24: Optional Privacy - Shielded Pool (precompile 0x26 - novaShieldedPool)
-Private NOVA transfers using commitment-nullifier scheme. Privacy is **OPTIONAL** (not default like Monero). Users choose when to use it. Shield (deposit with commitment), unshield (withdraw with nullifier). Double-spend prevention via nullifier tracking. Native in protocol - can't be sanctioned like Tornado Cash.
-
-#### All 9 Custom Precompiles
-
-| Address | Name | Description | Gas |
-|---------|------|-------------|-----|
-| 0x20 | novaBatchHash | Batch keccak256 hashing | 30/item |
-| 0x21 | novaBatchVerify | Batch signature verification | 2,000/sig |
-| 0x22 | novaAccountManager | Smart wallet (recovery, key rotation) | 2k-10k |
-| 0x23 | novaFrameApprove | Frame AA transaction approval | 5,000 |
-| 0x24 | novaFrameIntrospect | Frame inspection for conditional logic | 2,000 |
-| 0x25 | novaTokenManager | Native multi-token operations | 1k-50k |
-| 0x26 | novaShieldedPool | Optional privacy (shielded transfers) | 50k-100k |
-| 0x27 | novaContractUpgrade | Safe contract upgrades with timelock | 2k-50k |
-| 0x28 | novaOracle | Protocol-level price oracle with TWAP | 2k-5k |
-
-#### Ethernova vs Ethereum: Problem Resolution
-
-| Ethereum Problem | Status | Ethernova Solution |
-|-----------------|--------|-------------------|
-| State bloat (200GB+) | Unsolved since 2017 | State Expiry v2 (Phase 15) |
-| MEV/Front-running ($600M+ extracted) | Band-aid (Flashbots) | Fair ordering (Phase 19) |
-| Reentrancy attacks ($billions lost) | No protocol fix | Native guard (Phase 17) |
-| Failed txs charge full gas | No fix | 90% refund on revert (Phase 18) |
-| ERC-20 approval phishing | No fix | Native tokens (Phase 20) |
-| No privacy | No fix | Optional shielded pool (Phase 24) |
-| Oracle manipulation (flash loans) | Off-chain (Chainlink) | Native oracle (Phase 22) |
-| Proxy pattern complexity | No fix | Native upgrades (Phase 21) |
-| Single-threaded EVM | No fix | Parallel execution (Phase 23) |
-| Account abstraction | 9 years debating | Smart wallets + Tempo + Frame (Phases 8,11,12) |
-| L2 fragmentation | By design | Fast L1 = no L2 needed |
-| 12.8 min finality | Years away (SSF) | PoW ~15s blocks |
-| Slow governance | 1-2 years per upgrade | Ship in days on devnet |
-
-#### Deep Integration Status (all 100%)
-
-| Feature | EVM Hook | Persistent Storage | Precompile |
-|---------|----------|--------------------|------------|
-| Anti-reentrancy | `evm.Call()` blocks at depth>0 | Per-tx in-memory | N/A |
-| Gas refund | `TransitionDb()` +90% on revert | N/A | N/A |
-| Fair ordering | `ordering.go` FIFO sort + `worker.go` | Arrival tracker | N/A |
-| Native tokens | N/A | `accessors_ethernova_tokens.go` | 0x25 RunStateful |
-| Contract upgrades | N/A | `accessors_ethernova_upgrades.go` | 0x27 RunStateful + SetCode |
-| Oracle | `consensus/lyra2` writes per block | `accessors_ethernova_oracle.go` | 0x28 with TWAP |
-| Parallel exec | `state_processor.go` analysis | GlobalParallelStats | N/A |
-| Privacy | N/A | `accessors_ethernova_privacy.go` | 0x26 RunStateful + NOVA movement |
+## Roadmap specifically for NIP-0004
+
+### Phase 1: Protocol Object Trie Foundation (NIP-0004)
+- [ ] New `ProtocolObjectTrie` subtrie under Global State Root
+- [ ] RLP encoding for Protocol Objects: id, owner, type_tag, state_data, expiry_block, last_touched_block, rent_balance
+- [ ] Combined state root: `Hash(AccountTrieRoot, ProtocolObjectTrieRoot)`
+- [ ] Fork-gated activation (`ProtocolObjectForkBlock`)
+- [ ] `nova_getProtocolObject` / `nova_getProtocolObjectCount` RPC stubs
+- [ ] Consensus verification: 3+ nodes, 500 blocks post-fork, zero BAD BLOCK
+- [ ] Cross-platform state root identity (Linux + Windows binary)
+
+### Phase 2: Deferred Execution Engine (NIP-0004)
+- [ ] Pending Effects Queue in state tree (ordered by sequence number, NOT Go map)
+- [ ] Deferred Processing Phase: runs at the start of every block before transaction execution
+- [ ] Effect ordering: `block_number * 1_000_000 + tx_index * 1_000 + effect_index`
+- [ ] Block-level queue size limit + backpressure (MSEND reverts if queue full)
+- [ ] Empty queue = no-op (zero overhead on existing blocks)
+- [ ] `nova_getPendingEffects` / `nova_getDeferredProcessingStats` RPC endpoints
+- [ ] Substage 2A: queue storage only (enqueue, no processing)
+- [ ] Substage 2B: active deferred processing + queue clearing
+- [ ] Consensus verification: 3+ nodes, 1000 blocks, 500+ enqueued effects, zero BAD BLOCK
+
+### Phase 3: Content Reference Primitive (NIP-0004)
+- [ ] `novaContentRegistry` precompile (0x2A): create, lookup, verify content references
+- [ ] Content Reference as first live Protocol Object type (immutable after creation)
+- [ ] Storage rent model: deterministic integer-only per-byte per-block deduction at epoch boundaries
+- [ ] Rent exhaustion → object expires, no longer queryable
+- [ ] `nova_getContentRef` / `nova_listContentRefs` RPC endpoints
+- [ ] Harness contract: create 10 ContentRefs, query, verify rent deduction, verify expiry
+- [ ] Consensus verification: 3+ nodes, 500 blocks, zero BAD BLOCK
+
+### Phase 4: Mailbox Primitive (NIP-0004)
+- [ ] `novaMailboxManager` precompile (0x29): create, configure (capacity, ACL, postage), destroy
+- [ ] Temporary `novaMailboxOps` precompile (0x33): sendMessage, recvMessage, peekMessage, countMessages
+- [ ] Mailbox as stateful Protocol Object with ordered message queue
+- [ ] Message send → Pending Queue (Phase 2) → delivered to target mailbox next block
+- [ ] Anti-spam: capacity limit, sender whitelist/blacklist, minimum postage for unknown senders
+- [ ] Substage 4A: mailbox lifecycle (create/configure/destroy, no messaging)
+- [ ] Substage 4B: message send/receive + deferred delivery integration
+- [ ] End-to-end test: Alice sends to Bob's mailbox, Bob reads next block
+- [ ] Stress test: 100 messages to same mailbox in one block
+- [ ] Consensus verification: 3+ nodes, 1000 blocks, 500+ messages, zero BAD BLOCK
+
+### Phase 5: State Lifecycle Tiers (NIP-0004)
+- [ ] 5-tier model: Active (100K blocks) → Warm (1M) → Cold (10M) → Archived (>10M) → Expired
+- [ ] Lazy tier transition on access: check `last_touched_block`, apply warming fee, promote
+- [ ] Tier-adjusted SLOAD/SSTORE costs: Warm = 3x, Cold = 10x + witness required
+- [ ] `novaStateWitness` precompile (0x2F): Merkle proof verification for Cold/Archived state restoration
+- [ ] Warm State Commitment Root in state root calculation
+- [ ] Devnet: shortened thresholds (Active=100, Warm=500, Cold=1000 blocks)
+- [ ] Substage 5A: tier tracking + RPC query (no demotion yet)
+- [ ] Substage 5B: tier demotion + warming fees (Active → Warm → Cold)
+- [ ] Substage 5C: witness verification + state restoration (Cold → Active via proof)
+- [ ] End-to-end test: create state → wait → verify demotion → restore with witness
+- [ ] Consensus verification: 3+ nodes, 2000 blocks, tier transitions occurring, zero BAD BLOCK
+
+### Phase 6: Execution Domains & Capability Model (NIP-0004)
+- [ ] Domain declaration at contract deployment: Domain 0 (Classic), Domain 1 (Deferred), Domain 2 (Channel)
+- [ ] Domain 0 = no prefix (fully backward compatible); Domain 1 = prefix 0xEF01; Domain 2 = prefix 0xEF02
+- [ ] Domain enforcement: Domain 0 contracts CANNOT call Nova precompiles (0x29+) → revert
+- [ ] Capability bitmask (`msg.capabilities`): narrowing-only propagation through call chains
+- [ ] Domain Bridge Protocol: Domain 0 → Domain 1 via MSEND (response is deferred, not synchronous)
+- [ ] Existing precompiles 0x20–0x28 remain accessible from Domain 0
+- [ ] Consensus verification: 3+ nodes, 500 blocks, cross-domain calls tested, zero BAD BLOCK
+
+### Phase 7: Session/Channel Primitive (NIP-0004)
+- [ ] Session Protocol Object: counterparties, state_hash, sequence_number, timeout_block, dispute_rules
+- [ ] `novaSessionArbiter` precompile (0x2D): open, commit, close, dispute resolution
+- [ ] Off-chain signed state updates: monotonically increasing sequence numbers, both-party signatures
+- [ ] Dispute resolution: highest valid sequence number with valid signatures wins (deterministic)
+- [ ] Session timeout: checked in Deferred Processing Phase
+- [ ] Substage 7A: session lifecycle (open/close, no dispute)
+- [ ] Substage 7B: state commit + sequence number validation
+- [ ] Substage 7C: dispute resolution + timeout handling
+- [ ] End-to-end test: two wallets open session, exchange signed updates P2P, commit checkpoint on-chain
+- [ ] Consensus verification: 3+ nodes, 500 blocks, session operations, zero BAD BLOCK
+
+### Phase 8: Nova RPC Namespace & Developer Tooling (NIP-0004)
+- [ ] Unified `nova_*` RPC namespace: getProtocolObject, getMailbox, getMessages, getContentRef, getSession, getStateTier, getStateWitness, getPendingEffects, getCapabilities, getDomain
+- [ ] ethers.js provider extensions (Nova SDK)
+- [ ] Hardhat plugin for Domain 1/2 deployment
+- [ ] Block explorer extensions for Protocol Objects, Mailbox states, Channel activities
+- [ ] Developer documentation and example contracts
+
+### Phase 9: NIP-0003 Chat Rebase to NIP-0004 Primitives
+- [ ] Chat registry → Mailbox owner lookup + X25519 pubkey in Mailbox metadata
+- [ ] Direct messages → Session channel (Phase 7): real-time P2P, periodic on-chain checkpoint
+- [ ] Group chat → Domain 1 ChatRoom contract with Mailbox fanout via Deferred Processing
+- [ ] Message content → ContentRef (encrypted payload off-chain, hash on-chain)
+- [ ] NIP-0003 test cases 1–6 pass using NIP-0004 primitives
+- [ ] Simple web chat harness (wallet connect + P2P messaging + on-chain settlement)
+
+### Phase 10: Multi-Dimensional Resource Metering (NIP-0004)
+- [ ] 5-dimension Resource Vector: compute, state_read, state_write, protocol_ops, proof_verify
+- [ ] Per-dimension adaptive pricing (EIP-1559 style, ±12.5% per block, per dimension)
+- [ ] Congestion isolation: busy DeFi (compute) does NOT make chat (protocol_ops) expensive
+- [ ] Backward compatibility: standard `gasLimit` deterministically mapped to Resource Vector
+- [ ] Extended transaction format (EIP-2718 style) for fine-grained per-dimension limits
+- [ ] Substage 10A: Resource Vector tracking (monitoring only, no pricing change)
+- [ ] Substage 10B: per-dimension pricing active (generous initial multipliers)
+- [ ] Substage 10C: full adaptive pricing + congestion isolation validation
+- [ ] Consensus verification: 3+ nodes, 2000 blocks, all transaction types, zero BAD BLOCK
+
+### Phase 11: Application-Layer Precompiles (NIP-0004)
+- [ ] `novaAsyncCallback` (0x30): register callback triggered in next block on condition
+- [ ] `novaIdentityAttestation` (0x2C): DID verification, key binding proofs, reputation scores
+- [ ] `novaSocialGraph` (0x2B): follow/unfollow, block, trust score, mutual connection checks
+- [ ] `novaContentManifest` (0x2E): verifiable content manifests for browser-like decentralized systems
+- [ ] `novaGameState` (0x31): commit/reveal, block-hash VRF, turn validation, compact state diffs
+- [ ] `novaComputeBounty` (0x32): off-chain computation verification with proof submission
+- [ ] Identity, Subscription, GameRoom Protocol Object types
+
+### Phase 12: Nova Opcodes — Promotion from Precompile (NIP-0004)
+- [ ] **Address revision required**: NIP-0004 proposed 0xf6–0xfe which conflict with existing EVM opcodes (STATICCALL=0xfa, REVERT=0xfd, INVALID=0xfe). Reassigned to 0xd0–0xd8.
+- [ ] Promotion criteria: >1000 calls/block sustained for 30 days on devnet, precompile CALL overhead >20% of operation cost
+- [ ] 0xd0 MSEND, 0xd1 MRECV, 0xd2 MPEEK, 0xd3 MCOUNT (mailbox operations)
+- [ ] 0xd4 CREF, 0xd5 CVERIFY (content reference operations)
+- [ ] 0xd6 SOPEN, 0xd7 SCOMMIT, 0xd8 SCLOSE (session/channel operations)
+- [ ] Jump table + instruction handler + gas table updates
+- [ ] Only promoted after proven usage data justifies opcode over precompile
 
 ### Final Test Results (v1.1.6 - Adaptive Gas ACTIVE)
 
