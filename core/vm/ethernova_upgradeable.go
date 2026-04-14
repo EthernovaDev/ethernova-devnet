@@ -40,7 +40,7 @@ func (c *novaContractUpgrade) Run(input []byte) ([]byte, error) {
 	return nil, errors.New("novaContractUpgrade: use RunStateful")
 }
 
-func (c *novaContractUpgrade) RunStateful(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
+func (c *novaContractUpgrade) RunStateful(evm *EVM, caller common.Address, input []byte, readOnly bool) ([]byte, error) {
 	if len(input) < 1 {
 		return nil, errors.New("novaContractUpgrade: empty input")
 	}
@@ -49,7 +49,10 @@ func (c *novaContractUpgrade) RunStateful(evm *EVM, caller common.Address, input
 	}
 
 	switch input[0] {
-	case 0x01: // initiateUpgrade(contract20, newCode...)
+	case 0x01: // initiateUpgrade(contract20, newCode...) — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		if len(input) < 22 {
 			return nil, errors.New("initiateUpgrade: need contract(20) + code")
 		}
@@ -79,7 +82,10 @@ func (c *novaContractUpgrade) RunStateful(evm *EVM, caller common.Address, input
 		rawdb.WriteUpgradeRequest(GlobalChainDB, contract, data)
 		return newCodeHash.Bytes(), nil
 
-	case 0x02: // cancelUpgrade(contract20)
+	case 0x02: // cancelUpgrade(contract20) — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		if len(input) < 21 {
 			return nil, errors.New("cancelUpgrade: need contract address")
 		}
@@ -108,7 +114,10 @@ func (c *novaContractUpgrade) RunStateful(evm *EVM, caller common.Address, input
 		}
 		return result, nil
 
-	case 0x04: // executeUpgrade(contract20) - apply after timelock
+	case 0x04: // executeUpgrade(contract20) - apply after timelock — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		if len(input) < 21 {
 			return nil, errors.New("executeUpgrade: need contract address")
 		}

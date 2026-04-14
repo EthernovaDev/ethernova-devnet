@@ -149,22 +149,22 @@ func RunPrecompiledContract(p PrecompiledContract, input []byte, suppliedGas uin
 }
 
 // RunStatefulPrecompiledContract runs a precompile that needs EVM state access.
-// Used by NIP-0004 Protocol Object Registry (0x29) and other stateful precompiles.
-func RunStatefulPrecompiledContract(p StatefulPrecompiledContract, evm *EVM, caller common.Address, input []byte, suppliedGas uint64) (ret []byte, remainingGas uint64, err error) {
+// readOnly MUST be true when called via STATICCALL to enforce EIP-214.
+func RunStatefulPrecompiledContract(p StatefulPrecompiledContract, evm *EVM, caller common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	gasCost := p.RequiredGas(input)
 	if suppliedGas < gasCost {
 		return nil, 0, ErrOutOfGas
 	}
 	suppliedGas -= gasCost
-	output, err := p.RunStateful(evm, caller, input)
+	output, err := p.RunStateful(evm, caller, input, readOnly)
 	return output, suppliedGas, err
 }
 
 // runPrecompileOrStateful dispatches to RunStateful if available, else Run.
-// This is the single dispatch point used by Call/CallCode/DelegateCall/StaticCall.
-func runPrecompileOrStateful(p PrecompiledContract, evm *EVM, caller common.Address, input []byte, gas uint64) ([]byte, uint64, error) {
+// readOnly is true when called from StaticCall — passed through to precompile.
+func runPrecompileOrStateful(p PrecompiledContract, evm *EVM, caller common.Address, input []byte, gas uint64, readOnly bool) ([]byte, uint64, error) {
 	if sp, ok := p.(StatefulPrecompiledContract); ok {
-		return RunStatefulPrecompiledContract(sp, evm, caller, input, gas)
+		return RunStatefulPrecompiledContract(sp, evm, caller, input, gas, readOnly)
 	}
 	return RunPrecompiledContract(p, input, gas)
 }
@@ -1125,4 +1125,3 @@ func kZGToVersionedHash(kzg kzg4844.Commitment) common.Hash {
 
 	return h
 }
-

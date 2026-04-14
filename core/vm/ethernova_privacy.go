@@ -44,7 +44,7 @@ func (c *novaShieldedPool) Run(input []byte) ([]byte, error) {
 // Shield pool address where NOVA is held
 var shieldPoolAddress = common.HexToAddress("0x000000000000000000000000000000000000dEaD")
 
-func (c *novaShieldedPool) RunStateful(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
+func (c *novaShieldedPool) RunStateful(evm *EVM, caller common.Address, input []byte, readOnly bool) ([]byte, error) {
 	if len(input) < 1 {
 		return nil, errors.New("novaShieldedPool: empty input")
 	}
@@ -53,7 +53,10 @@ func (c *novaShieldedPool) RunStateful(evm *EVM, caller common.Address, input []
 	}
 
 	switch input[0] {
-	case 0x01: // shield(commitment32, amount32) - deposit NOVA into pool
+	case 0x01: // shield(commitment32, amount32) - deposit NOVA into pool — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		if len(input) < 65 {
 			return nil, errors.New("shield: need commitment(32) + amount(32)")
 		}
@@ -93,7 +96,10 @@ func (c *novaShieldedPool) RunStateful(evm *EVM, caller common.Address, input []
 
 		return common.LeftPadBytes([]byte{1}, 32), nil
 
-	case 0x02: // unshield(nullifier32, recipient20, amount32)
+	case 0x02: // unshield(nullifier32, recipient20, amount32) — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		if len(input) < 85 {
 			return nil, errors.New("unshield: need nullifier(32) + recipient(20) + amount(32)")
 		}

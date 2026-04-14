@@ -70,27 +70,43 @@ func (c *novaAccountManager) RequiredGas(input []byte) uint64 {
 }
 
 // RunStateful executes the account manager with access to EVM state.
-func (c *novaAccountManager) RunStateful(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
+// readOnly is true when called via STATICCALL — write ops MUST be rejected.
+func (c *novaAccountManager) RunStateful(evm *EVM, caller common.Address, input []byte, readOnly bool) ([]byte, error) {
 	if len(input) < 1 {
 		return nil, errors.New("empty input")
 	}
 
 	switch input[0] {
-	case 0x01:
+	case 0x01: // setGuardians — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		return c.setGuardians(evm, caller, input[1:])
-	case 0x02:
+	case 0x02: // getGuardians — READ
 		return c.getGuardians(evm, input[1:])
-	case 0x03:
+	case 0x03: // initiateRecovery — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		return c.initiateRecovery(evm, caller, input[1:])
-	case 0x04:
+	case 0x04: // approveRecovery — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		return c.approveRecovery(evm, caller, input[1:])
-	case 0x05:
+	case 0x05: // finalizeRecovery — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		return c.finalizeRecovery(evm, caller, input[1:])
-	case 0x06:
+	case 0x06: // getRecoveryStatus — READ
 		return c.getRecoveryStatus(evm, input[1:])
-	case 0x07:
+	case 0x07: // initiateKeyRotation — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		return c.initiateKeyRotation(evm, caller, input[1:])
-	case 0x08:
+	case 0x08: // getKeyRotation — READ
 		return c.getKeyRotation(evm, input[1:])
 	default:
 		return nil, errors.New("unknown function selector")
@@ -349,7 +365,10 @@ func (c *novaAccountManager) isGuardian(evm *EVM, target, addr common.Address) b
 }
 
 // StatefulPrecompiledContract is the interface for precompiles that need EVM state access.
+// readOnly MUST be true when called via STATICCALL (EIP-214). Implementations
+// MUST reject any state-modifying operation when readOnly is true by returning
+// ErrWriteProtection.
 type StatefulPrecompiledContract interface {
 	PrecompiledContract
-	RunStateful(evm *EVM, caller common.Address, input []byte) ([]byte, error)
+	RunStateful(evm *EVM, caller common.Address, input []byte, readOnly bool) ([]byte, error)
 }

@@ -40,7 +40,9 @@ func (c *novaTokenManager) Run(input []byte) ([]byte, error) {
 }
 
 // RunStateful has access to the EVM and caller address.
-func (c *novaTokenManager) RunStateful(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
+// readOnly is true when called via STATICCALL — write ops (0x01 create, 0x02 transfer)
+// MUST be rejected to enforce EIP-214.
+func (c *novaTokenManager) RunStateful(evm *EVM, caller common.Address, input []byte, readOnly bool) ([]byte, error) {
 	if len(input) < 1 {
 		return nil, errors.New("novaTokenManager: empty input")
 	}
@@ -49,7 +51,10 @@ func (c *novaTokenManager) RunStateful(evm *EVM, caller common.Address, input []
 	}
 
 	switch input[0] {
-	case 0x01: // createToken(data...) -> tokenID
+	case 0x01: // createToken — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		if len(input) < 2 {
 			return nil, errors.New("createToken: insufficient input")
 		}
@@ -85,7 +90,10 @@ func (c *novaTokenManager) RunStateful(evm *EVM, caller common.Address, input []
 
 		return tokenID.Bytes(), nil
 
-	case 0x02: // transfer(tokenID32, to20, amount32)
+	case 0x02: // transfer(tokenID32, to20, amount32) — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		if len(input) < 85 {
 			return nil, errors.New("transfer: need tokenID(32) + to(20) + amount(32)")
 		}

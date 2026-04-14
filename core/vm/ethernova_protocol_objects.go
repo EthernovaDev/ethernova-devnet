@@ -61,7 +61,9 @@ func poKeyChunkCount(id common.Hash) common.Hash {
 	return crypto.Keccak256Hash([]byte("chunk_count"), id.Bytes())
 }
 func poKeyChunk(id common.Hash, idx uint64) common.Hash {
-	return crypto.Keccak256Hash([]byte("chunk"), id.Bytes(), new(big.Int).SetUint64(idx).Bytes())
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], idx)
+	return crypto.Keccak256Hash([]byte("chunk"), id.Bytes(), buf[:])
 }
 func poKeyOwnerCount(owner common.Address) common.Hash {
 	return crypto.Keccak256Hash([]byte("owner_count"), owner.Bytes())
@@ -70,7 +72,12 @@ func poKeyOwnerSlotsUsed(owner common.Address) common.Hash {
 	return crypto.Keccak256Hash([]byte("owner_slots_used"), owner.Bytes())
 }
 func poKeyOwnerIndex(owner common.Address, idx uint64) common.Hash {
-	return crypto.Keccak256Hash([]byte("owner_index"), owner.Bytes(), new(big.Int).SetUint64(idx).Bytes())
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], idx)
+	return crypto.Keccak256Hash([]byte("owner_index"), owner.Bytes(), buf[:])
+}
+func poKeyOwnerSlotOf(id common.Hash) common.Hash {
+	return crypto.Keccak256Hash([]byte("owner_slot_of"), id.Bytes())
 }
 func poKeyOwnerSlotOf(id common.Hash) common.Hash {
 	return crypto.Keccak256Hash([]byte("owner_slot_of"), id.Bytes())
@@ -246,20 +253,26 @@ func (c *novaProtocolObjectRegistry) Run(input []byte) ([]byte, error) {
 	return nil, errors.New("novaProtocolObjectRegistry: requires stateful execution")
 }
 
-func (c *novaProtocolObjectRegistry) RunStateful(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
+func (c *novaProtocolObjectRegistry) RunStateful(evm *EVM, caller common.Address, input []byte, readOnly bool) ([]byte, error) {
 	if len(input) < 1 {
 		return nil, errors.New("empty input")
 	}
 	switch input[0] {
-	case 0x01:
+	case 0x01: // createObject — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		return c.createObject(evm, caller, input[1:])
-	case 0x02:
+	case 0x02: // getObject — READ
 		return c.getObject(evm, input[1:])
-	case 0x03:
+	case 0x03: // getObjectCount — READ
 		return c.getObjectCount(evm)
-	case 0x04:
+	case 0x04: // getObjectsByOwner — READ
 		return c.getObjectsByOwner(evm, input[1:])
-	case 0x05:
+	case 0x05: // deleteObject — WRITE
+		if readOnly {
+			return nil, ErrWriteProtection
+		}
 		return c.deleteObject(evm, caller, input[1:])
 	default:
 		return nil, errors.New("unknown function selector")
