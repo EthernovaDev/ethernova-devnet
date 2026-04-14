@@ -79,9 +79,6 @@ func poKeyOwnerIndex(owner common.Address, idx uint64) common.Hash {
 func poKeyOwnerSlotOf(id common.Hash) common.Hash {
 	return crypto.Keccak256Hash([]byte("owner_slot_of"), id.Bytes())
 }
-func poKeyOwnerSlotOf(id common.Hash) common.Hash {
-	return crypto.Keccak256Hash([]byte("owner_slot_of"), id.Bytes())
-}
 func poKeyTotalCount() common.Hash {
 	return crypto.Keccak256Hash([]byte("total_count"))
 }
