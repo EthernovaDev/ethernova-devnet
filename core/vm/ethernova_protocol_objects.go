@@ -18,14 +18,18 @@
 //   keccak256("data_len", id)                -> uint64 byte length of RLP data
 //   keccak256("chunk_count", id)             -> number of 32-byte chunks
 //   keccak256("chunk", id, chunkIndex)       -> 32-byte chunk of RLP data
-//   keccak256("owner_count", owner)          -> count of objects owned
-//   keccak256("owner_index", owner, index)   -> object ID
-//   keccak256("total_count")                 -> global object count
+//   keccak256("owner_count", owner)          -> live (non-deleted) count per owner
+//   keccak256("owner_slots_used", owner)     -> monotonic high-water mark per owner
+//   keccak256("owner_index", owner, slot)    -> object ID (cleared to 0 on delete)
+//   keccak256("owner_slot_of", id)           -> reverse lookup: id -> slot index
+//   keccak256("total_count")                 -> global live object count
+//   keccak256("global_nonce")                -> monotonic counter for ID generation
 //   keccak256("type_count", typeTag)         -> count per type
 
 package vm
 
 import (
+	"encoding/binary"
 	"errors"
 	"math/big"
 
@@ -62,11 +66,20 @@ func poKeyChunk(id common.Hash, idx uint64) common.Hash {
 func poKeyOwnerCount(owner common.Address) common.Hash {
 	return crypto.Keccak256Hash([]byte("owner_count"), owner.Bytes())
 }
+func poKeyOwnerSlotsUsed(owner common.Address) common.Hash {
+	return crypto.Keccak256Hash([]byte("owner_slots_used"), owner.Bytes())
+}
 func poKeyOwnerIndex(owner common.Address, idx uint64) common.Hash {
 	return crypto.Keccak256Hash([]byte("owner_index"), owner.Bytes(), new(big.Int).SetUint64(idx).Bytes())
 }
+func poKeyOwnerSlotOf(id common.Hash) common.Hash {
+	return crypto.Keccak256Hash([]byte("owner_slot_of"), id.Bytes())
+}
 func poKeyTotalCount() common.Hash {
 	return crypto.Keccak256Hash([]byte("total_count"))
+}
+func poKeyGlobalNonce() common.Hash {
+	return crypto.Keccak256Hash([]byte("global_nonce"))
 }
 func poKeyTypeCount(tag uint8) common.Hash {
 	return crypto.Keccak256Hash([]byte("type_count"), []byte{tag})
@@ -86,8 +99,18 @@ func poWriteUint64(sdb StateDB, key common.Hash, v uint64) {
 func poWriteRLP(sdb StateDB, id common.Hash, data []byte) {
 	sys := ProtocolObjectRegistryAddr
 	dataLen := uint64(len(data))
-	poWriteUint64(sdb, poKeyDataLen(id), dataLen)
 	chunks := (dataLen + 31) / 32
+
+	// Zero out any trailing chunks from a previous, larger write. For the
+	// current createObject path IDs are deterministic and never reused, so
+	// oldChunks is always 0 here — but future update/touch selectors will
+	// rewrite in place and rely on this cleanup for correctness.
+	oldChunks := poReadUint64(sdb, poKeyChunkCount(id))
+	for i := chunks; i < oldChunks; i++ {
+		sdb.SetState(sys, poKeyChunk(id, i), common.Hash{})
+	}
+
+	poWriteUint64(sdb, poKeyDataLen(id), dataLen)
 	poWriteUint64(sdb, poKeyChunkCount(id), chunks)
 	for i := uint64(0); i < chunks; i++ {
 		start := i * 32
@@ -165,25 +188,32 @@ func PoGetTypeCount(sdb StateDB, tag uint8) uint64 {
 }
 
 // PoGetObjectsByOwner returns object IDs for a given owner.
+// Iterates every slot from 0 up to the monotonic slots_used high-water mark,
+// skipping tombstoned slots. offset and limit apply to LIVE objects only,
+// so pagination behavior is independent of prior deletions.
 func PoGetObjectsByOwner(sdb StateDB, owner common.Address, offset, limit uint64) []common.Hash {
-	total := poReadUint64(sdb, poKeyOwnerCount(owner))
-	if offset >= total {
+	if limit == 0 {
+		return nil
+	}
+	slotsUsed := poReadUint64(sdb, poKeyOwnerSlotsUsed(owner))
+	if slotsUsed == 0 {
 		return nil
 	}
 	var ids []common.Hash
-	scanned := uint64(0)
-	collected := uint64(0)
-	for scanned < total+offset && collected < limit {
-		val := sdb.GetState(ProtocolObjectRegistryAddr, poKeyOwnerIndex(owner, scanned))
-		scanned++
+	skipped := uint64(0)
+	for slot := uint64(0); slot < slotsUsed; slot++ {
+		val := sdb.GetState(ProtocolObjectRegistryAddr, poKeyOwnerIndex(owner, slot))
 		if val == (common.Hash{}) {
 			continue
 		}
-		if scanned <= offset {
+		if skipped < offset {
+			skipped++
 			continue
 		}
 		ids = append(ids, val)
-		collected++
+		if uint64(len(ids)) >= limit {
+			break
+		}
 	}
 	return ids
 }
@@ -254,12 +284,22 @@ func (c *novaProtocolObjectRegistry) createObject(evm *EVM, caller common.Addres
 
 	sdb := evm.StateDB
 	blockNum := evm.Context.BlockNumber.Uint64()
-	currentCount := PoGetObjectCount(sdb)
 
-	// Deterministic ID: keccak256(caller, blockNumber, counter)
-	idInput := append(caller.Bytes(), new(big.Int).SetUint64(blockNum).Bytes()...)
-	idInput = append(idInput, new(big.Int).SetUint64(currentCount).Bytes()...)
+	// Deterministic ID: keccak256(caller || blockNumber || global_nonce).
+	// Encoded as fixed-width 8-byte big-endian so (b=1, n=256) cannot collide
+	// with (b=256, n=1). global_nonce is monotonic across the chain and is
+	// NEVER decremented on delete — this prevents ID reuse after a delete +
+	// re-create in the same (caller, block) context.
+	globalNonce := poReadUint64(sdb, poKeyGlobalNonce())
+	var blockBuf, nonceBuf [8]byte
+	binary.BigEndian.PutUint64(blockBuf[:], blockNum)
+	binary.BigEndian.PutUint64(nonceBuf[:], globalNonce)
+	idInput := make([]byte, 0, 20+8+8)
+	idInput = append(idInput, caller.Bytes()...)
+	idInput = append(idInput, blockBuf[:]...)
+	idInput = append(idInput, nonceBuf[:]...)
 	id := crypto.Keccak256Hash(idInput)
+	poWriteUint64(sdb, poKeyGlobalNonce(), globalNonce+1)
 
 	obj := &types.ProtocolObject{
 		ID:               id,
@@ -283,13 +323,22 @@ func (c *novaProtocolObjectRegistry) createObject(evm *EVM, caller common.Addres
 	sdb.SetState(ProtocolObjectRegistryAddr, poKeyObject(id), common.BytesToHash([]byte{0x01}))
 	poWriteRLP(sdb, id, data)
 
-	// Update owner index
+	// Update owner index.
+	// owner_slots_used is a monotonic high-water mark: it never decrements on
+	// delete, so iteration over slots always covers every ID ever assigned.
+	// owner_count tracks live (non-deleted) objects for the owner.
+	// owner_slot_of[id] is the reverse lookup used by deleteObject to clear
+	// the correct slot in O(1) without scanning.
+	slotsUsed := poReadUint64(sdb, poKeyOwnerSlotsUsed(caller))
+	sdb.SetState(ProtocolObjectRegistryAddr, poKeyOwnerIndex(caller, slotsUsed), id)
+	poWriteUint64(sdb, poKeyOwnerSlotOf(id), slotsUsed)
+	poWriteUint64(sdb, poKeyOwnerSlotsUsed(caller), slotsUsed+1)
 	ownerCount := poReadUint64(sdb, poKeyOwnerCount(caller))
-	sdb.SetState(ProtocolObjectRegistryAddr, poKeyOwnerIndex(caller, ownerCount), id)
 	poWriteUint64(sdb, poKeyOwnerCount(caller), ownerCount+1)
 
-	// Update global + type counts
-	poWriteUint64(sdb, poKeyTotalCount(), currentCount+1)
+	// Update global + type counts (live counts; global_nonce tracks IDs used)
+	totalCount := PoGetObjectCount(sdb)
+	poWriteUint64(sdb, poKeyTotalCount(), totalCount+1)
 	typeCount := PoGetTypeCount(sdb, typeTag)
 	poWriteUint64(sdb, poKeyTypeCount(typeTag), typeCount+1)
 
@@ -303,7 +352,10 @@ func (c *novaProtocolObjectRegistry) getObject(evm *EVM, input []byte) ([]byte, 
 	id := common.BytesToHash(input[:32])
 	obj := PoGetObject(evm.StateDB, id)
 	if obj == nil {
-		return make([]byte, 32), nil
+		// Previous behavior returned 32 zero bytes, which was indistinguishable
+		// from a valid empty-state object. Return an explicit error so on-chain
+		// callers (STATICCALL/CALL) revert instead of silently seeing zeros.
+		return nil, errors.New("getObject: not found")
 	}
 	data, err := obj.EncodeRLP()
 	if err != nil {
@@ -355,6 +407,13 @@ func (c *novaProtocolObjectRegistry) deleteObject(evm *EVM, caller common.Addres
 	sdb.SetState(ProtocolObjectRegistryAddr, poKeyObject(id), common.Hash{})
 	poClearRLP(sdb, id)
 
+	// Clear the owner_index slot for this ID using the reverse lookup.
+	// Without this, PoGetObjectsByOwner would return stale IDs pointing to
+	// tombstoned objects.
+	slot := poReadUint64(sdb, poKeyOwnerSlotOf(id))
+	sdb.SetState(ProtocolObjectRegistryAddr, poKeyOwnerIndex(obj.Owner, slot), common.Hash{})
+	poWriteUint64(sdb, poKeyOwnerSlotOf(id), 0)
+
 	// Decrement counts
 	total := PoGetObjectCount(sdb)
 	if total > 0 {
@@ -368,6 +427,8 @@ func (c *novaProtocolObjectRegistry) deleteObject(evm *EVM, caller common.Addres
 	if ownerCount > 0 {
 		poWriteUint64(sdb, poKeyOwnerCount(obj.Owner), ownerCount-1)
 	}
+	// NOTE: owner_slots_used is NOT decremented — it's a monotonic high-water
+	// mark so iteration covers every slot ever assigned.
 
 	return common.BigToHash(big.NewInt(1)).Bytes(), nil
 }
