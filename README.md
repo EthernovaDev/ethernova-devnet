@@ -213,13 +213,13 @@ Requires: Go 1.21+, GCC, Make
 ## Roadmap specifically for NIP-0004
 
 ### Phase 1: Protocol Object Trie Foundation (NIP-0004)
-- [ ] New `ProtocolObjectTrie` subtrie under Global State Root
-- [ ] RLP encoding for Protocol Objects: id, owner, type_tag, state_data, expiry_block, last_touched_block, rent_balance
-- [ ] Combined state root: `Hash(AccountTrieRoot, ProtocolObjectTrieRoot)`
-- [ ] Fork-gated activation (`ProtocolObjectForkBlock`)
-- [ ] `nova_getProtocolObject` / `nova_getProtocolObjectCount` RPC stubs
-- [ ] Consensus verification: 3+ nodes, 500 blocks post-fork, zero BAD BLOCK
-- [ ] Cross-platform state root identity (Linux + Windows binary)
+- [x] New `ProtocolObjectTrie` subtrie under Global State Root
+- [x] RLP encoding for Protocol Objects: id, owner, type_tag, state_data, expiry_block, last_touched_block, rent_balance
+- [x] Combined state root: `Hash(AccountTrieRoot, ProtocolObjectTrieRoot)`
+- [x] Fork-gated activation (`ProtocolObjectForkBlock`)
+- [x] `nova_getProtocolObject` / `nova_getProtocolObjectCount` RPC stubs
+- [x] Consensus verification: 3+ nodes, 500 blocks post-fork, zero BAD BLOCK
+- [x] Cross-platform state root identity (Linux + Windows binary)
 
 ### Phase 2: Deferred Execution Engine (NIP-0004)
 - [ ] Pending Effects Queue in state tree (ordered by sequence number, NOT Go map)

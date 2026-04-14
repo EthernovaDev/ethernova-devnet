@@ -48,4 +48,17 @@ const (
 	// FrameAAForkBlock activates Frame-style Account Abstraction.
 	// Precompiles 0x23 (novaFrameApprove) and 0x24 (novaFrameIntrospect).
 	FrameAAForkBlock uint64 = 0
+
+	// ============================================================
+	// NIP-0004 — Layered Deterministic Computer
+	// Phase 1: Protocol Object Trie Foundation
+	// Adds first-class Protocol Objects (Mailbox, Session, ContentRef,
+	// Identity, Subscription, GameRoom) to the state tree.
+	// Objects are stored at system address 0xFF01 in the account trie.
+	// ============================================================
+
+	// ProtocolObjectForkBlock activates Protocol Object support.
+	// On devnet: block 0 (active from genesis, same as Noven Fork).
+	// On mainnet: set to the agreed activation block.
+	ProtocolObjectForkBlock uint64 = 0
 )

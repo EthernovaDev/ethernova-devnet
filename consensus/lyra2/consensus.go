@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/params/mutations"
 	"github.com/ethereum/go-ethereum/params/types/ctypes"
 	"github.com/ethereum/go-ethereum/params/vars"
+	"github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/holiman/uint256"
@@ -387,6 +388,18 @@ func (lyra2 *Lyra2) Prepare(chain consensus.ChainHeaderReader, header *types.Hea
 func (lyra2 *Lyra2) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
 	// Accumulate any block and uncle rewards and commit the final state root
 	accumulateRewards(chain.Config(), state, header, uncles)
+
+	// NIP-0004 Phase 1: Ensure Protocol Object Registry system address exists.
+	// This creates the account at 0xFF01 if it doesn't already exist, so that
+	// Protocol Object storage slots are included in the state root.
+	// No-op if already created. Safe: only creates an empty account.
+	if header.Number.Uint64() >= ethernova.ProtocolObjectForkBlock {
+		protoAddr := common.HexToAddress("0x000000000000000000000000000000000000FF01")
+		if !state.Exist(protoAddr) {
+			state.CreateAccount(protoAddr)
+		}
+	}
+
 	header.Root = state.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 }
 
@@ -395,6 +408,15 @@ func (lyra2 *Lyra2) Finalize(chain consensus.ChainHeaderReader, header *types.He
 func (lyra2 *Lyra2) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
 	// Accumulate any block and uncle rewards and commit the final state root
 	accumulateRewards(chain.Config(), state, header, uncles)
+
+	// NIP-0004 Phase 1: Ensure Protocol Object Registry exists (same as Finalize).
+	if header.Number.Uint64() >= ethernova.ProtocolObjectForkBlock {
+		protoAddr := common.HexToAddress("0x000000000000000000000000000000000000FF01")
+		if !state.Exist(protoAddr) {
+			state.CreateAccount(protoAddr)
+		}
+	}
+
 	header.Root = state.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 
 	// Header seems complete, assemble into a block and return

@@ -64,6 +64,7 @@ var PrecompiledContractsEthernova = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{0x26}): &novaShieldedPool{},
 	common.BytesToAddress([]byte{0x27}): &novaContractUpgrade{},
 	common.BytesToAddress([]byte{0x28}): &novaOracle{},
+	common.BytesToAddress([]byte{0x29}): &novaProtocolObjectRegistry{}, // NIP-0004 Phase 1
 }
 
 var PrecompiledContractsBLS = map[common.Address]PrecompiledContract{
@@ -145,6 +146,27 @@ func RunPrecompiledContract(p PrecompiledContract, input []byte, suppliedGas uin
 	suppliedGas -= gasCost
 	output, err := p.Run(input)
 	return output, suppliedGas, err
+}
+
+// RunStatefulPrecompiledContract runs a precompile that needs EVM state access.
+// Used by NIP-0004 Protocol Object Registry (0x29) and other stateful precompiles.
+func RunStatefulPrecompiledContract(p StatefulPrecompiledContract, evm *EVM, caller common.Address, input []byte, suppliedGas uint64) (ret []byte, remainingGas uint64, err error) {
+	gasCost := p.RequiredGas(input)
+	if suppliedGas < gasCost {
+		return nil, 0, ErrOutOfGas
+	}
+	suppliedGas -= gasCost
+	output, err := p.RunStateful(evm, caller, input)
+	return output, suppliedGas, err
+}
+
+// runPrecompileOrStateful dispatches to RunStateful if available, else Run.
+// This is the single dispatch point used by Call/CallCode/DelegateCall/StaticCall.
+func runPrecompileOrStateful(p PrecompiledContract, evm *EVM, caller common.Address, input []byte, gas uint64) ([]byte, uint64, error) {
+	if sp, ok := p.(StatefulPrecompiledContract); ok {
+		return RunStatefulPrecompiledContract(sp, evm, caller, input, gas)
+	}
+	return RunPrecompiledContract(p, input, gas)
 }
 
 // ECRECOVER implemented as a native contract.
@@ -1103,3 +1125,4 @@ func kZGToVersionedHash(kzg kzg4844.Commitment) common.Hash {
 
 	return h
 }
+

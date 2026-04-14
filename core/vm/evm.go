@@ -156,6 +156,15 @@ type EVM struct {
 	// concurrent EVM instances (eth_call, miner, tracer) from
 	// interfering with block processing.
 	reentrancyGuard PerEVMReentrancyGuard
+
+	// BlockAggregator accumulates per-transaction trace and gas-safety metrics
+	// for the current block. It is block-scoped, not transaction-scoped:
+	// core/state_processor.go creates it once per block and assigns it to the EVM,
+	// then core/state_transition.go feeds each tx classification into it.
+	//
+	// Keep this field intact across evm.Reset(...) calls so the same aggregator
+	// survives for every transaction in the block.
+	BlockAggregator *BlockTraceAggregator
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -275,7 +284,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	if isPrecompile {
-		ret, gas, err = RunPrecompiledContract(p, input, gas)
+		// NIP-0004: dispatch to RunStateful if precompile implements StatefulPrecompiledContract
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas)
 	} else {
 		// Initialise a new contract and set the code that is to be used by the EVM.
 		// The contract is a scoped environment for this execution context only.
@@ -347,7 +357,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 
 	// It is allowed to call precompiles, even via delegatecall
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		ret, gas, err = RunPrecompiledContract(p, input, gas)
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas)
 	} else {
 		addrCopy := addr
 		// Initialise a new contract and set the code that is to be used by the EVM.
@@ -392,7 +402,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 
 	// It is allowed to call precompiles, even via delegatecall
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		ret, gas, err = RunPrecompiledContract(p, input, gas)
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas)
 	} else {
 		addrCopy := addr
 		// Initialise a new contract and make initialise the delegate values
@@ -441,7 +451,9 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	}
 
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		ret, gas, err = RunPrecompiledContract(p, input, gas)
+		// NIP-0004: stateful precompiles dispatched via runPrecompileOrStateful.
+		// StaticCall: write operations will fail due to EVM readOnly flag.
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas)
 	} else {
 		// At this point, we use a copy of address. If we don't, the go compiler will
 		// leak the 'contract' to the outer scope, and make allocation for 'contract'

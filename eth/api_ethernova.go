@@ -4,7 +4,10 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
@@ -36,6 +39,7 @@ func (api *EthernovaAPI) ForkStatus() map[string]interface{} {
 		forkEntry("EIP-658 (Receipt Status)", ethernova.EIP658ForkBlock, head),
 		forkEntry("MegaFork (Historical EVM)", ethernova.MegaForkBlock, head),
 		forkEntry("Legacy Chain Enforcement", ethernova.LegacyForkEnforcementBlock, head),
+		forkEntry("NIP-0004 Protocol Objects", ethernova.ProtocolObjectForkBlock, head),
 	}
 
 	// Check config status from DB
@@ -468,6 +472,12 @@ func (api *EthernovaAPI) Precompiles() []PrecompileInfo {
 			Description: "Protocol-level price oracle with TWAP and 15% circuit breaker",
 			GasModel:    "2k read, 5k TWAP, 50k submit",
 		},
+		{
+			Address:     "0x0000000000000000000000000000000000000029",
+			Name:        "novaProtocolObjectRegistry",
+			Description: "NIP-0004 Protocol Object CRUD: create, read, list, delete first-class protocol entities (Mailbox, Session, ContentRef, Identity, Subscription, GameRoom)",
+			GasModel:    "20k create, 2k read, 1k count, 10k delete",
+		},
 	}
 }
 
@@ -495,5 +505,133 @@ func (api *EthernovaAPI) StateExpiry() map[string]interface{} {
 		"expiryPeriod": ethernova.StateExpiryPeriod,
 		"appliesTo":    "contracts only (EOAs never expire)",
 		"description":  "Blockchain garbage collector - archives dead contracts after inactivity period",
+	}
+}
+
+// ============================================================
+// NIP-0004 Protocol Object RPC endpoints
+// ============================================================
+
+// getStateDB returns a statedb at the current head for read-only queries.
+func (api *EthernovaAPI) getStateDB() (*state.StateDB, error) {
+	header := api.e.blockchain.CurrentBlock()
+	return api.e.blockchain.StateAt(header.Root)
+}
+
+// ProtocolObjectResult is the JSON-serializable representation of a Protocol Object.
+type ProtocolObjectResult struct {
+	ID               common.Hash    `json:"id"`
+	Owner            common.Address `json:"owner"`
+	TypeTag          uint8          `json:"typeTag"`
+	TypeName         string         `json:"typeName"`
+	StateDataHex     string         `json:"stateData"`
+	StateDataLen     int            `json:"stateDataLen"`
+	ExpiryBlock      uint64         `json:"expiryBlock"`
+	LastTouchedBlock uint64         `json:"lastTouchedBlock"`
+	RentBalance      string         `json:"rentBalance"`
+}
+
+func protocolObjectToResult(obj *types.ProtocolObject) *ProtocolObjectResult {
+	rentStr := "0"
+	if obj.RentBalance != nil {
+		rentStr = obj.RentBalance.String()
+	}
+	return &ProtocolObjectResult{
+		ID:               obj.ID,
+		Owner:            obj.Owner,
+		TypeTag:          obj.TypeTag,
+		TypeName:         types.ProtocolObjectTypeName(obj.TypeTag),
+		StateDataHex:     common.Bytes2Hex(obj.StateData),
+		StateDataLen:     len(obj.StateData),
+		ExpiryBlock:      obj.ExpiryBlock,
+		LastTouchedBlock: obj.LastTouchedBlock,
+		RentBalance:      rentStr,
+	}
+}
+
+// GetProtocolObject returns a Protocol Object by its ID (hex string).
+// Returns null if not found. This is a read-only query against the current head state.
+func (api *EthernovaAPI) GetProtocolObject(idHex string) (interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	id := common.HexToHash(idHex)
+	obj := vm.PoGetObject(statedb, id)
+	if obj == nil {
+		return nil, nil
+	}
+	return protocolObjectToResult(obj), nil
+}
+
+// GetProtocolObjectCount returns the total number of Protocol Objects.
+func (api *EthernovaAPI) GetProtocolObjectCount() (map[string]interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	total := vm.PoGetObjectCount(statedb)
+
+	perType := make(map[string]uint64)
+	for tag := uint8(1); tag <= 6; tag++ {
+		name := types.ProtocolObjectTypeName(tag)
+		count := vm.PoGetTypeCount(statedb, tag)
+		perType[name] = count
+	}
+
+	return map[string]interface{}{
+		"total":   total,
+		"perType": perType,
+		"registryAddress": vm.ProtocolObjectRegistryAddr.Hex(),
+		"forkBlock":       ethernova.ProtocolObjectForkBlock,
+	}, nil
+}
+
+// GetProtocolObjectsByOwner returns Protocol Object IDs owned by an address.
+func (api *EthernovaAPI) GetProtocolObjectsByOwner(ownerHex string, offset, limit uint64) (interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	if limit == 0 || limit > 100 {
+		limit = 100
+	}
+	owner := common.HexToAddress(ownerHex)
+	ids := vm.PoGetObjectsByOwner(statedb, owner, offset, limit)
+
+	results := make([]string, len(ids))
+	for i, id := range ids {
+		results[i] = id.Hex()
+	}
+	return map[string]interface{}{
+		"owner":  owner.Hex(),
+		"count":  len(results),
+		"offset": offset,
+		"limit":  limit,
+		"ids":    results,
+	}, nil
+}
+
+// ProtocolObjectConfig returns the NIP-0004 Protocol Object configuration.
+func (api *EthernovaAPI) ProtocolObjectConfig() map[string]interface{} {
+	head := api.e.blockchain.CurrentBlock().Number.Uint64()
+	active := head >= ethernova.ProtocolObjectForkBlock
+
+	return map[string]interface{}{
+		"forkBlock":       ethernova.ProtocolObjectForkBlock,
+		"active":          active,
+		"currentBlock":    head,
+		"registryAddress": vm.ProtocolObjectRegistryAddr.Hex(),
+		"precompile":      "0x29",
+		"maxTypes":        types.MaxProtocolObjectTypes,
+		"supportedTypes": []map[string]interface{}{
+			{"tag": types.ProtoTypeMailbox, "name": "Mailbox"},
+			{"tag": types.ProtoTypeSession, "name": "Session"},
+			{"tag": types.ProtoTypeContentReference, "name": "ContentReference"},
+			{"tag": types.ProtoTypeIdentity, "name": "Identity"},
+			{"tag": types.ProtoTypeSubscription, "name": "Subscription"},
+			{"tag": types.ProtoTypeGameRoom, "name": "GameRoom"},
+		},
+		"description": "NIP-0004 Phase 1: Protocol Object Trie Foundation — first-class entities in the Ethernova state tree",
 	}
 }
