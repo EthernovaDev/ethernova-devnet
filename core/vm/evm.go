@@ -284,8 +284,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	if isPrecompile {
-		// NIP-0004: dispatch to RunStateful if precompile implements StatefulPrecompiledContract
-		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, false)
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, evm.inReadOnlyContext())
 	} else {
 		// Initialise a new contract and set the code that is to be used by the EVM.
 		// The contract is a scoped environment for this execution context only.
@@ -357,7 +356,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 
 	// It is allowed to call precompiles, even via delegatecall
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, false)
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, evm.inReadOnlyContext())
 	} else {
 		addrCopy := addr
 		// Initialise a new contract and set the code that is to be used by the EVM.
@@ -402,7 +401,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 
 	// It is allowed to call precompiles, even via delegatecall
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, false)
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, evm.inReadOnlyContext())
 	} else {
 		addrCopy := addr
 		// Initialise a new contract and make initialise the delegate values
@@ -605,3 +604,15 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() ctypes.ChainConfigurator { return evm.chainConfig }
+
+// inReadOnlyContext returns true if the current interpreter is in a readOnly
+// (EIP-214 / STATICCALL) context. Used by Call/CallCode/DelegateCall to
+// propagate the flag to stateful precompiles — without this, a contract
+// running inside a STATICCALL can do CALL(zero-value) to a stateful
+// precompile and bypass the readOnly check.
+func (evm *EVM) inReadOnlyContext() bool {
+	if ei, ok := evm.interpreter.(*EVMInterpreter); ok {
+		return ei.readOnly
+	}
+	return false
+}
