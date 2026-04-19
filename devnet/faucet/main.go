@@ -25,7 +25,7 @@ var (
 	privateKey *ecdsa.PrivateKey
 	fromAddr   common.Address
 	chainID    = big.NewInt(121526)
-	amount     = new(big.Int).Mul(big.NewInt(100000), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)) // 100000 NOVA
+	amount     = new(big.Int).Mul(big.NewInt(1000), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)) // 1000 NOVA
 	cooldown   = 5 * time.Minute
 
 	lastByAddr = make(map[string]time.Time)
@@ -161,11 +161,11 @@ func handleFaucet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Sent 100000 NOVA to %s from %s tx=%s ip=%s", addr, fromAddr.Hex(), txHash, ip)
+	log.Printf("Sent 1000 NOVA to %s from %s tx=%s ip=%s", addr, fromAddr.Hex(), txHash, ip)
 	json.NewEncoder(w).Encode(faucetResponse{
 		Success: true,
 		TxHash:  txHash,
-		Amount:  "100000 NOVA",
+		Amount:  "1000 NOVA",
 	})
 }
 
@@ -229,7 +229,7 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 		"block":         block,
 		"faucetAddress": fromAddr.Hex(),
 		"faucetBalance": balNova,
-		"amount":        "100000 NOVA",
+		"amount":        "1000 NOVA",
 		"cooldown":      cooldown.String(),
 		"explorer":      "https://devexplorer.ethnova.net",
 		"rpc":           "https://devrpc.ethnova.net",
@@ -369,7 +369,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 <div class="card">
   <div class="stats">
     <div class="stat">
-      <div class="stat-value">100000 NOVA</div>
+      <div class="stat-value">1000 NOVA</div>
       <div class="stat-label">Per Request</div>
     </div>
     <div class="stat">
@@ -383,7 +383,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   </div>
 
   <input id="addr" placeholder="0x... paste your wallet address" />
-  <button id="btn" onclick="request()">Request 100000 NOVA</button>
+  <button id="btn" onclick="request()">Request 1000 NOVA</button>
   <div id="result"></div>
 
   <div class="info">
@@ -418,7 +418,7 @@ async function request() {
     }
   } catch(e) { res.className = 'result error'; res.innerHTML = 'Network error'; }
   btn.disabled = false;
-  btn.textContent = 'Request 100000 NOVA';
+  btn.textContent = 'Request 1000 NOVA';
 }
 // Load block number
 fetch('/api/status').then(r=>r.json()).then(j=>{
