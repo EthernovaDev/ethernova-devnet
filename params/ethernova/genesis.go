@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/params/types/genesisT"
 )
 
-const ExpectedGenesisHashHex = "0x2b6206a40fd6cf3c9afcb410eff7811c0eef0f8dbd3bac4f39547ffe9f0ec050"
+const ExpectedGenesisHashHex = "0xb963e8e5a0b51ea6117906fb2a20a643256920b1d6b4be8200469c7f3a6a46b9"
 
 var ExpectedGenesisHash = common.HexToHash(ExpectedGenesisHashHex)
 
