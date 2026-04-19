@@ -20,6 +20,8 @@ import (
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
+	"github.com/ethereum/go-ethereum/p2p"
+	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/params/types/genesisT"
@@ -183,6 +185,34 @@ func applyEthernovaOneClickDefaults(ctx *cli.Context) (uint64, error) {
 		}
 	}
 	return chosen, nil
+}
+
+// applyEthernovaPeerDefaults adds the Ethernova public peers to the P2P config
+// as static + trusted nodes so a bare-flags invocation (e.g. Windows
+// double-click) auto-dials the devnet without discovery.
+func applyEthernovaPeerDefaults(cfg *p2p.Config) {
+	for _, url := range ethernova.DefaultPublicPeers {
+		n, err := enode.Parse(enode.ValidSchemes, url)
+		if err != nil {
+			log.Warn("Ignoring invalid ethernova default peer", "err", err, "url", url)
+			continue
+		}
+		if !containsEnode(cfg.StaticNodes, n) {
+			cfg.StaticNodes = append(cfg.StaticNodes, n)
+		}
+		if !containsEnode(cfg.TrustedNodes, n) {
+			cfg.TrustedNodes = append(cfg.TrustedNodes, n)
+		}
+	}
+}
+
+func containsEnode(list []*enode.Node, target *enode.Node) bool {
+	for _, n := range list {
+		if n.ID() == target.ID() {
+			return true
+		}
+	}
+	return false
 }
 
 func pickAvailableP2PPort(start uint64, attempts uint64) (uint64, error) {
