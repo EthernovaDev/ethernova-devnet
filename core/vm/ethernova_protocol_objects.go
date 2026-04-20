@@ -46,6 +46,14 @@ const (
 	protoRegistryGasDelete uint64 = 10000
 )
 
+var (
+	poABISelectorCreate            = crypto.Keccak256([]byte("createObject(uint8,uint256,uint256,bytes)"))[:4]
+	poABISelectorGetObject         = crypto.Keccak256([]byte("getObject(bytes32)"))[:4]
+	poABISelectorGetObjectCount    = crypto.Keccak256([]byte("getObjectCount()"))[:4]
+	poABISelectorGetObjectsByOwner = crypto.Keccak256([]byte("getObjectsByOwner(address,uint256,uint256)"))[:4]
+	poABISelectorDeleteObject      = crypto.Keccak256([]byte("deleteObject(bytes32)"))[:4]
+)
+
 // ProtocolObjectRegistryAddr is the system address where Protocol Objects live.
 var ProtocolObjectRegistryAddr = common.HexToAddress("0x000000000000000000000000000000000000FF01")
 
@@ -254,6 +262,58 @@ func (c *novaProtocolObjectRegistry) RunStateful(evm *EVM, caller common.Address
 	if len(input) < 1 {
 		return nil, errors.New("empty input")
 	}
+
+	// ABI-compatibility path: support canonical 4-byte selectors alongside the
+	// legacy 1-byte selector format. This keeps existing callers working while
+	// making Solidity/Hardhat interfaces deterministic.
+	if len(input) >= 4 {
+		switch {
+		case bytes4Eq(input[:4], poABISelectorCreate):
+			if readOnly {
+				return nil, ErrWriteProtection
+			}
+			abiInput, err := decodeCreateABI(input)
+			if err != nil {
+				return nil, err
+			}
+			return c.createObject(evm, caller, abiInput)
+		case bytes4Eq(input[:4], poABISelectorGetObject):
+			abiInput, err := decodeBytes32ArgABI(input)
+			if err != nil {
+				return nil, err
+			}
+			data, err := c.getObject(evm, abiInput)
+			if err != nil {
+				return nil, err
+			}
+			return encodeBytesReturnABI(data), nil
+		case bytes4Eq(input[:4], poABISelectorGetObjectCount):
+			if len(input) != 4 {
+				return nil, errors.New("getObjectCount: invalid ABI input length")
+			}
+			return c.getObjectCount(evm)
+		case bytes4Eq(input[:4], poABISelectorGetObjectsByOwner):
+			abiInput, err := decodeGetByOwnerABI(input)
+			if err != nil {
+				return nil, err
+			}
+			data, err := c.getObjectsByOwner(evm, abiInput)
+			if err != nil {
+				return nil, err
+			}
+			return encodeIDsReturnABI(data), nil
+		case bytes4Eq(input[:4], poABISelectorDeleteObject):
+			if readOnly {
+				return nil, ErrWriteProtection
+			}
+			abiInput, err := decodeBytes32ArgABI(input)
+			if err != nil {
+				return nil, err
+			}
+			return c.deleteObject(evm, caller, abiInput)
+		}
+	}
+
 	switch input[0] {
 	case 0x01: // createObject — WRITE
 		if readOnly {
@@ -274,6 +334,87 @@ func (c *novaProtocolObjectRegistry) RunStateful(evm *EVM, caller common.Address
 	default:
 		return nil, errors.New("unknown function selector")
 	}
+}
+
+func bytes4Eq(a, b []byte) bool {
+	return len(a) == 4 && len(b) == 4 && a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3]
+}
+
+func decodeCreateABI(input []byte) ([]byte, error) {
+	// selector(4) + 4 words (typeTag, expiryBlock, rentPrepay, stateOffset)
+	if len(input) < 4+32*4 {
+		return nil, errors.New("createObject: ABI input too short")
+	}
+	typeTag := input[4+31]
+	expiry := input[4+32 : 4+64]
+	rent := input[4+64 : 4+96]
+	stateOffset := new(big.Int).SetBytes(input[4+96 : 4+128]).Uint64()
+	stateOffsetAbs := 4 + stateOffset
+	if stateOffsetAbs+32 > uint64(len(input)) {
+		return nil, errors.New("createObject: ABI state offset out of bounds")
+	}
+	stateLen := new(big.Int).SetBytes(input[int(stateOffsetAbs):int(stateOffsetAbs+32)]).Uint64()
+	stateStart := stateOffsetAbs + 32
+	stateEnd := stateStart + stateLen
+	if stateEnd > uint64(len(input)) {
+		return nil, errors.New("createObject: ABI state data out of bounds")
+	}
+
+	legacy := make([]byte, 0, 65+stateLen)
+	legacy = append(legacy, typeTag)
+	legacy = append(legacy, expiry...)
+	legacy = append(legacy, rent...)
+	legacy = append(legacy, input[int(stateStart):int(stateEnd)]...)
+	return legacy, nil
+}
+
+func decodeBytes32ArgABI(input []byte) ([]byte, error) {
+	if len(input) != 4+32 {
+		return nil, errors.New("bytes32 ABI input must be 36 bytes")
+	}
+	arg := make([]byte, 32)
+	copy(arg, input[4:36])
+	return arg, nil
+}
+
+func decodeGetByOwnerABI(input []byte) ([]byte, error) {
+	if len(input) != 4+32*3 {
+		return nil, errors.New("getObjectsByOwner: ABI input must be 100 bytes")
+	}
+	ownerWord := input[4 : 4+32]
+	offsetWord := input[4+32 : 4+64]
+	limitWord := input[4+64 : 4+96]
+
+	legacy := make([]byte, 0, 84)
+	legacy = append(legacy, ownerWord[12:]...)
+	legacy = append(legacy, offsetWord...)
+	legacy = append(legacy, limitWord...)
+	return legacy, nil
+}
+
+func encodeBytesReturnABI(data []byte) []byte {
+	paddedLen := ((len(data) + 31) / 32) * 32
+	out := make([]byte, 64+paddedLen)
+	copy(out[0:32], common.BigToHash(big.NewInt(32)).Bytes()) // offset
+	copy(out[32:64], common.BigToHash(new(big.Int).SetUint64(uint64(len(data)))).Bytes())
+	copy(out[64:64+len(data)], data)
+	return out
+}
+
+func encodeIDsReturnABI(legacy []byte) []byte {
+	if len(legacy) < 32 {
+		return encodeBytesReturnABI(nil)
+	}
+	n := new(big.Int).SetBytes(legacy[:32]).Uint64()
+	if len(legacy) != int(32+n*32) {
+		return encodeBytesReturnABI(nil)
+	}
+	// bytes32[] encoding: offset(32) | length(32) | n * bytes32
+	out := make([]byte, 64+n*32)
+	copy(out[0:32], common.BigToHash(big.NewInt(32)).Bytes()) // offset
+	copy(out[32:64], common.BigToHash(new(big.Int).SetUint64(n)).Bytes())
+	copy(out[64:], legacy[32:])
+	return out
 }
 
 func (c *novaProtocolObjectRegistry) createObject(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
