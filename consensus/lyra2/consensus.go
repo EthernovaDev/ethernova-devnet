@@ -16,10 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/params/mutations"
 	"github.com/ethereum/go-ethereum/params/types/ctypes"
 	"github.com/ethereum/go-ethereum/params/vars"
-	"github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/holiman/uint256"
@@ -389,14 +389,27 @@ func (lyra2 *Lyra2) Finalize(chain consensus.ChainHeaderReader, header *types.He
 	// Accumulate any block and uncle rewards and commit the final state root
 	accumulateRewards(chain.Config(), state, header, uncles)
 
-	// NIP-0004 Phase 1: Ensure Protocol Object Registry system address exists.
-	// This creates the account at 0xFF01 if it doesn't already exist, so that
-	// Protocol Object storage slots are included in the state root.
-	// No-op if already created. Safe: only creates an empty account.
+	// NIP-0004 Phase 1: Ensure Protocol Object Registry system address exists
+	// AND is non-empty per EIP-161, so its storage is preserved through the
+	// IntermediateRoot → Finalise(true) pipeline below.
+	//
+	// CONSENSUS-CRITICAL: CreateAccount alone is NOT sufficient. It produces
+	// an account with balance=0, nonce=0, codeHash=empty — which EIP-161
+	// considers empty. IntermediateRoot calls Finalise(true), which deletes
+	// empty accounts from the journal.dirties set. Without the nonce bump,
+	// this hook is self-defeating: it creates the account and then the same
+	// IntermediateRoot call immediately removes it.
+	//
+	// Setting nonce=1 is a deterministic, constant, idempotent write on a
+	// reserved system address (0xFF01 has no valid ECDSA preimage, so no
+	// EOA can collide with it). All nodes compute the same state root.
 	if header.Number.Uint64() >= ethernova.ProtocolObjectForkBlock {
 		protoAddr := common.HexToAddress("0x000000000000000000000000000000000000FF01")
 		if !state.Exist(protoAddr) {
 			state.CreateAccount(protoAddr)
+		}
+		if state.GetNonce(protoAddr) == 0 {
+			state.SetNonce(protoAddr, 1)
 		}
 	}
 
@@ -409,11 +422,17 @@ func (lyra2 *Lyra2) FinalizeAndAssemble(chain consensus.ChainHeaderReader, heade
 	// Accumulate any block and uncle rewards and commit the final state root
 	accumulateRewards(chain.Config(), state, header, uncles)
 
-	// NIP-0004 Phase 1: Ensure Protocol Object Registry exists (same as Finalize).
+	// NIP-0004 Phase 1: Ensure Protocol Object Registry is present and
+	// non-empty. See Finalize() above for the full rationale — this path is
+	// hit during block production and MUST produce the same state root as
+	// Finalize() on the verification side, hence the identical logic.
 	if header.Number.Uint64() >= ethernova.ProtocolObjectForkBlock {
 		protoAddr := common.HexToAddress("0x000000000000000000000000000000000000FF01")
 		if !state.Exist(protoAddr) {
 			state.CreateAccount(protoAddr)
+		}
+		if state.GetNonce(protoAddr) == 0 {
+			state.SetNonce(protoAddr, 1)
 		}
 	}
 

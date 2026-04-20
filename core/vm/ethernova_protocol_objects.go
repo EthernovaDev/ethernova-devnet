@@ -156,9 +156,31 @@ func poClearRLP(sdb StateDB, id common.Hash) {
 	poWriteUint64(sdb, poKeyChunkCount(id), 0)
 }
 
+// poEnsureRegistryExists makes sure the system account at
+// ProtocolObjectRegistryAddr (0xFF01) is present AND non-empty per EIP-161.
+//
+// CONSENSUS-CRITICAL: without the nonce bump, the registry account has
+// balance=0, nonce=0, codeHash=empty. stateObject.empty() (core/state) only
+// checks those three fields and does NOT consider storage, so after a
+// transaction that writes only storage slots to 0xFF01, statedb.Finalise(true)
+// — invoked per-tx in state_processor.go with deleteEmptyObjects enabled —
+// treats 0xFF01 as empty, sets obj.deleted=true, and wipes all pending
+// storage writes along with it. The precompile's Created event still fires
+// (it's emitted by whatever wrapper contract is on top of this), the ID is
+// already returned, but the state that was supposed to back it never lands
+// in the trie. That is the exact symptom: createObject "succeeds" yet
+// getObjectCount / getObjectRaw / getObjectsByOwner all see nothing.
+//
+// Fix: set nonce=1 once. This makes empty() return false, so Finalise
+// preserves the account and its storage. Deterministic (fixed constant),
+// idempotent (guarded by GetNonce==0 check), and address-reserved
+// (0xFF01 is not reachable by any EOA key), so this is safe for consensus.
 func poEnsureRegistryExists(sdb StateDB) {
 	if !sdb.Exist(ProtocolObjectRegistryAddr) {
 		sdb.CreateAccount(ProtocolObjectRegistryAddr)
+	}
+	if sdb.GetNonce(ProtocolObjectRegistryAddr) == 0 {
+		sdb.SetNonce(ProtocolObjectRegistryAddr, 1)
 	}
 }
 
