@@ -346,23 +346,46 @@ func genesisPathUsed(info *ethernovaGenesisInfo) string {
 }
 
 func printEthernovaStartup(info *ethernovaGenesisInfo) {
-	fmt.Println("==========================================================")
-	fmt.Println("  ETHERNOVA NODE v" + params.Version)
-	fmt.Println("  PoW (Ethash) | Chain ID: 121525 | Network ID: 121525")
-	fmt.Println("==========================================================")
+	const (
+		cReset  = "\x1b[0m"
+		cCyan   = "\x1b[38;5;51m"
+		cPurple = "\x1b[38;5;141m"
+		cGreen  = "\x1b[38;5;84m"
+		cDim    = "\x1b[2m"
+		cBold   = "\x1b[1m"
+	)
+
 	fmt.Println()
-	fmt.Printf("  Datadir:    %s\n", info.Paths.DataDir)
-	fmt.Printf("  Genesis:    %s\n", genesisPathUsed(info))
-	fmt.Printf("  Hash:       %s\n", info.GenesisHash.Hex())
+	fmt.Println(cCyan + "  ███████╗████████╗██╗  ██╗███████╗██████╗ ███╗   ██╗ ██████╗ ██╗   ██╗ █████╗ " + cReset)
+	fmt.Println(cCyan + "  ██╔════╝╚══██╔══╝██║  ██║██╔════╝██╔══██╗████╗  ██║██╔═══██╗██║   ██║██╔══██╗" + cReset)
+	fmt.Println(cCyan + "  █████╗     ██║   ███████║█████╗  ██████╔╝██╔██╗ ██║██║   ██║██║   ██║███████║" + cReset)
+	fmt.Println(cPurple + "  ██╔══╝     ██║   ██╔══██║██╔══╝  ██╔══██╗██║╚██╗██║██║   ██║╚██╗ ██╔╝██╔══██║" + cReset)
+	fmt.Println(cPurple + "  ███████╗   ██║   ██║  ██║███████╗██║  ██║██║ ╚████║╚██████╔╝ ╚████╔╝ ██║  ██║" + cReset)
+	fmt.Println(cPurple + "  ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝   ╚═══╝  ╚═╝  ╚═╝" + cReset)
 	fmt.Println()
-	fmt.Println("  Fork Schedule:")
-	fmt.Printf("    Constantinople/Petersburg/Istanbul .. block %s\n", ethernova.FormatBlockWithCommas(ethernova.EVMCompatibilityForkBlock))
-	fmt.Printf("    EIP-658 (Receipt Status) ........... block %s\n", ethernova.FormatBlockWithCommas(ethernova.EIP658ForkBlock))
-	fmt.Printf("    MegaFork (Historical EVM) .......... block %s\n", ethernova.FormatBlockWithCommas(ethernova.MegaForkBlock))
-	fmt.Printf("    Legacy Chain Enforcement ........... block %s\n", ethernova.FormatBlockWithCommas(ethernova.LegacyForkEnforcementBlock))
+	fmt.Println("  " + cBold + "Ethernova Devnet Node" + cReset + cDim + "  v" + params.Version + cReset)
+	fmt.Printf("  %sPoW (Ethash)%s  %s|%s  Chain ID: %s%d%s  %s|%s  Network ID: %s%d%s\n",
+		cGreen, cReset, cDim, cReset,
+		cBold, info.ChainID, cReset,
+		cDim, cReset,
+		cBold, info.NetworkID, cReset,
+	)
+	fmt.Println(cDim + "  ─────────────────────────────────────────────────────────────────────────────" + cReset)
+	fmt.Printf("  %sDatadir%s   %s\n", cDim, cReset, info.Paths.DataDir)
+	fmt.Printf("  %sGenesis%s   %s\n", cDim, cReset, genesisPathUsed(info))
+	fmt.Printf("  %sHash%s      %s%s%s\n", cDim, cReset, cGreen, info.GenesisHash.Hex(), cReset)
+	fmt.Println(cDim + "  ─────────────────────────────────────────────────────────────────────────────" + cReset)
+	fmt.Println("  " + cBold + "Fork Schedule" + cReset)
+	fmt.Printf("    %s•%s Constantinople / Petersburg / Istanbul   block %s\n", cPurple, cReset, ethernova.FormatBlockWithCommas(ethernova.EVMCompatibilityForkBlock))
+	fmt.Printf("    %s•%s EIP-658 (Receipt Status)                 block %s\n", cPurple, cReset, ethernova.FormatBlockWithCommas(ethernova.EIP658ForkBlock))
+	fmt.Printf("    %s•%s MegaFork (Historical EVM)                block %s\n", cPurple, cReset, ethernova.FormatBlockWithCommas(ethernova.MegaForkBlock))
+	fmt.Printf("    %s•%s Legacy Chain Enforcement                 block %s\n", cPurple, cReset, ethernova.FormatBlockWithCommas(ethernova.LegacyForkEnforcementBlock))
+	fmt.Printf("    %s•%s NIP-0004 Protocol Object Registry        block %s\n", cPurple, cReset, ethernova.FormatBlockWithCommas(ethernova.ProtocolObjectForkBlock))
+	fmt.Println(cDim + "  ─────────────────────────────────────────────────────────────────────────────" + cReset)
+	fmt.Println("  " + cBold + "RPC Namespaces" + cReset + "   eth, net, web3, txpool, debug, " + cCyan + "ethernova" + cReset)
+	fmt.Println("  " + cBold + "Custom RPCs" + cReset + "      ethernova_forkStatus  ethernova_chainConfig  ethernova_nodeHealth")
+	fmt.Println(cDim + "  ─────────────────────────────────────────────────────────────────────────────" + cReset)
 	fmt.Println()
-	fmt.Println("  RPC: ethernova_forkStatus, ethernova_chainConfig, ethernova_nodeHealth")
-	fmt.Println("==========================================================")
 }
 func validateEthernovaGenesisInfo(info *ethernovaGenesisInfo) error {
 	if info.ChainID != ethernova.NewChainID {
