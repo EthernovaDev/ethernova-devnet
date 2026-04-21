@@ -9,22 +9,36 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-// AdaptiveGasConfig controls the adaptive gas pricing system.
-// When enabled, contracts that exhibit predictable, repetitive execution
-// patterns receive a gas discount, incentivizing efficient code.
-// Contracts with heavy storage/external call usage pay a penalty.
+// AdaptiveGasConfig controls the LEGACY v1 adaptive-gas pattern tracker.
+//
+// IMPORTANT — NOT CONSENSUS RELEVANT.
+// The real consensus path is Adaptive Gas V2 (ApplyAdaptiveGasV2 in
+// adaptive_gas_v2.go), gated exclusively on ethernova.AdaptiveGasV2ForkBlock.
+// It does NOT consult this struct at all. The fields here drive the legacy
+// PatternTracker / StaticClassifier used only for RPC reporting and the
+// opcode profiler — every gas-returning helper that reads Enabled is
+// reporting-only.
+//
+// The Enabled flag stays atomic.Bool only to protect concurrent RPC
+// readers. The RPC toggles (AdaptiveGasToggle, AdaptiveGasSetDiscount,
+// AdaptiveGasSetPenalty) are no-ops by design. Do NOT reintroduce a
+// mutation path here — if the v2 consensus path ever consults this flag
+// again, divergent Enabled values across nodes would immediately split
+// consensus.
 type AdaptiveGasConfig struct {
 	Enabled         atomic.Bool
-	DiscountPercent uint64 // e.g. 25 = 25% discount for optimized contracts
-	PenaltyPercent  uint64 // e.g. 10 = 10% surcharge for complex contracts
+	DiscountPercent uint64 // legacy monitoring only; not consensus-visible
+	PenaltyPercent  uint64 // legacy monitoring only; not consensus-visible
 }
 
 var GlobalAdaptiveGas = &AdaptiveGasConfig{}
 
 func init() {
-	GlobalAdaptiveGas.Enabled.Store(false) // disabled by default, enable via RPC
-	GlobalAdaptiveGas.DiscountPercent = 25  // 25% discount for optimized patterns
-	GlobalAdaptiveGas.PenaltyPercent = 10   // 10% surcharge for complex patterns
+	// Enable the monitoring tracker at startup so RPC reports real data.
+	// This flag has no effect on consensus — see struct comment above.
+	GlobalAdaptiveGas.Enabled.Store(true)
+	GlobalAdaptiveGas.DiscountPercent = 25
+	GlobalAdaptiveGas.PenaltyPercent = 10
 }
 
 // ============================================================================

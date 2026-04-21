@@ -1,66 +1,37 @@
-// Ethernova: Frame-Style Account Abstraction (Phase 12)
+// Ethernova: Frame-Style Account Abstraction (Phase 12) — DEPRECATED STUBS
 //
-// Inspired by EIP-8141 Frame Transactions. Instead of adding a new EVM opcode
-// (which breaks every tool), we implement the APPROVE and INTROSPECT mechanics
-// as precompiled contracts:
+// DO NOT RE-ENABLE WITHOUT FULLY WIRING THE TRANSACTION PROCESSOR.
 //
-// Address 0x23: novaFrameApprove - Smart contract wallets call this to approve/reject transactions
-// Address 0x24: novaFrameIntrospect - Allows a frame to inspect other frames in the transaction
+// The original implementation stored approvals and introspection state in
+// package-level globals (GlobalFrameApprovals, FrameIntrospectionData) that
+// were mutated by the precompiles but NEVER READ by the transaction
+// processor. FrameIntrospectionData was never written either, so
+// novaFrameIntrospect always returned "index out of range". The Reset path
+// was defined but never called, which would have produced cross-transaction
+// leakage even if the globals were wired up.
 //
-// This enables:
-// - Smart contract wallets (passkeys, multisig, quantum-resistant signatures)
-// - Conditional gas sponsorship
-// - Privacy-compatible transactions (ZK proof validation)
-// - Generalized permissions (delegate fine-grained tx execution rights)
+// The precompile addresses (0x23, 0x24) remain registered so gas accounting
+// does not change for any caller — both entry points now return an explicit
+// "not implemented" error. When Frame-AA is really shipped, the
+// implementation must:
+//   1. Consult the tx processor directly (no package-level globals).
+//   2. Populate FrameIntrospectionData at the start of each frame.
+//   3. Reset approval state between transactions.
+//   4. Move the approval decision out of the precompile and into the
+//      tx validation path where it can actually influence execution.
 //
-// Gas is ALWAYS paid in NOVA. No ERC-20 gas payments.
+// Until then, these stubs fail loudly rather than silently succeed.
 
 package vm
 
 import (
 	"errors"
-	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
-// Frame approval modes (matching EIP-8141 semantics)
-const (
-	FrameApproveTransaction = 0x00 // Approve sending the transaction
-	FrameApproveGasPayment  = 0x01 // Approve paying gas for the transaction
-	FrameApproveBoth        = 0x02 // Approve both sending and gas payment
-)
+var errFrameAANotImplemented = errors.New("frame-AA: not implemented on this network; precompile is a deprecated stub")
 
-// FrameApprovalStore tracks which contracts have approved the current transaction.
-// This is reset for each new transaction and is consensus-critical.
-type FrameApprovalStore struct {
-	TransactionApprover common.Address // Contract that approved sending
-	GasPayerApprover    common.Address // Contract that approved gas payment
-	Approved            bool
-	GasApproved         bool
-}
-
-// GlobalFrameApprovals is the per-transaction approval state.
-// Reset at the start of each transaction processing.
-var GlobalFrameApprovals = &FrameApprovalStore{}
-
-// ResetApprovals clears all approvals for a new transaction.
-func (fas *FrameApprovalStore) ResetApprovals() {
-	fas.TransactionApprover = common.Address{}
-	fas.GasPayerApprover = common.Address{}
-	fas.Approved = false
-	fas.GasApproved = false
-}
-
-// novaFrameApprove allows smart contracts to approve or reject transactions.
-// Input: 1 byte mode (0x00=approve tx, 0x01=approve gas, 0x02=approve both)
-// Output: 32 bytes (1 = success, 0 = failure)
-// Gas: 5,000 per call
-//
-// This is the precompile equivalent of EIP-8141's APPROVE opcode.
-// Smart contract wallets call this after validating the transaction
-// (signature check, policy check, etc).
+// novaFrameApprove (0x23) — originally mutated a package-level global that
+// nothing read. Returns an explicit error so callers see the deprecation.
 type novaFrameApprove struct{}
 
 func (c *novaFrameApprove) RequiredGas(input []byte) uint64 {
@@ -68,107 +39,18 @@ func (c *novaFrameApprove) RequiredGas(input []byte) uint64 {
 }
 
 func (c *novaFrameApprove) Run(input []byte) ([]byte, error) {
-	if len(input) < 1 {
-		return nil, errors.New("novaFrameApprove: input must be at least 1 byte (approval mode)")
-	}
-
-	mode := input[0]
-
-	switch mode {
-	case FrameApproveTransaction:
-		GlobalFrameApprovals.Approved = true
-	case FrameApproveGasPayment:
-		GlobalFrameApprovals.GasApproved = true
-	case FrameApproveBoth:
-		GlobalFrameApprovals.Approved = true
-		GlobalFrameApprovals.GasApproved = true
-	default:
-		return common.LeftPadBytes([]byte{0}, 32), errors.New("novaFrameApprove: invalid mode")
-	}
-
-	// Return success (1)
-	return common.LeftPadBytes([]byte{1}, 32), nil
+	return nil, errFrameAANotImplemented
 }
 
-// novaFrameIntrospect allows a frame to inspect other frames in the transaction.
-// This enables conditional logic like "only approve gas payment if the next frame
-// transfers ERC20 tokens to my address".
-//
-// Input format:
-//   - First 32 bytes: frame index to inspect (uint256)
-//   - Next 4 bytes: field selector
-//     0x01 = target address (returns 32 bytes, left-padded address)
-//     0x02 = call data hash (returns 32 bytes, keccak256 of calldata)
-//     0x03 = value (returns 32 bytes, uint256)
-//     0x04 = gas limit (returns 32 bytes, uint256)
-//     0x05 = call data first 4 bytes (function selector)
-//
-// Output: 32 bytes depending on field selector
-// Gas: 2,000 per call
-//
-// Note: The actual frame data must be set by the transaction processor
-// before executing each frame. This is stored in FrameIntrospectionData.
+// novaFrameIntrospect (0x24) — originally read a package-level slice that
+// was never populated, so every call returned "frame index out of range".
+// Returns the same explicit error now.
 type novaFrameIntrospect struct{}
-
-// FrameData holds the data for a single frame that can be introspected.
-type FrameData struct {
-	Target   common.Address
-	Data     []byte
-	Value    *big.Int
-	GasLimit uint64
-}
-
-// FrameIntrospectionData holds all frames for the current transaction.
-// Set by the transaction processor before execution.
-var FrameIntrospectionData []FrameData
 
 func (c *novaFrameIntrospect) RequiredGas(input []byte) uint64 {
 	return 2000
 }
 
 func (c *novaFrameIntrospect) Run(input []byte) ([]byte, error) {
-	if len(input) < 33 {
-		return nil, errors.New("novaFrameIntrospect: need 32 bytes (index) + 1 byte (field)")
-	}
-
-	// Parse frame index (last byte of first 32 bytes for simplicity)
-	idx := int(input[31])
-	if idx >= len(FrameIntrospectionData) {
-		return common.LeftPadBytes([]byte{0}, 32), errors.New("novaFrameIntrospect: frame index out of range")
-	}
-
-	frame := FrameIntrospectionData[idx]
-	field := input[32]
-
-	switch field {
-	case 0x01: // target address
-		return common.LeftPadBytes(frame.Target.Bytes(), 32), nil
-
-	case 0x02: // call data hash
-		if len(frame.Data) == 0 {
-			return make([]byte, 32), nil
-		}
-		hash := crypto.Keccak256(frame.Data)
-		return hash, nil
-
-	case 0x03: // value
-		if frame.Value == nil {
-			return make([]byte, 32), nil
-		}
-		return common.LeftPadBytes(frame.Value.Bytes(), 32), nil
-
-	case 0x04: // gas limit
-		gasBytes := new(big.Int).SetUint64(frame.GasLimit).Bytes()
-		return common.LeftPadBytes(gasBytes, 32), nil
-
-	case 0x05: // function selector (first 4 bytes of calldata)
-		result := make([]byte, 32)
-		if len(frame.Data) >= 4 {
-			copy(result[28:], frame.Data[:4])
-		}
-		return result, nil
-
-	default:
-		return common.LeftPadBytes([]byte{0}, 32), errors.New("novaFrameIntrospect: unknown field selector")
-	}
+	return nil, errFrameAANotImplemented
 }

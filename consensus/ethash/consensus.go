@@ -35,6 +35,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/params/mutations"
 	"github.com/ethereum/go-ethereum/params/types/ctypes"
 	"github.com/ethereum/go-ethereum/params/vars"
@@ -621,6 +622,22 @@ func (ethash *Ethash) Prepare(chain consensus.ChainHeaderReader, header *types.H
 func (ethash *Ethash) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
 	// Accumulate any block and uncle rewards and commit the final state root
 	mutations.AccumulateRewards(chain.Config(), state, header, uncles)
+
+	// NIP-0004 Phase 1: Ensure Protocol Object Registry system address is
+	// present AND non-empty per EIP-161. Mirrors Lyra2.Finalize so both
+	// engines produce bit-identical state roots on empty-block finalization.
+	// See consensus/lyra2/consensus.go for the full rationale — in short,
+	// without the nonce bump, Finalise(true) deletes the 0xFF01 account and
+	// its storage on every tx boundary.
+	if header.Number.Uint64() >= ethernova.ProtocolObjectForkBlock {
+		protoAddr := common.HexToAddress("0x000000000000000000000000000000000000FF01")
+		if !state.Exist(protoAddr) {
+			state.CreateAccount(protoAddr)
+		}
+		if state.GetNonce(protoAddr) == 0 {
+			state.SetNonce(protoAddr, 1)
+		}
+	}
 
 	// Log block reward for Ethernova monitoring
 	reward, _ := mutations.GetRewards(chain.Config(), header, uncles)
