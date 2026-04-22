@@ -171,7 +171,7 @@ func TestIsPrecompiledContractEnabled(t *testing.T) {
 	var byzCts = append(homeCts, byzUniqCts...)
 	var nonCts = []common.Address{
 		{},
-		common.BytesToAddress([]byte{42}),
+		common.BytesToAddress([]byte{99}), // 0x63 — not registered to any precompile (was 0x2A, now occupied by novaDeferredQueue)
 		common.HexToAddress("0xdeadbeef"),
 	}
 	type c struct {
