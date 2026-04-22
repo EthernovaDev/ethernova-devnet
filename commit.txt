@@ -1,0 +1,92 @@
+feat(nip-0004): Phase 2 Deferred Execution Engine
+
+Introduces the Pending Effects Queue and block-prologue drain that
+form the foundation for Mailbox (Phase 4), Async Callback (Phase 7/11),
+and Session timeout (Phase 7).
+
+Architecture:
+- Queue storage lives at system address 0xFF02, same pattern as
+  0xFF01 (Protocol Objects, Phase 1) and 0xAA22/0xAA25-28 (cd4369d).
+  No subtrie, no block header change, no state root formula change.
+- Monotonic uint64 sequence counter minted in state on every enqueue.
+  No Go map iteration, no wall clock, no random. Ordering invariant
+  is "insertion order within block N" — enforced by sequential tx
+  execution + sequential precompile dispatch.
+- Frontier-pin model: Phase 0 snapshots tail at drain start and
+  processes [head, frontier). Entries enqueued mid-drain (impossible
+  in Phase 2, possible in Phase 4+) land beyond frontier and defer
+  to the next block.
+
+Consensus-critical symmetry:
+- core/state_processor.go: hook runs after ProcessBeaconBlockRoot,
+  before the tx loop. Runs on the validator import path.
+- miner/worker.go: hook runs after ProcessBeaconBlockRoot, before
+  return env. Runs on the miner build path.
+Both paths call the same ProcessDeferredEffects(header, statedb)
+with identical arguments. Asymmetry here would reproduce the
+SafeTuner split.
+
+Failure handling (per NIP-0004 plan section 18):
+- Handler error does NOT revert the block.
+- Entry is still cleared, head still advances, failure is counted
+  and logged. Liveness over per-entry strictness.
+
+Caps (per NIP-0004 plan section 9.1):
+- MaxPendingEffectsPerBlock: 1024 enqueue backpressure
+- MaxDeferredProcessingPerBlock: 1024 drain cap
+- MaxDeferredEffectPayloadBytes: 512 per-effect payload
+
+Precompile 0x2A (novaDeferredQueue):
+- 0x01 enqueueEffect(type, payload)  returns uint64 seq
+- 0x02 getPendingEffect(seq)         returns RLP entry
+- 0x03 getQueueStats()               returns 5 x uint256
+
+RPC (namespace ethernova):
+- ethernova_deferredExecConfig
+- ethernova_deferredProcessingStats
+- ethernova_getPendingEffects(offset, limit)
+- ethernova_getPendingEffect(seq)
+
+Deferred effect types:
+- 0x00 Noop    (test harness)
+- 0x01 Ping    (test harness, bumps per-caller counter)
+- 0x10 MailboxSend    reserved for Phase 4 (drains as no-op)
+- 0x20 AsyncCallback  reserved for Phase 7 (drains as no-op)
+- 0x30 SessionUpdate  reserved for Phase 7 (drains as no-op)
+
+Fork activation:
+- DeferredExecForkBlock = 0 on devnet (genesis-active).
+  Queue starts empty so pre-fork blocks are true no-ops.
+- Mainnet value TBD at coordination block.
+
+Conscious deviations from the written plan:
+- System address instead of dedicated subtrie: matches Phase 1 and
+  post-cd4369d precompiles, avoids block header change.
+- Pure monotonic uint64 seq instead of block*1e6+tx*1e3+idx formula:
+  avoids overflow caps, same semantic ordering.
+- SourceTxHash is keccak(caller, blockNum, seq), not the real tx
+  hash, because thash is unexported on state.StateDB. Fully
+  deterministic. Can be tightened in Phase 3+ without breaking change.
+
+Tests:
+- core/types/deferred_effect_test.go: RLP round-trip, determinism,
+  type validation, garbage decode.
+- core/ethernova_deferred_processing_test.go: empty-queue no-op,
+  FIFO drain, tombstone verification, ping counter increment,
+  cross-run determinism.
+- devnet/contracts/DeferredTestHarness.sol and phase-nip0004-02-test.js:
+  7-scenario multi-node consensus harness.
+
+Files:
+  core/types/deferred_effect.go              (+128 new)
+  core/types/deferred_effect_test.go         (+176 new)
+  core/vm/ethernova_deferred_queue.go        (+501 new)
+  core/ethernova_deferred_processing.go      (+277 new)
+  core/ethernova_deferred_processing_test.go (+247 new)
+  devnet/contracts/DeferredTestHarness.sol   (+142 new)
+  devnet/phase-nip0004-02-test.js            (+287 new)
+  core/state_processor.go                    (+28)
+  core/vm/contracts.go                       (+1)
+  eth/api_ethernova.go                       (+132)
+  miner/worker.go                            (+25)
+  params/ethernova/forks.go                  (+38)

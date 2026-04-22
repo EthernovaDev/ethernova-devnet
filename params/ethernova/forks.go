@@ -61,4 +61,42 @@ const (
 	// On devnet: block 0 (active from genesis, same as Noven Fork).
 	// On mainnet: set to the agreed activation block.
 	ProtocolObjectForkBlock uint64 = 0
+
+	// ============================================================
+	// NIP-0004 — Layered Deterministic Computer
+	// Phase 2: Deferred Execution Engine
+	// Introduces a Pending Effects Queue stored at system address
+	// 0xFF02 and a Deferred Processing Phase that runs at the start
+	// of each block (before regular transactions) once this fork is
+	// active. Effects enqueued in block N are processed at the start
+	// of block N+1 in strict insertion order (monotonic sequence).
+	// ============================================================
+
+	// DeferredExecForkBlock activates the Deferred Execution Engine.
+	// On devnet: block 0 (active from genesis — queue starts empty so
+	// this is a safe no-op on early blocks).
+	// On mainnet: set to the agreed activation block. The Phase 0
+	// Deferred Processing step is gated by block.Number() >=
+	// DeferredExecForkBlock in BOTH the validator state_processor
+	// path AND the miner worker path. Any asymmetry = consensus split.
+	DeferredExecForkBlock uint64 = 0
+
+	// MaxPendingEffectsPerBlock caps the number of enqueue operations
+	// allowed in a single block. When the limit is reached, further
+	// enqueueEffect precompile calls revert (backpressure). This is
+	// the §9.1 queue-abuse mitigation from NIP-0004. Per-block, not
+	// per-tx, so an attacker cannot split enqueues across txs to bypass.
+	MaxPendingEffectsPerBlock uint64 = 1024
+
+	// MaxDeferredProcessingPerBlock caps the number of entries the
+	// Deferred Processing Phase will drain in a single block. If the
+	// queue grows faster than drain, processing falls behind — this is
+	// intentional: it bounds block validation time. Set equal to the
+	// per-block enqueue cap so steady state matches steady-in.
+	MaxDeferredProcessingPerBlock uint64 = 1024
+
+	// MaxDeferredEffectPayloadBytes caps individual effect payload size.
+	// Larger payloads must be stored externally and referenced by hash
+	// (a pattern that will be introduced by ContentRef in Phase 3).
+	MaxDeferredEffectPayloadBytes uint64 = 512
 )

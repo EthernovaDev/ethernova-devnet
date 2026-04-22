@@ -40,6 +40,7 @@ func (api *EthernovaAPI) ForkStatus() map[string]interface{} {
 		forkEntry("MegaFork (Historical EVM)", ethernova.MegaForkBlock, head),
 		forkEntry("Legacy Chain Enforcement", ethernova.LegacyForkEnforcementBlock, head),
 		forkEntry("NIP-0004 Protocol Objects", ethernova.ProtocolObjectForkBlock, head),
+		forkEntry("NIP-0004 Deferred Execution", ethernova.DeferredExecForkBlock, head),
 	}
 
 	// Check config status from DB
@@ -478,6 +479,12 @@ func (api *EthernovaAPI) Precompiles() []PrecompileInfo {
 			Description: "NIP-0004 Protocol Object CRUD: create, read, list, delete first-class protocol entities (Mailbox, Session, ContentRef, Identity, Subscription, GameRoom)",
 			GasModel:    "20k create, 2k read, 1k count, 10k delete",
 		},
+		{
+			Address:     "0x000000000000000000000000000000000000002A",
+			Name:        "novaDeferredQueue",
+			Description: "NIP-0004 Phase 2 Pending Effects Queue: enqueue deferred effect, query pending, read queue stats. Effects enqueued in block N are drained at the start of block N+1.",
+			GasModel:    "10k enqueue base + 200/chunk, 2k read, 1k stats",
+		},
 	}
 }
 
@@ -633,5 +640,130 @@ func (api *EthernovaAPI) ProtocolObjectConfig() map[string]interface{} {
 			{"tag": types.ProtoTypeGameRoom, "name": "GameRoom"},
 		},
 		"description": "NIP-0004 Phase 1: Protocol Object Trie Foundation — first-class entities in the Ethernova state tree",
+	}
+}
+
+// ============================================================
+// NIP-0004 Phase 2: Deferred Execution Engine RPC endpoints
+// ============================================================
+
+// DeferredEffectResult is the JSON representation of a DeferredEffect.
+type DeferredEffectResult struct {
+	SeqNum       uint64         `json:"seqNum"`
+	EffectType   uint8          `json:"effectType"`
+	EffectName   string         `json:"effectName"`
+	SourceBlock  uint64         `json:"sourceBlock"`
+	SourceCaller common.Address `json:"sourceCaller"`
+	SourceTxHash common.Hash    `json:"sourceTxHash"`
+	PayloadHex   string         `json:"payload"`
+	PayloadLen   int            `json:"payloadLen"`
+}
+
+func deferredEffectToResult(e *types.DeferredEffect) *DeferredEffectResult {
+	return &DeferredEffectResult{
+		SeqNum:       e.SeqNum,
+		EffectType:   e.EffectType,
+		EffectName:   types.DeferredEffectTypeName(e.EffectType),
+		SourceBlock:  e.SourceBlock,
+		SourceCaller: e.SourceCaller,
+		SourceTxHash: e.SourceTxHash,
+		PayloadHex:   common.Bytes2Hex(e.Payload),
+		PayloadLen:   len(e.Payload),
+	}
+}
+
+// GetPendingEffects returns up to `limit` pending effects starting at
+// `offset` past the current queue head. Useful for inspecting what Phase 0
+// will process at the next block. Limit is hard-capped at 256 to avoid
+// runaway RPC responses; use paginated calls for larger surveys.
+func (api *EthernovaAPI) GetPendingEffects(offset, limit uint64) (interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	if limit == 0 {
+		limit = 50
+	}
+	effects := vm.DqListPending(statedb, offset, limit)
+	results := make([]*DeferredEffectResult, len(effects))
+	for i, e := range effects {
+		results[i] = deferredEffectToResult(e)
+	}
+	head := vm.DqGetHead(statedb)
+	tail := vm.DqGetTail(statedb)
+	return map[string]interface{}{
+		"head":     head,
+		"tail":     tail,
+		"pending":  vm.DqGetPendingCount(statedb),
+		"offset":   offset,
+		"limit":    limit,
+		"returned": len(results),
+		"effects":  results,
+	}, nil
+}
+
+// GetPendingEffect returns a single DeferredEffect by its sequence number,
+// or null if the entry is absent (never existed or already drained).
+func (api *EthernovaAPI) GetPendingEffect(seq uint64) (interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	e := vm.DqGetEntry(statedb, seq)
+	if e == nil {
+		return nil, nil
+	}
+	return deferredEffectToResult(e), nil
+}
+
+// DeferredProcessingStats returns queue-level counters at the current head
+// state. This is the debugging endpoint hinted at by the NIP-0004
+// implementation plan (§11 of Phase 2) as
+// `nova_getDeferredProcessingStats(blockNumber)` — we expose the current
+// head state; historical per-block stats can be reconstructed from logs.
+func (api *EthernovaAPI) DeferredProcessingStats() (map[string]interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	head := api.e.blockchain.CurrentBlock().Number.Uint64()
+	return map[string]interface{}{
+		"currentBlock":       head,
+		"queueHead":          vm.DqGetHead(statedb),
+		"queueTail":          vm.DqGetTail(statedb),
+		"pendingCount":       vm.DqGetPendingCount(statedb),
+		"totalProcessed":     vm.DqGetTotalProcessed(statedb),
+		"enqueuesAtThisBlock": vm.DqGetEnqueueCountAtBlock(statedb, head),
+		"queueAddress":       vm.DeferredQueueAddr.Hex(),
+		"forkBlock":          ethernova.DeferredExecForkBlock,
+		"forkActive":         head >= ethernova.DeferredExecForkBlock,
+		"maxEnqueuePerBlock": ethernova.MaxPendingEffectsPerBlock,
+		"maxDrainPerBlock":   ethernova.MaxDeferredProcessingPerBlock,
+		"maxPayloadBytes":    ethernova.MaxDeferredEffectPayloadBytes,
+	}, nil
+}
+
+// DeferredExecConfig returns the NIP-0004 Phase 2 configuration. Mirror of
+// ProtocolObjectConfig() but for the deferred engine.
+func (api *EthernovaAPI) DeferredExecConfig() map[string]interface{} {
+	head := api.e.blockchain.CurrentBlock().Number.Uint64()
+	active := head >= ethernova.DeferredExecForkBlock
+	return map[string]interface{}{
+		"forkBlock":          ethernova.DeferredExecForkBlock,
+		"active":             active,
+		"currentBlock":       head,
+		"queueAddress":       vm.DeferredQueueAddr.Hex(),
+		"precompile":         "0x2A",
+		"maxEnqueuePerBlock": ethernova.MaxPendingEffectsPerBlock,
+		"maxDrainPerBlock":   ethernova.MaxDeferredProcessingPerBlock,
+		"maxPayloadBytes":    ethernova.MaxDeferredEffectPayloadBytes,
+		"supportedEffectTypes": []map[string]interface{}{
+			{"tag": types.EffectTypeNoop, "name": "Noop", "active": true},
+			{"tag": types.EffectTypePing, "name": "Ping", "active": true},
+			{"tag": types.EffectTypeMailboxSend, "name": "MailboxSend", "active": false, "phase": 4},
+			{"tag": types.EffectTypeAsyncCallback, "name": "AsyncCallback", "active": false, "phase": 7},
+			{"tag": types.EffectTypeSessionUpdate, "name": "SessionUpdate", "active": false, "phase": 7},
+		},
+		"description": "NIP-0004 Phase 2: Deferred Execution Engine — pending effects queue + block-prologue drain",
 	}
 }

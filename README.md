@@ -222,8 +222,8 @@ Requires: Go 1.21+, GCC, Make
 - [x] Cross-platform state root identity (Linux + Windows binary)
 
 ### Phase 2: Deferred Execution Engine (NIP-0004)
-- [ ] Pending Effects Queue in state tree (ordered by sequence number, NOT Go map)
-- [ ] Deferred Processing Phase: runs at the start of every block before transaction execution
+- [x] Pending Effects Queue in state tree (ordered by sequence number, NOT Go map)
+- [x] Deferred Processing Phase: runs at the start of every block before transaction execution
 - [ ] Effect ordering: `block_number * 1_000_000 + tx_index * 1_000 + effect_index`
 - [ ] Block-level queue size limit + backpressure (MSEND reverts if queue full)
 - [ ] Empty queue = no-op (zero overhead on existing blocks)

@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params/mutations"
 	"github.com/ethereum/go-ethereum/params/types/ctypes"
 	"github.com/ethereum/go-ethereum/params/vars"
@@ -89,6 +90,33 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
 		ProcessBeaconBlockRoot(*beaconRoot, vmenv, statedb)
 	}
+
+	// ============================================================
+	// NIP-0004 Phase 2: Deferred Processing Phase (Phase 0 of block)
+	//
+	// Drain the Pending Effects Queue before any transaction in this
+	// block is applied. This MUST run on both validator (this path)
+	// and miner (worker.makeEnv / fillTransactions entry point), and
+	// MUST produce identical state mutations on both. The SafeTuner
+	// incident (see comment block above around line 119) is the
+	// canonical precedent for why asymmetric hooks cause consensus
+	// split.
+	//
+	// Gating is handled inside ProcessDeferredEffects — before
+	// DeferredExecForkBlock it is a true no-op with zero state touch.
+	// ============================================================
+	dpRes := ProcessDeferredEffects(header, statedb)
+	if dpRes != nil && !dpRes.NoOp && (dpRes.Processed > 0 || dpRes.FailedHandlers > 0) {
+		log.Debug("deferred processing drained",
+			"block", dpRes.BlockNumber,
+			"head", dpRes.Head,
+			"newHead", dpRes.NewHead,
+			"processed", dpRes.Processed,
+			"failed", dpRes.FailedHandlers,
+			"skipped", dpRes.Skipped,
+			"capHit", dpRes.CapHit)
+	}
+
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		msg, err := TransactionToMessage(tx, signer, header.BaseFee)

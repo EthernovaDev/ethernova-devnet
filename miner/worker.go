@@ -1196,6 +1196,31 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		vmenv := vm.NewEVM(context, vm.TxContext{}, env.state, w.chainConfig, vm.Config{})
 		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, vmenv, env.state)
 	}
+	// ============================================================
+	// NIP-0004 Phase 2: Deferred Processing Phase (miner symmetry)
+	//
+	// The validator path runs this hook in core/state_processor.go at
+	// the same position (after ProcessBeaconBlockRoot, before the tx
+	// loop). Any asymmetry here — e.g. miner runs a different branch,
+	// miner passes a different statedb, miner forgets to finalise — is
+	// a consensus split. Keep these two call sites identical in spirit
+	// and in the state they hand to the drain.
+	//
+	// The function is fork-gated internally, so calling it on a
+	// pre-fork block is a true no-op (no account materialisation, no
+	// storage writes). Safe to unconditionally invoke.
+	// ============================================================
+	dpRes := core.ProcessDeferredEffects(header, env.state)
+	if dpRes != nil && !dpRes.NoOp && (dpRes.Processed > 0 || dpRes.FailedHandlers > 0) {
+		log.Debug("miner deferred processing drained",
+			"block", dpRes.BlockNumber,
+			"head", dpRes.Head,
+			"newHead", dpRes.NewHead,
+			"processed", dpRes.Processed,
+			"failed", dpRes.FailedHandlers,
+			"skipped", dpRes.Skipped,
+			"capHit", dpRes.CapHit)
+	}
 	return env, nil
 }
 

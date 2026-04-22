@@ -65,6 +65,7 @@ var PrecompiledContractsEthernova = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{0x27}): &novaContractUpgrade{},
 	common.BytesToAddress([]byte{0x28}): &novaOracle{},
 	common.BytesToAddress([]byte{0x29}): &novaProtocolObjectRegistry{}, // NIP-0004 Phase 1
+	common.BytesToAddress([]byte{0x2A}): &novaDeferredQueue{},          // NIP-0004 Phase 2
 }
 
 var PrecompiledContractsBLS = map[common.Address]PrecompiledContract{
