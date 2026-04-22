@@ -23,9 +23,16 @@ import (
 // MegaFork fields (eip2FBlock, eip7FBlock, eip150Block, etc.) are nil.
 // The patch function MUST still apply the MegaFork fields.
 func TestMegaForkAppliedWhenEIP658Present(t *testing.T) {
-	forkBlock := ethernova.EVMCompatibilityForkBlock // 105000
-	eip658Block := ethernova.EIP658ForkBlock         // 110500
-	megaBlock := ethernova.MegaForkBlock             // 118200
+	// Use hardcoded fork blocks > 0 so the "head < fork" patch path is
+	// reachable. The devnet globals all default to 0 (genesis activation),
+	// which would make this test's scenario impossible (head can't be
+	// less than 0). The patch logic itself is identical regardless of
+	// which specific fork block values are used.
+	const (
+		forkBlock   uint64 = 105000
+		eip658Block uint64 = 110500
+		megaBlock   uint64 = 118200
+	)
 
 	cfg := &coregeth.CoreGethChainConfig{
 		ChainID:             big.NewInt(int64(ethernova.NewChainID)),
@@ -42,7 +49,7 @@ func TestMegaForkAppliedWhenEIP658Present(t *testing.T) {
 	// "UPGRADE REQUIRED". We use head < megaBlock so the patch is allowed.
 	head := megaBlock - 1
 
-	updated, err := ethernovaPatchConfigIfNeeded(cfg, head)
+	updated, err := ethernovaPatchConfigIfNeededForForks(cfg, head, forkBlock, eip658Block, megaBlock)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -77,9 +84,17 @@ func TestMegaForkAppliedWhenEIP658Present(t *testing.T) {
 }
 
 // TestAllForksAppliedFromScratch verifies that when all fork fields are nil,
-// a single call to ethernovaPatchConfigIfNeeded applies all three stages:
-// Constantinople/Petersburg/Istanbul, EIP658, and MegaFork.
+// a single call to ethernovaPatchConfigIfNeededForForks applies all three
+// stages: Constantinople/Petersburg/Istanbul, EIP658, and MegaFork.
 func TestAllForksAppliedFromScratch(t *testing.T) {
+	// Hardcoded fork blocks — see TestMegaForkAppliedWhenEIP658Present for
+	// why we don't use the global ethernova.* constants here.
+	const (
+		forkBlock   uint64 = 105000
+		eip658Block uint64 = 110500
+		megaBlock   uint64 = 118200
+	)
+
 	cfg := &coregeth.CoreGethChainConfig{
 		ChainID:   big.NewInt(int64(ethernova.NewChainID)),
 		NetworkID: ethernova.NewChainID,
@@ -89,7 +104,7 @@ func TestAllForksAppliedFromScratch(t *testing.T) {
 
 	head := uint64(0) // before any fork
 
-	updated, err := ethernovaPatchConfigIfNeeded(cfg, head)
+	updated, err := ethernovaPatchConfigIfNeededForForks(cfg, head, forkBlock, eip658Block, megaBlock)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -98,29 +113,29 @@ func TestAllForksAppliedFromScratch(t *testing.T) {
 	}
 
 	// Constantinople/Petersburg/Istanbul
-	if cfg.ConstantinopleBlock == nil || cfg.ConstantinopleBlock.Uint64() != ethernova.EVMCompatibilityForkBlock {
+	if cfg.ConstantinopleBlock == nil || cfg.ConstantinopleBlock.Uint64() != forkBlock {
 		t.Errorf("ConstantinopleBlock not set correctly")
 	}
-	if cfg.PetersburgBlock == nil || cfg.PetersburgBlock.Uint64() != ethernova.EVMCompatibilityForkBlock {
+	if cfg.PetersburgBlock == nil || cfg.PetersburgBlock.Uint64() != forkBlock {
 		t.Errorf("PetersburgBlock not set correctly")
 	}
-	if cfg.IstanbulBlock == nil || cfg.IstanbulBlock.Uint64() != ethernova.EVMCompatibilityForkBlock {
+	if cfg.IstanbulBlock == nil || cfg.IstanbulBlock.Uint64() != forkBlock {
 		t.Errorf("IstanbulBlock not set correctly")
 	}
 
 	// EIP658
-	if cfg.EIP658FBlock == nil || cfg.EIP658FBlock.Uint64() != ethernova.EIP658ForkBlock {
+	if cfg.EIP658FBlock == nil || cfg.EIP658FBlock.Uint64() != eip658Block {
 		t.Errorf("EIP658FBlock not set correctly")
 	}
 
 	// MegaFork
-	if cfg.EIP2FBlock == nil || cfg.EIP2FBlock.Uint64() != ethernova.MegaForkBlock {
+	if cfg.EIP2FBlock == nil || cfg.EIP2FBlock.Uint64() != megaBlock {
 		t.Errorf("EIP2FBlock not set correctly")
 	}
-	if cfg.EIP150Block == nil || cfg.EIP150Block.Uint64() != ethernova.MegaForkBlock {
+	if cfg.EIP150Block == nil || cfg.EIP150Block.Uint64() != megaBlock {
 		t.Errorf("EIP150Block not set correctly")
 	}
-	if cfg.EIP214FBlock == nil || cfg.EIP214FBlock.Uint64() != ethernova.MegaForkBlock {
+	if cfg.EIP214FBlock == nil || cfg.EIP214FBlock.Uint64() != megaBlock {
 		t.Errorf("EIP214FBlock not set correctly")
 	}
 }

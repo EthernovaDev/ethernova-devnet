@@ -12,6 +12,19 @@ import (
 )
 
 func ethernovaPatchConfigIfNeeded(cfg ctypes.ChainConfigurator, head uint64) (bool, error) {
+	return ethernovaPatchConfigIfNeededForForks(cfg, head,
+		ethernova.EVMCompatibilityForkBlock,
+		ethernova.EIP658ForkBlock,
+		ethernova.MegaForkBlock)
+}
+
+// ethernovaPatchConfigIfNeededForForks is the fork-block-parameterised core
+// of the migration orchestrator. ethernovaPatchConfigIfNeeded is a thin
+// wrapper that passes the global ethernova.* constants. Tests use this
+// directly with hardcoded fork blocks so they don't coupling to whatever the
+// globals happen to be on the current network (devnet has all forks at 0,
+// which makes the "head < fork" patch path unreachable).
+func ethernovaPatchConfigIfNeededForForks(cfg ctypes.ChainConfigurator, head uint64, forkBlock, eip658Block, megaBlock uint64) (bool, error) {
 	if cfg == nil {
 		return false, nil
 	}
@@ -23,7 +36,6 @@ func ethernovaPatchConfigIfNeeded(cfg ctypes.ChainConfigurator, head uint64) (bo
 	updated := false
 	var errs []string
 
-	forkBlock := ethernova.EVMCompatibilityForkBlock
 	missing, mismatched, err := EthernovaForkStatus(cfg, forkBlock)
 	if err != nil {
 		errs = append(errs, err.Error())
@@ -43,7 +55,6 @@ func ethernovaPatchConfigIfNeeded(cfg ctypes.ChainConfigurator, head uint64) (bo
 		}
 	}
 
-	eip658Block := ethernova.EIP658ForkBlock
 	missing, mismatched, err = EthernovaEIP658Status(cfg, eip658Block)
 	if err != nil {
 		errs = append(errs, err.Error())
@@ -63,7 +74,6 @@ func ethernovaPatchConfigIfNeeded(cfg ctypes.ChainConfigurator, head uint64) (bo
 		}
 	}
 
-	megaBlock := ethernova.MegaForkBlock
 	missingFields, mismatched, err := EthernovaMegaForkStatus(cfg, megaBlock)
 	if err != nil {
 		errs = append(errs, err.Error())

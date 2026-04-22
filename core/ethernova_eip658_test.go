@@ -27,14 +27,14 @@ func (eip658DummyChain) GetHeader(common.Hash, uint64) *types.Header {
 	return nil
 }
 
-func makeEIP658Receipt(t *testing.T, blockNumber uint64) *types.Receipt {
+func makeEIP658Receipt(t *testing.T, blockNumber, eip658Fork uint64) *types.Receipt {
 	t.Helper()
 
 	cfg := &coregeth.CoreGethChainConfig{
 		NetworkID:    ethernova.NewChainID,
 		ChainID:      new(big.Int).SetUint64(ethernova.NewChainID),
 		EIP155Block:  big.NewInt(0),
-		EIP658FBlock: new(big.Int).SetUint64(ethernova.EIP658ForkBlock),
+		EIP658FBlock: new(big.Int).SetUint64(eip658Fork),
 	}
 
 	db := rawdb.NewMemoryDatabase()
@@ -76,14 +76,19 @@ func makeEIP658Receipt(t *testing.T, blockNumber uint64) *types.Receipt {
 }
 
 func TestEthernovaEIP658ReceiptStatusTransition(t *testing.T) {
-	fork := ethernova.EIP658ForkBlock
+	// Hardcoded fork block > 0 so we can test the "pre-fork" branch. Using
+	// ethernova.EIP658ForkBlock (= 0 on devnet) would underflow fork-1 to
+	// MAX uint64 and the "pre-fork" half of this test would be untestable.
+	// The EIP-658 transition logic itself is fork-block-independent; any
+	// non-zero value exercises the same receipt-format switch.
+	const fork uint64 = 100
 
-	pre := makeEIP658Receipt(t, fork-1)
+	pre := makeEIP658Receipt(t, fork-1, fork)
 	if len(pre.PostState) == 0 {
 		t.Fatalf("expected post-state before fork %d", fork)
 	}
 
-	post := makeEIP658Receipt(t, fork)
+	post := makeEIP658Receipt(t, fork, fork)
 	if len(post.PostState) != 0 {
 		t.Fatalf("expected no post-state at/after fork %d", fork)
 	}
