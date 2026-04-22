@@ -224,12 +224,12 @@ Requires: Go 1.21+, GCC, Make
 ### Phase 2: Deferred Execution Engine (NIP-0004)
 - [x] Pending Effects Queue in state tree (ordered by sequence number, NOT Go map)
 - [x] Deferred Processing Phase: runs at the start of every block before transaction execution
-- [ ] Effect ordering: `block_number * 1_000_000 + tx_index * 1_000 + effect_index`
-- [ ] Block-level queue size limit + backpressure (MSEND reverts if queue full)
-- [ ] Empty queue = no-op (zero overhead on existing blocks)
-- [ ] `nova_getPendingEffects` / `nova_getDeferredProcessingStats` RPC endpoints
-- [ ] Substage 2A: queue storage only (enqueue, no processing)
-- [ ] Substage 2B: active deferred processing + queue clearing
+- [x] Effect ordering: `block_number * 1_000_000 + tx_index * 1_000 + effect_index`
+- [x] Block-level queue size limit + backpressure (MSEND reverts if queue full)
+- [x] Empty queue = no-op (zero overhead on existing blocks)
+- [x] `nova_getPendingEffects` / `nova_getDeferredProcessingStats` RPC endpoints
+- [x] Substage 2A: queue storage only (enqueue, no processing)
+- [x] Substage 2B: active deferred processing + queue clearing
 - [ ] Consensus verification: 3+ nodes, 1000 blocks, 500+ enqueued effects, zero BAD BLOCK
 
 ### Phase 3: Content Reference Primitive (NIP-0004)
