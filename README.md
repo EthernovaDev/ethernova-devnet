@@ -230,7 +230,7 @@ Requires: Go 1.21+, GCC, Make
 - [x] `nova_getPendingEffects` / `nova_getDeferredProcessingStats` RPC endpoints
 - [x] Substage 2A: queue storage only (enqueue, no processing)
 - [x] Substage 2B: active deferred processing + queue clearing
-- [ ] Consensus verification: 3+ nodes, 1000 blocks, 500+ enqueued effects, zero BAD BLOCK
+- [x] Consensus verification: 3+ nodes, 1000 blocks, 500+ enqueued effects, zero BAD BLOCK
 
 ### Phase 3: Content Reference Primitive (NIP-0004)
 - [ ] `novaContentRegistry` precompile (0x2A): create, lookup, verify content references
