@@ -1,92 +1,170 @@
-feat(nip-0004): Phase 2 Deferred Execution Engine
+feat(nip-0004): Phase 3 Content Reference Primitive
 
-Introduces the Pending Effects Queue and block-prologue drain that
-form the foundation for Mailbox (Phase 4), Async Callback (Phase 7/11),
-and Session timeout (Phase 7).
+Introduces the first real, live Protocol Object type: Content Reference,
+a minimal immutable pointer to off-chain content backed by a per-byte
+per-epoch rent model. This is the "canary in the coal mine" for the
+Protocol Object lifecycle — if create → exist → expire works
+deterministically for ContentRef, the Phase 1 foundation is vindicated.
 
 Architecture:
-- Queue storage lives at system address 0xFF02, same pattern as
-  0xFF01 (Protocol Objects, Phase 1) and 0xAA22/0xAA25-28 (cd4369d).
-  No subtrie, no block header change, no state root formula change.
-- Monotonic uint64 sequence counter minted in state on every enqueue.
-  No Go map iteration, no wall clock, no random. Ordering invariant
-  is "insertion order within block N" — enforced by sequential tx
-  execution + sequential precompile dispatch.
-- Frontier-pin model: Phase 0 snapshots tail at drain start and
-  processes [head, frontier). Entries enqueued mid-drain (impossible
-  in Phase 2, possible in Phase 4+) land beyond frontier and defer
-  to the next block.
+- ContentRef body lives in the Phase 1 Protocol Object Registry
+  (0xFF01) tagged with type_tag=0x03. Phase 3 adds a second system
+  address 0xFF03 that holds ContentRef-specific indices (per-owner
+  list, global slot list, rent cursor). Object storage and rent
+  bookkeeping are isolated so a bug in one cannot cross-contaminate
+  the other — same compartmentalization principle as 0xFF01 vs 0xFF02.
+- Global nonce for ID generation is shared with 0x29
+  (novaProtocolObjectRegistry). ContentRef IDs therefore cannot
+  collide with any other Protocol Object ID, present or future.
+- Rent math is pure integer arithmetic in its own package
+  (core/state/rent_engine.go) so both the precompile read path and
+  the consensus Finalize hook compute deductions via the identical
+  code path. No floating point, no math/big ops that can wrap
+  silently, no Go map iteration. Formula: deducted_per_epoch =
+  rate * size * epoch_length.
+- Read paths compute an "effective" rent balance lazily: persisted
+  balance minus rent accrued since last_touched_block but not yet
+  persisted. isValid() compares effective balance to one epoch of
+  forward rent, so expired-by-rent flips to false the moment the
+  next epoch boundary passes, with or without a Finalize hook having
+  run on that particular read.
+
+Precompile slot decision — 0x2B, not the drafted 0x2A:
+- NIP-0004 §3.4 originally drafted novaContentRegistry at address
+  0x2A. In this codebase 0x2A is already held by Phase 2's
+  novaDeferredQueue (merged several commits ago). Moving Phase 2
+  off 0x2A would be breaking — devnet contracts that already call
+  address(0x2a) for enqueue would hit the wrong precompile.
+- ContentRegistry therefore takes the next free slot: 0x2B. The
+  original NIP-0003 / NIP-0004 0x2A collision described by both
+  drafts is moot — 0x2A is Deferred Queue canonically, and the
+  legacy NIP-0003 chat-channel assignment is rebased in Phase 9.
+- Post-Phase-3 slot map:
+  0x29 novaProtocolObjectRegistry   (Phase 1)
+  0x2A novaDeferredQueue            (Phase 2)
+  0x2B novaContentRegistry          (Phase 3)   <-- NEW
 
 Consensus-critical symmetry:
-- core/state_processor.go: hook runs after ProcessBeaconBlockRoot,
-  before the tx loop. Runs on the validator import path.
-- miner/worker.go: hook runs after ProcessBeaconBlockRoot, before
-  return env. Runs on the miner build path.
-Both paths call the same ProcessDeferredEffects(header, statedb)
-with identical arguments. Asymmetry here would reproduce the
-SafeTuner split.
+- consensus/ethash/consensus.go Finalize(): calls
+  vm.CrProcessRentEpoch(state, blockNum) after the 0xFF01 non-empty
+  hook and before IntermediateRoot.
+- consensus/lyra2/consensus.go Finalize() AND FinalizeAndAssemble():
+  same call with identical arguments. Lyra2 is the only engine where
+  both paths need the hook directly, because its FinalizeAndAssemble
+  computes its own IntermediateRoot rather than delegating to
+  Finalize (ethash's FinalizeAndAssemble calls Finalize and inherits
+  the hook for free).
+- Guard: cr_last_epoch_block is checked before any drain so that if
+  both Finalize paths fire for the same header (which the reward
+  accumulation path in both engines already tolerates), the rent
+  drain runs exactly once.
 
-Failure handling (per NIP-0004 plan section 18):
-- Handler error does NOT revert the block.
-- Entry is still cleared, head still advances, failure is counted
-  and logged. Liveness over per-entry strictness.
+Rent engine invariants (core/state/rent_engine.go):
+- IsRentEpochBoundary(block, epoch): true iff block > 0 AND
+  block % epoch == 0. Block 0 is explicitly excluded — no prior
+  epoch to charge for.
+- EpochsElapsed(from, to, epoch): half-open lower bound so that
+  after Finalize at boundary B, the next boundary to charge is
+  strictly > B. Consistent with persist-at-boundary semantics.
+- ComputeEpochRentWei returns *big.Int because the product of three
+  uint64s can exceed 2^64. Callers compare against *big.Int balances.
+- Golden values pinned in rent_engine_test.go so any accidental
+  formula swap surfaces in CI:
+    (rate=1, size=1,       epoch=10000) -> 10_000
+    (rate=1, size=1024,    epoch=10000) -> 10_240_000
+    (rate=7, size=123456,  epoch=10000) -> 8_641_920_000
+    (rate=1, size=65536,   epoch=10000) -> 655_360_000
 
-Caps (per NIP-0004 plan section 9.1):
-- MaxPendingEffectsPerBlock: 1024 enqueue backpressure
-- MaxDeferredProcessingPerBlock: 1024 drain cap
-- MaxDeferredEffectPayloadBytes: 512 per-effect payload
+EIP-161 safety:
+- crEnsureRegistryExists mirrors Phase 1's poEnsureRegistryExists.
+  SetState alone is not sufficient: a storage-only account is still
+  empty per EIP-161 and gets wiped by Finalise(true). nonce=1 on
+  first write makes 0xFF03 non-empty.
+- Fast-path guard: when slotsUsed==0 at an epoch boundary, the
+  function returns without writing anything. A previous draft wrote
+  cr_last_epoch_block in this branch, which would be wiped along
+  with the still-empty 0xFF03 account — the write was redundant
+  because empty-state re-entry is an unconditional no-op anyway.
 
-Precompile 0x2A (novaDeferredQueue):
-- 0x01 enqueueEffect(type, payload)  returns uint64 seq
-- 0x02 getPendingEffect(seq)         returns RLP entry
-- 0x03 getQueueStats()               returns 5 x uint256
+Precompile 0x2B (novaContentRegistry):
+- 0x01 createContentRef(hash, size, ctLen, proofLen, rentPrepay,
+                        expiryBlock, ct, proof)  returns bytes32 ID
+- 0x02 getContentRef(id)             returns RLP(obj) || validityByte
+- 0x03 isValid(id)                   returns uint256 (0 or 1)
+- 0x04 listContentRefsByOwner        returns count || ids...
+- 0x05 getContentRefCount            returns uint256 (live count)
+
+Gas:
+- create: 10_000 base + 200 per 32-byte input chunk
+- getContentRef read: 2_000
+- isValid:            1_000
+- list:               2_000
+- count:                500
 
 RPC (namespace ethernova):
-- ethernova_deferredExecConfig
-- ethernova_deferredProcessingStats
-- ethernova_getPendingEffects(offset, limit)
-- ethernova_getPendingEffect(seq)
+- ethernova_contentRefConfig          fork + rent parameters
+- ethernova_getContentRefCount        live + slotsUsed + registry addr
+- ethernova_getContentRef(idHex)      ContentRefResult or null
+- ethernova_listContentRefs(owner, offset, limit)
 
-Deferred effect types:
-- 0x00 Noop    (test harness)
-- 0x01 Ping    (test harness, bumps per-caller counter)
-- 0x10 MailboxSend    reserved for Phase 4 (drains as no-op)
-- 0x20 AsyncCallback  reserved for Phase 7 (drains as no-op)
-- 0x30 SessionUpdate  reserved for Phase 7 (drains as no-op)
+Bounded work per block:
+- MaxContentRefsPerRentEpoch = 8192. If live population exceeds the
+  cap, subsequent epoch-boundary blocks pick up where the cursor
+  left off. Bounded block validation time, no liveness loss.
+- MaxContentRefSize = 2^32 (4 GiB). Caps the declared off-chain
+  size so rate*size*epochLength cannot overflow *big.Int
+  arithmetic into pathological values.
+- MaxContentRefTypeBytes = 64
+- MaxContentRefAvailabilityProofBytes = 256
 
 Fork activation:
-- DeferredExecForkBlock = 0 on devnet (genesis-active).
-  Queue starts empty so pre-fork blocks are true no-ops.
+- ContentRefForkBlock = 0 on devnet (genesis-active). Pre-fork
+  reads of selectors 0x01..0x05 revert explicitly rather than
+  silently no-op, so a contract written against Phase 3 fails
+  visibly if pointed at a pre-fork node.
 - Mainnet value TBD at coordination block.
 
 Conscious deviations from the written plan:
-- System address instead of dedicated subtrie: matches Phase 1 and
-  post-cd4369d precompiles, avoids block header change.
-- Pure monotonic uint64 seq instead of block*1e6+tx*1e3+idx formula:
-  avoids overflow caps, same semantic ordering.
-- SourceTxHash is keccak(caller, blockNum, seq), not the real tx
-  hash, because thash is unexported on state.StateDB. Fully
-  deterministic. Can be tightened in Phase 3+ without breaking change.
+- Precompile at 0x2B instead of the drafted 0x2A (rationale above).
+- ContentRef body stored in Phase 1 registry (0xFF01) instead of a
+  new subtrie. Same rationale as Phase 2: preserves block header
+  and state root formula.
+- No deleteContentRef selector. Spec §1 calls ContentRef "immutable
+  setelah dibuat" — the only deletion path is rent exhaustion.
+  Phase 1's generic deleteObject on 0x29 can still tombstone a
+  ContentRef if an operator really needs to; the 0xFF03 index
+  entry becomes stale but the RPC layer filters it out via the
+  type-tag check in CrGetContentRef.
 
 Tests:
-- core/types/deferred_effect_test.go: RLP round-trip, determinism,
-  type validation, garbage decode.
-- core/ethernova_deferred_processing_test.go: empty-queue no-op,
-  FIFO drain, tombstone verification, ping counter increment,
-  cross-run determinism.
-- devnet/contracts/DeferredTestHarness.sol and phase-nip0004-02-test.js:
-  7-scenario multi-node consensus harness.
+- core/state/rent_engine_test.go: 4 test functions covering epoch
+  boundary logic, elapsed-epochs counting, per-epoch rent
+  arithmetic, and pinned golden values for cross-platform
+  determinism.
+- devnet/contracts/ContentRefTest.sol: 6-function harness
+  (createContentRef, getContentRef, isValid, isValidTx, listByOwner,
+  getCount, createBatch).
+- devnet/phase-nip0004-03-test.js: 10-scenario multi-node consensus
+  harness covering fork gate, static call, multi-node block-hash
+  equality, epoch-boundary state-root equality, create/read
+  roundtrip, pagination, rent-epoch deduction observation,
+  under-funded expiry, and neighbour-precompile liveness (0x29
+  and 0x2A still respond after 0x2B is added).
+
+Docs:
+- README.md: Phase 3 roadmap entry marked complete, precompile
+  table extended from 9 to 12 entries (0x29, 0x2A, 0x2B).
 
 Files:
-  core/types/deferred_effect.go              (+128 new)
-  core/types/deferred_effect_test.go         (+176 new)
-  core/vm/ethernova_deferred_queue.go        (+501 new)
-  core/ethernova_deferred_processing.go      (+277 new)
-  core/ethernova_deferred_processing_test.go (+247 new)
-  devnet/contracts/DeferredTestHarness.sol   (+142 new)
-  devnet/phase-nip0004-02-test.js            (+287 new)
-  core/state_processor.go                    (+28)
-  core/vm/contracts.go                       (+1)
-  eth/api_ethernova.go                       (+132)
-  miner/worker.go                            (+25)
-  params/ethernova/forks.go                  (+38)
+  core/state/rent_engine.go                     (+103 new)
+  core/state/rent_engine_test.go                (+142 new)
+  core/vm/ethernova_content_registry.go         (+709 new)
+  devnet/contracts/ContentRefTest.sol           (+151 new)
+  devnet/phase-nip0004-03-test.js               (+472 new)
+  docs/NIP-0004-Phase-3.md                      (+152 new)
+  core/vm/contracts.go                          (+1)
+  consensus/ethash/consensus.go                 (+8)
+  consensus/lyra2/consensus.go                  (+18 -1)
+  eth/api_ethernova.go                          (+184 net; gofmt reflow)
+  params/ethernova/forks.go                     (+64)
+  README.md                                     (+16 net)

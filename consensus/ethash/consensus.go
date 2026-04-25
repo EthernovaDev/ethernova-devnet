@@ -33,6 +33,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/params/ethernova"
@@ -638,6 +639,13 @@ func (ethash *Ethash) Finalize(chain consensus.ChainHeaderReader, header *types.
 			state.SetNonce(protoAddr, 1)
 		}
 	}
+
+	// NIP-0004 Phase 3: Rent epoch drain. Mirrors lyra2.Finalize — this
+	// call is the single source of truth for per-block ContentRef rent
+	// deduction, and BOTH engines (ethash here, lyra2 in its own file)
+	// MUST invoke it on every Finalize call with identical arguments.
+	// FinalizeAndAssemble below piggy-backs via its call to Finalize().
+	vm.CrProcessRentEpoch(state, header.Number.Uint64())
 
 	// Log block reward for Ethernova monitoring
 	reward, _ := mutations.GetRewards(chain.Config(), header, uncles)

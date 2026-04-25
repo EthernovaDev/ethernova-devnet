@@ -1,6 +1,7 @@
 package eth
 
 import (
+	"math/big"
 	"runtime"
 	"time"
 
@@ -93,16 +94,16 @@ func (api *EthernovaAPI) ChainConfig() ChainConfigResult {
 }
 
 type NodeHealthResult struct {
-	Version       string  `json:"version"`
-	Network       string  `json:"network"`
-	CurrentBlock  uint64  `json:"currentBlock"`
-	HighestBlock  uint64  `json:"highestBlock"`
-	PeerCount     int     `json:"peerCount"`
-	Syncing       bool    `json:"syncing"`
-	SyncProgress  float64 `json:"syncProgress"`
-	UptimeSeconds int64   `json:"uptimeSeconds"`
-	MemoryMB      uint64  `json:"memoryMB"`
-	DualSignerFallbacks int64 `json:"dualSignerFallbacks"`
+	Version             string  `json:"version"`
+	Network             string  `json:"network"`
+	CurrentBlock        uint64  `json:"currentBlock"`
+	HighestBlock        uint64  `json:"highestBlock"`
+	PeerCount           int     `json:"peerCount"`
+	Syncing             bool    `json:"syncing"`
+	SyncProgress        float64 `json:"syncProgress"`
+	UptimeSeconds       int64   `json:"uptimeSeconds"`
+	MemoryMB            uint64  `json:"memoryMB"`
+	DualSignerFallbacks int64   `json:"dualSignerFallbacks"`
 }
 
 func (api *EthernovaAPI) NodeHealth() NodeHealthResult {
@@ -149,11 +150,11 @@ func (api *EthernovaAPI) NodeHealth() NodeHealthResult {
 
 // EvmProfileResult holds the EVM opcode profiling snapshot.
 type EvmProfileResult struct {
-	Enabled       bool              `json:"enabled"`
-	TotalOps      uint64            `json:"totalOps"`
-	TotalGas      uint64            `json:"totalGas"`
-	TopOpcodes    []vm.OpcodeStats  `json:"topOpcodes"`
-	TopContracts  []vm.ContractStats `json:"topContracts"`
+	Enabled      bool               `json:"enabled"`
+	TotalOps     uint64             `json:"totalOps"`
+	TotalGas     uint64             `json:"totalGas"`
+	TopOpcodes   []vm.OpcodeStats   `json:"topOpcodes"`
+	TopContracts []vm.ContractStats `json:"topContracts"`
 }
 
 // EvmProfile returns EVM opcode execution profiling data.
@@ -191,12 +192,12 @@ func (api *EthernovaAPI) EvmProfileToggle(enabled bool) bool {
 
 // AdaptiveGasResult holds the adaptive gas system status.
 type AdaptiveGasResult struct {
-	Enabled         bool                `json:"enabled"`
-	Version         string              `json:"version"`
-	ForkBlock       uint64              `json:"forkBlock"`
-	DiscountPercent uint64              `json:"maxDiscountPercent"`
-	PenaltyPercent  uint64              `json:"maxPenaltyPercent"`
-	Contracts       []vm.PatternStats   `json:"contracts"`
+	Enabled         bool              `json:"enabled"`
+	Version         string            `json:"version"`
+	ForkBlock       uint64            `json:"forkBlock"`
+	DiscountPercent uint64            `json:"maxDiscountPercent"`
+	PenaltyPercent  uint64            `json:"maxPenaltyPercent"`
+	Contracts       []vm.PatternStats `json:"contracts"`
 }
 
 // AdaptiveGas returns the current adaptive gas configuration and contract patterns.
@@ -254,15 +255,15 @@ func (api *EthernovaAPI) AdaptiveGasReset() bool {
 
 // AdaptiveGasV2Result holds the trace-based adaptive gas system status.
 type AdaptiveGasV2Result struct {
-	Enabled         bool                       `json:"enabled"`
-	ConsensusRule   bool                       `json:"consensusRule"`
-	Version         string                     `json:"version"`
-	ForkBlock       uint64                     `json:"forkBlock"`
-	DiscountPercent uint64                     `json:"maxDiscountPercent"`
-	PenaltyPercent  uint64                     `json:"maxPenaltyPercent"`
-	LastTx          *vm.AdaptiveGasV2Stats     `json:"lastTxClassification,omitempty"`
-	LegacyContracts []vm.PatternStats          `json:"legacyContracts,omitempty"`
-	StaticClasses   []vm.ClassificationStats   `json:"staticClassifications,omitempty"`
+	Enabled         bool                     `json:"enabled"`
+	ConsensusRule   bool                     `json:"consensusRule"`
+	Version         string                   `json:"version"`
+	ForkBlock       uint64                   `json:"forkBlock"`
+	DiscountPercent uint64                   `json:"maxDiscountPercent"`
+	PenaltyPercent  uint64                   `json:"maxPenaltyPercent"`
+	LastTx          *vm.AdaptiveGasV2Stats   `json:"lastTxClassification,omitempty"`
+	LegacyContracts []vm.PatternStats        `json:"legacyContracts,omitempty"`
+	StaticClasses   []vm.ClassificationStats `json:"staticClassifications,omitempty"`
 }
 
 // AdaptiveGasV2 returns the v2 trace-based adaptive gas system status.
@@ -325,9 +326,9 @@ func (api *EthernovaAPI) AdaptiveGasV2Simulate(
 
 // ExecutionModeResult holds execution mode status.
 type ExecutionModeResult struct {
-	Mode            string              `json:"mode"`
-	FastExecutions  uint64              `json:"fastExecutions"`
-	SkippedChecks   uint64              `json:"skippedChecks"`
+	Mode              string             `json:"mode"`
+	FastExecutions    uint64             `json:"fastExecutions"`
+	SkippedChecks     uint64             `json:"skippedChecks"`
 	VerifiedContracts []vm.VerifiedStats `json:"verifiedContracts"`
 }
 
@@ -587,8 +588,8 @@ func (api *EthernovaAPI) GetProtocolObjectCount() (map[string]interface{}, error
 	}
 
 	return map[string]interface{}{
-		"total":   total,
-		"perType": perType,
+		"total":           total,
+		"perType":         perType,
 		"registryAddress": vm.ProtocolObjectRegistryAddr.Hex(),
 		"forkBlock":       ethernova.ProtocolObjectForkBlock,
 	}, nil
@@ -728,18 +729,18 @@ func (api *EthernovaAPI) DeferredProcessingStats() (map[string]interface{}, erro
 	}
 	head := api.e.blockchain.CurrentBlock().Number.Uint64()
 	return map[string]interface{}{
-		"currentBlock":       head,
-		"queueHead":          vm.DqGetHead(statedb),
-		"queueTail":          vm.DqGetTail(statedb),
-		"pendingCount":       vm.DqGetPendingCount(statedb),
-		"totalProcessed":     vm.DqGetTotalProcessed(statedb),
+		"currentBlock":        head,
+		"queueHead":           vm.DqGetHead(statedb),
+		"queueTail":           vm.DqGetTail(statedb),
+		"pendingCount":        vm.DqGetPendingCount(statedb),
+		"totalProcessed":      vm.DqGetTotalProcessed(statedb),
 		"enqueuesAtThisBlock": vm.DqGetEnqueueCountAtBlock(statedb, head),
-		"queueAddress":       vm.DeferredQueueAddr.Hex(),
-		"forkBlock":          ethernova.DeferredExecForkBlock,
-		"forkActive":         head >= ethernova.DeferredExecForkBlock,
-		"maxEnqueuePerBlock": ethernova.MaxPendingEffectsPerBlock,
-		"maxDrainPerBlock":   ethernova.MaxDeferredProcessingPerBlock,
-		"maxPayloadBytes":    ethernova.MaxDeferredEffectPayloadBytes,
+		"queueAddress":        vm.DeferredQueueAddr.Hex(),
+		"forkBlock":           ethernova.DeferredExecForkBlock,
+		"forkActive":          head >= ethernova.DeferredExecForkBlock,
+		"maxEnqueuePerBlock":  ethernova.MaxPendingEffectsPerBlock,
+		"maxDrainPerBlock":    ethernova.MaxDeferredProcessingPerBlock,
+		"maxPayloadBytes":     ethernova.MaxDeferredEffectPayloadBytes,
 	}, nil
 }
 
@@ -765,5 +766,188 @@ func (api *EthernovaAPI) DeferredExecConfig() map[string]interface{} {
 			{"tag": types.EffectTypeSessionUpdate, "name": "SessionUpdate", "active": false, "phase": 7},
 		},
 		"description": "NIP-0004 Phase 2: Deferred Execution Engine — pending effects queue + block-prologue drain",
+	}
+}
+
+// ============================================================
+// NIP-0004 Phase 3: Content Reference Primitive RPC endpoints
+//
+// Public methods (registered via the "ethernova" RPC namespace):
+//   - GetContentRef(idHex)                        -> ContentRefResult | null
+//   - ListContentRefs(ownerHex, offset, limit)    -> list wrapper
+//   - GetContentRefCount()                        -> counters
+//   - ContentRefConfig()                          -> spec metadata
+//
+// Canonical JSON-RPC names follow the same style used by the rest of
+// this API (see go-ethereum's standard lowercase-first-word mapping):
+//
+//   ethernova_getContentRef            -> GetContentRef
+//   ethernova_listContentRefs          -> ListContentRefs
+//   ethernova_getContentRefCount       -> GetContentRefCount
+//   ethernova_contentRefConfig         -> ContentRefConfig
+//
+// The "nova_*" aliases mentioned in the Phase 3 spec are mapped by the
+// admin layer that registers this API under the "nova" namespace too —
+// see node.RegisterAPIs; if only one namespace is exposed, prefer
+// "ethernova" which matches the service struct name.
+// ============================================================
+
+// ContentRefResult is the JSON-serializable representation of a ContentRef.
+type ContentRefResult struct {
+	ID                   common.Hash    `json:"id"`
+	Owner                common.Address `json:"owner"`
+	ContentHash          common.Hash    `json:"contentHash"`
+	Size                 uint64         `json:"size"`
+	ContentType          string         `json:"contentType"`
+	AvailabilityProofHex string         `json:"availabilityProof"`
+	ExpiryBlock          uint64         `json:"expiryBlock"`
+	LastTouchedBlock     uint64         `json:"lastTouchedBlock"`
+	RentBalanceStored    string         `json:"rentBalanceStored"`
+	RentBalanceEffective string         `json:"rentBalanceEffective"`
+	IsValid              bool           `json:"isValid"`
+	ExpiredReason        string         `json:"expiredReason,omitempty"`
+}
+
+func contentRefToResult(obj *types.ProtocolObject, currentBlock uint64) (*ContentRefResult, error) {
+	d, err := vm.DecodeContentRefStateData(obj.StateData)
+	if err != nil {
+		return nil, err
+	}
+	stored := "0"
+	if obj.RentBalance != nil {
+		stored = obj.RentBalance.String()
+	}
+	effBal := vm.CrEffectiveRentBalance(obj, currentBlock)
+	valid := true
+	reason := ""
+	if obj.ExpiryBlock != 0 && currentBlock > obj.ExpiryBlock {
+		valid = false
+		reason = "past_expiry_block"
+	}
+	nextEpoch := stateComputeEpochRentWei(d.Size)
+	if effBal.Cmp(nextEpoch) < 0 {
+		valid = false
+		if reason == "" {
+			reason = "rent_exhausted"
+		}
+	}
+	return &ContentRefResult{
+		ID:                   obj.ID,
+		Owner:                obj.Owner,
+		ContentHash:          d.ContentHash,
+		Size:                 d.Size,
+		ContentType:          string(d.ContentType),
+		AvailabilityProofHex: common.Bytes2Hex(d.AvailabilityProof),
+		ExpiryBlock:          obj.ExpiryBlock,
+		LastTouchedBlock:     obj.LastTouchedBlock,
+		RentBalanceStored:    stored,
+		RentBalanceEffective: effBal.String(),
+		IsValid:              valid,
+		ExpiredReason:        reason,
+	}, nil
+}
+
+// stateComputeEpochRentWei is a tiny wrapper so this file doesn't need
+// to import core/state at the top. Keeping the import surface narrow
+// avoids pulling rent-math into every file that imports eth.
+func stateComputeEpochRentWei(size uint64) *big.Int {
+	// Inline the math: rate * size * epochLength. Matches
+	// state.ComputeEpochRentWei exactly.
+	r := new(big.Int).SetUint64(ethernova.RentRatePerBytePerBlock)
+	s := new(big.Int).SetUint64(size)
+	e := new(big.Int).SetUint64(ethernova.RentEpochLength)
+	r.Mul(r, s)
+	r.Mul(r, e)
+	return r
+}
+
+// GetContentRef returns a ContentRef by ID hex string, or null if absent
+// or wrong type. Wire name: ethernova_getContentRef (also aliased as
+// nova_getContentRef when the namespace is registered).
+func (api *EthernovaAPI) GetContentRef(idHex string) (interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	id := common.HexToHash(idHex)
+	obj := vm.CrGetContentRef(statedb, id)
+	if obj == nil {
+		return nil, nil
+	}
+	head := api.e.blockchain.CurrentBlock().Number.Uint64()
+	return contentRefToResult(obj, head)
+}
+
+// ListContentRefs returns ContentRefs owned by an address, paginated.
+// Wire name: ethernova_listContentRefs.
+func (api *EthernovaAPI) ListContentRefs(ownerHex string, offset, limit uint64) (interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	if limit == 0 || limit > 100 {
+		limit = 100
+	}
+	owner := common.HexToAddress(ownerHex)
+	ids := vm.CrListByOwner(statedb, owner, offset, limit)
+	head := api.e.blockchain.CurrentBlock().Number.Uint64()
+
+	results := make([]*ContentRefResult, 0, len(ids))
+	for _, id := range ids {
+		obj := vm.CrGetContentRef(statedb, id)
+		if obj == nil {
+			continue
+		}
+		r, err := contentRefToResult(obj, head)
+		if err != nil {
+			continue
+		}
+		results = append(results, r)
+	}
+	return map[string]interface{}{
+		"owner":    owner.Hex(),
+		"offset":   offset,
+		"limit":    limit,
+		"count":    len(results),
+		"returned": results,
+	}, nil
+}
+
+// GetContentRefCount returns live + monotonic counts.
+// Wire name: ethernova_getContentRefCount.
+func (api *EthernovaAPI) GetContentRefCount() (map[string]interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"live":            vm.CrGetLiveCount(statedb),
+		"slotsUsed":       vm.CrGetSlotsUsed(statedb),
+		"registryAddress": vm.ContentRegistryAddr.Hex(),
+		"precompile":      "0x2B",
+		"forkBlock":       ethernova.ContentRefForkBlock,
+	}, nil
+}
+
+// ContentRefConfig returns Phase 3 metadata for clients/explorers.
+// Wire name: ethernova_contentRefConfig.
+func (api *EthernovaAPI) ContentRefConfig() map[string]interface{} {
+	head := api.e.blockchain.CurrentBlock().Number.Uint64()
+	active := head >= ethernova.ContentRefForkBlock
+	return map[string]interface{}{
+		"forkBlock":                  ethernova.ContentRefForkBlock,
+		"active":                     active,
+		"currentBlock":               head,
+		"registryAddress":            vm.ContentRegistryAddr.Hex(),
+		"precompile":                 "0x2B",
+		"rentEpochLength":            ethernova.RentEpochLength,
+		"rentRatePerBytePerBlock":    ethernova.RentRatePerBytePerBlock,
+		"minRentPrepayWei":           ethernova.MinRentPrepayWei,
+		"maxContentRefSize":          ethernova.MaxContentRefSize,
+		"maxContentTypeBytes":        ethernova.MaxContentRefTypeBytes,
+		"maxAvailabilityProofBytes":  ethernova.MaxContentRefAvailabilityProofBytes,
+		"maxContentRefsPerRentEpoch": ethernova.MaxContentRefsPerRentEpoch,
+		"description":                "NIP-0004 Phase 3: Content Reference Primitive — pointer to off-chain content with rent-backed expiry",
+		"notes":                      "Precompile moved from NIP-0004 draft 0x2A to 0x2B to avoid collision with Phase 2 novaDeferredQueue (already at 0x2A).",
 	}
 }

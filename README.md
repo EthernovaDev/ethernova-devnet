@@ -232,17 +232,30 @@ Requires: Go 1.21+, GCC, Make
 - [x] Substage 2B: active deferred processing + queue clearing
 - [x] Consensus verification: 3+ nodes, 1000 blocks, 500+ enqueued effects, zero BAD BLOCK
 
-### Phase 3: Content Reference Primitive (NIP-0004)
-- [ ] `novaContentRegistry` precompile (0x2A): create, lookup, verify content references
-- [ ] Content Reference as first live Protocol Object type (immutable after creation)
-- [ ] Storage rent model: deterministic integer-only per-byte per-block deduction at epoch boundaries
-- [ ] Rent exhaustion → object expires, no longer queryable
-- [ ] `nova_getContentRef` / `nova_listContentRefs` RPC endpoints
-- [ ] Harness contract: create 10 ContentRefs, query, verify rent deduction, verify expiry
-- [ ] Consensus verification: 3+ nodes, 500 blocks, zero BAD BLOCK
+### Phase 3: Content Reference Primitive (NIP-0004) ✅
+- [x] `novaContentRegistry` precompile (**0x2B**): create, lookup, verify content references
+      (NIP-0004 draft §3.4 originally specified 0x2A, but 0x2A is held by Phase 2's
+      `novaDeferredQueue` in this codebase — see `docs/NIP-0004-Phase-3.md` §8 for the
+      final slot map)
+- [x] Content Reference as first live Protocol Object type (immutable after creation,
+      type_tag = 0x03)
+- [x] Storage rent model: deterministic integer-only per-byte per-block deduction at
+      epoch boundaries (`RentEpochLength = 10000`, `RentRatePerBytePerBlock = 1`)
+- [x] Rent exhaustion → `isValid` returns false, `getContentRef` reports
+      `expiredReason = "rent_exhausted"`
+- [x] `ethernova_getContentRef` / `ethernova_listContentRefs` /
+      `ethernova_getContentRefCount` / `ethernova_contentRefConfig` RPC endpoints
+- [x] Harness contract `devnet/contracts/ContentRefTest.sol`: create, getContentRef,
+      isValid, listByOwner, createBatch
+- [x] Validation script `devnet/phase-nip0004-03-test.js`: 10 scenarios covering fork
+      gate, static call, multi-node consensus, epoch-boundary consensus, harness
+      roundtrip, pagination, rent deduction, under-funded expiry, neighbour
+      precompiles still alive
+- [ ] Consensus verification: 3+ nodes, 500 blocks, zero BAD BLOCK (operator step)
 
 ### Phase 4: Mailbox Primitive (NIP-0004)
-- [ ] `novaMailboxManager` precompile (0x29): create, configure (capacity, ACL, postage), destroy
+- [ ] `novaMailboxManager` precompile (**0x2C** — shifted from original 0x29 which is
+      Protocol Object Registry): create, configure (capacity, ACL, postage), destroy
 - [ ] Temporary `novaMailboxOps` precompile (0x33): sendMessage, recvMessage, peekMessage, countMessages
 - [ ] Mailbox as stateful Protocol Object with ordered message queue
 - [ ] Message send → Pending Queue (Phase 2) → delivered to target mailbox next block
@@ -611,7 +624,7 @@ These contracts demonstrate how adaptive gas treats different execution patterns
 
 ## Custom Precompiles
 
-Ethernova Devnet includes 9 custom precompiled contracts not found on any other EVM chain:
+Ethernova Devnet includes 12 custom precompiled contracts not found on any other EVM chain:
 
 | Address | Name | Description | Gas |
 |---------|------|-------------|-----|
@@ -624,6 +637,9 @@ Ethernova Devnet includes 9 custom precompiled contracts not found on any other 
 | `0x26` | `novaShieldedPool` | Optional privacy (shielded transfers) | 50k-100k |
 | `0x27` | `novaContractUpgrade` | Safe contract upgrades with timelock | 2k-50k |
 | `0x28` | `novaOracle` | Protocol-level price oracle with TWAP | 2k-5k |
+| `0x29` | `novaProtocolObjectRegistry` | NIP-0004 Phase 1 — first-class Protocol Objects | 2k-20k |
+| `0x2A` | `novaDeferredQueue` | NIP-0004 Phase 2 — pending effects queue + block-prologue drain | 2k-10k |
+| `0x2B` | `novaContentRegistry` | NIP-0004 Phase 3 — content references with rent-backed expiry | 2k-10k |
 
 ### Using novaBatchHash from Solidity
 

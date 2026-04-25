@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/params/mutations"
 	"github.com/ethereum/go-ethereum/params/types/ctypes"
@@ -413,6 +414,18 @@ func (lyra2 *Lyra2) Finalize(chain consensus.ChainHeaderReader, header *types.He
 		}
 	}
 
+	// NIP-0004 Phase 3: Deduct one epoch of rent from every live ContentRef
+	// if this block is a rent-epoch boundary. No-op on non-boundary blocks
+	// and on blocks before ContentRefForkBlock. The deduction path is
+	// deterministic integer arithmetic over a state-held cursor, so both
+	// validator and miner produce identical state roots.
+	//
+	// MUST mirror the same call in FinalizeAndAssemble below AND in
+	// consensus/ethash/consensus.go Finalize/FinalizeAndAssemble. Any
+	// divergence here = consensus split, same risk profile as the Phase 1
+	// 0xFF01 hook directly above.
+	vm.CrProcessRentEpoch(state, header.Number.Uint64())
+
 	header.Root = state.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 }
 
@@ -435,6 +448,10 @@ func (lyra2 *Lyra2) FinalizeAndAssemble(chain consensus.ChainHeaderReader, heade
 			state.SetNonce(protoAddr, 1)
 		}
 	}
+
+	// NIP-0004 Phase 3: Rent epoch — mirror of Finalize() above. See the
+	// comment on the same call in Finalize() for the invariant.
+	vm.CrProcessRentEpoch(state, header.Number.Uint64())
 
 	header.Root = state.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 

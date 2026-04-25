@@ -99,4 +99,68 @@ const (
 	// Larger payloads must be stored externally and referenced by hash
 	// (a pattern that will be introduced by ContentRef in Phase 3).
 	MaxDeferredEffectPayloadBytes uint64 = 512
+
+	// ============================================================
+	// NIP-0004 — Layered Deterministic Computer
+	// Phase 3: Content Reference Primitive
+	//
+	// First real, live Protocol Object type. A ContentRef is a
+	// minimal immutable pointer to off-chain content plus a rent-
+	// backed expiry. Storage lives at system address 0xFF03; the
+	// object body itself is written into the Phase 1 Protocol Object
+	// Registry (0xFF01) under type_tag = ProtoTypeContentReference.
+	//
+	// Precompile address 0x2B (NOT 0x2A as the original NIP-0004
+	// §3.4 draft suggested — 0x2A is already occupied by the Phase 2
+	// Deferred Queue in this codebase). The conflict and resolution
+	// are documented in NIP-0004 Phase 3 spec §8.
+	// ============================================================
+
+	// ContentRefForkBlock activates the ContentRef precompile (0x2B),
+	// its rent engine, and the nova_getContentRef / nova_listContentRefs
+	// RPC surface. On devnet: block 0 (available from genesis so the
+	// canary phase can start immediately).
+	ContentRefForkBlock uint64 = 0
+
+	// RentEpochLength is the number of blocks between rent deductions.
+	// At every block where block_number % RentEpochLength == 0 and
+	// block_number > 0, every live ContentRef has its rent_balance
+	// decremented by RentRatePerBytePerBlock * size * RentEpochLength.
+	// CONSENSUS-CRITICAL: fixed integer, no configuration at runtime.
+	RentEpochLength uint64 = 10000
+
+	// RentRatePerBytePerBlock is the rent rate in wei per byte per block.
+	// Deduction per epoch per ContentRef = rate * size * RentEpochLength.
+	// Example: 1024-byte ContentRef at 10000-block epoch costs
+	//   1 * 1024 * 10000 = 10_240_000 wei per epoch (~0.00000001024 NOVA).
+	// Intentionally cheap for devnet canary; mainnet sets this higher.
+	RentRatePerBytePerBlock uint64 = 1
+
+	// MinRentPrepayWei is the minimum rent prepay accepted by createContentRef.
+	// Must cover at least one epoch of rent for a 1-byte object. Prevents
+	// trivial ContentRef spam by rejecting zero-rent creations up front.
+	MinRentPrepayWei uint64 = 10000
+
+	// MaxContentRefSize caps the size field of any single ContentRef.
+	// This is the declared off-chain size of the referenced content —
+	// on-chain storage per object is fixed (hash + metadata), this cap
+	// exists to prevent absurd rent-calculation inputs (e.g. size =
+	// 2^63 would overflow the rent multiplication).
+	MaxContentRefSize uint64 = 1 << 32 // 4 GiB
+
+	// MaxContentRefTypeBytes caps the content_type field length (MIME-like).
+	MaxContentRefTypeBytes uint64 = 64
+
+	// MaxContentRefAvailabilityProofBytes caps the availability_proof field.
+	// The proof is typically a single 32-byte commitment or a short CID.
+	// A hard cap avoids unbounded Protocol Object payloads.
+	MaxContentRefAvailabilityProofBytes uint64 = 256
+
+	// MaxContentRefsPerRentEpoch caps how many ContentRefs are processed
+	// in a single epoch-boundary Finalize() pass. If the live population
+	// exceeds this, processing rolls over to subsequent epochs via the
+	// cr_rent_cursor slot — bounded per-block work, no liveness loss.
+	// The cap is generous because the work is simple arithmetic +
+	// single-slot writes; 8192 objects = a few ms at most.
+	MaxContentRefsPerRentEpoch uint64 = 8192
 )
