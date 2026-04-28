@@ -85,7 +85,7 @@ done
 
 Also check:
 
-- `eth_chainId` returns `0x1dac6`.
+- `eth_chainId` returns `0x1dab6`.
 - `net_version` returns `121526`.
 - All nodes converge on the same block height/hash.
 - `ethernova_mailboxConfig` reports Phase 4 active when testing Phase 4.
