@@ -486,6 +486,24 @@ func (api *EthernovaAPI) Precompiles() []PrecompileInfo {
 			Description: "NIP-0004 Phase 2 Pending Effects Queue: enqueue deferred effect, query pending, read queue stats. Effects enqueued in block N are drained at the start of block N+1.",
 			GasModel:    "10k enqueue base + 200/chunk, 2k read, 1k stats",
 		},
+		{
+			Address:     "0x000000000000000000000000000000000000002B",
+			Name:        "novaContentRegistry",
+			Description: "NIP-0004 Phase 3 Content Reference primitive: register / lookup / list off-chain content references with rent-backed expiry.",
+			GasModel:    "10k base + 200/chunk create, 2k read, 1k isValid/list/count",
+		},
+		{
+			Address:     "0x000000000000000000000000000000000000002C",
+			Name:        "novaMailboxManager",
+			Description: "NIP-0004 Phase 4 Mailbox lifecycle: create / configure / destroy / getConfig.",
+			GasModel:    "30k+500/ACL create, 20k+500/ACL configure, 15k destroy, 2k getConfig",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000035",
+			Name:        "novaMailboxOps",
+			Description: "NIP-0004 Phase 4 Mailbox messaging: send (deferred to next block), recv, peek, count. Postage in NOVA enforced.",
+			GasModel:    "30k send, 15k recv, 2k peek, 500 count",
+		},
 	}
 }
 
@@ -950,4 +968,228 @@ func (api *EthernovaAPI) ContentRefConfig() map[string]interface{} {
 		"description":                "NIP-0004 Phase 3: Content Reference Primitive — pointer to off-chain content with rent-backed expiry",
 		"notes":                      "Precompile moved from NIP-0004 draft 0x2A to 0x2B to avoid collision with Phase 2 novaDeferredQueue (already at 0x2A).",
 	}
+}
+
+// ============================================================
+// NIP-0004 Phase 4: Mailbox Primitive RPC endpoints
+//
+// Public methods (registered under the "ethernova" namespace):
+//   - GetMailbox(idHex)                                -> *MailboxResult | null
+//   - GetMailboxByOwner(ownerHex, offset, limit)       -> list wrapper
+//   - GetMessages(mailboxIdHex, fromIndex, limit)      -> list wrapper
+//   - MailboxConfig()                                  -> spec metadata
+//   - MailboxStats(idHex)                              -> queue counters
+// ============================================================
+
+// MailboxResult is the JSON-serialisable representation of a Mailbox
+// Protocol Object: the Phase 1 PO common fields plus the decoded
+// Phase 4 MailboxConfig (capacity / retention / postage / ACL) and
+// the queue counters from MailboxOpsAddr (0xFF04).
+type MailboxResult struct {
+	ID                common.Hash      `json:"id"`
+	Owner             common.Address   `json:"owner"`
+	ExpiryBlock       uint64           `json:"expiryBlock"`
+	LastTouchedBlock  uint64           `json:"lastTouchedBlock"`
+	RentBalance       string           `json:"rentBalance"`
+	CapacityLimit     uint64           `json:"capacityLimit"`
+	RetentionPolicy   uint8            `json:"retentionPolicy"`
+	RetentionBlocks   uint64           `json:"retentionBlocks"`
+	MinPostageWei     string           `json:"minPostageWei"`
+	ACLMode           uint8            `json:"aclMode"`
+	ACL               []common.Address `json:"acl"`
+	QueueCount        uint64           `json:"queueCount"`
+	QueueHead         uint64           `json:"queueHead"`
+	QueueTail         uint64           `json:"queueTail"`
+	PendingDeliveries uint64           `json:"pendingDeliveries"`
+}
+
+// MailboxMessageResult is the JSON shape for a single mailbox message
+// returned by ethernova_getMessages.
+type MailboxMessageResult struct {
+	Index          uint64         `json:"index"`
+	Sender         common.Address `json:"sender"`
+	PayloadHash    common.Hash    `json:"payloadHash"`
+	Timestamp      uint64         `json:"timestamp"`
+	SequenceNumber uint64         `json:"sequenceNumber"`
+}
+
+// mailboxToResult assembles the wire shape from the on-chain pieces.
+// Returns an error if MailboxConfig RLP fails to decode — that signals
+// a corrupt mailbox, which the caller can surface to the user.
+func mailboxToResult(sdb *state.StateDB, obj *types.ProtocolObject) (*MailboxResult, error) {
+	cfg, err := types.DecodeMailboxConfig(obj.StateData)
+	if err != nil {
+		return nil, err
+	}
+	rentStr := "0"
+	if obj.RentBalance != nil {
+		rentStr = obj.RentBalance.String()
+	}
+	postageStr := "0"
+	if cfg.MinPostageWei != nil {
+		postageStr = cfg.MinPostageWei.String()
+	}
+	return &MailboxResult{
+		ID:                obj.ID,
+		Owner:             obj.Owner,
+		ExpiryBlock:       obj.ExpiryBlock,
+		LastTouchedBlock:  obj.LastTouchedBlock,
+		RentBalance:       rentStr,
+		CapacityLimit:     cfg.CapacityLimit,
+		RetentionPolicy:   cfg.RetentionPolicy,
+		RetentionBlocks:   cfg.RetentionBlocks,
+		MinPostageWei:     postageStr,
+		ACLMode:           cfg.ACLMode,
+		ACL:               cfg.ACL,
+		QueueCount:        vm.MbGetCount(sdb, obj.ID),
+		QueueHead:         vm.MbGetHead(sdb, obj.ID),
+		QueueTail:         vm.MbGetTail(sdb, obj.ID),
+		PendingDeliveries: vm.MbGetPending(sdb, obj.ID),
+	}, nil
+}
+
+// GetMailbox returns a Mailbox by ID hex string, or null if absent or
+// the wrong type. Wire name: ethernova_getMailbox.
+func (api *EthernovaAPI) GetMailbox(idHex string) (interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	id := common.HexToHash(idHex)
+	obj := vm.MbGetMailbox(statedb, id)
+	if obj == nil {
+		return nil, nil
+	}
+	return mailboxToResult(statedb, obj)
+}
+
+// GetMailboxByOwner returns Mailbox PO IDs owned by an address. Returns
+// the same structural shape used by ListContentRefs / GetProtocolObjectsByOwner
+// for consistency. Wire name: ethernova_getMailboxByOwner.
+func (api *EthernovaAPI) GetMailboxByOwner(ownerHex string, offset, limit uint64) (interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	if limit == 0 || limit > 100 {
+		limit = 100
+	}
+	owner := common.HexToAddress(ownerHex)
+	ids := vm.MbListByOwner(statedb, owner, offset, limit)
+
+	results := make([]*MailboxResult, 0, len(ids))
+	for _, id := range ids {
+		obj := vm.MbGetMailbox(statedb, id)
+		if obj == nil {
+			continue
+		}
+		r, err := mailboxToResult(statedb, obj)
+		if err != nil {
+			continue
+		}
+		results = append(results, r)
+	}
+	return map[string]interface{}{
+		"owner":    owner.Hex(),
+		"offset":   offset,
+		"limit":    limit,
+		"count":    len(results),
+		"returned": results,
+	}, nil
+}
+
+// GetMessages returns up to `limit` messages from a mailbox's queue,
+// starting at head + `fromIndex`. The "fromIndex" parameter is named
+// after NIP-0004 Phase 4 §11 (ethernova_getMessages signature) — it is
+// an OFFSET past the current head, NOT an absolute queue index, so
+// callers see a stable view as recvMessage advances head. Wire name:
+// ethernova_getMessages.
+func (api *EthernovaAPI) GetMessages(mailboxIdHex string, fromIndex, limit uint64) (interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	if limit == 0 || limit > 256 {
+		limit = 50
+	}
+	id := common.HexToHash(mailboxIdHex)
+
+	obj := vm.MbGetMailbox(statedb, id)
+	if obj == nil {
+		return nil, nil
+	}
+	head := vm.MbGetHead(statedb, id)
+	tail := vm.MbGetTail(statedb, id)
+	count := vm.MbGetCount(statedb, id)
+
+	messages := vm.MbGetMessages(statedb, id, fromIndex, limit)
+	results := make([]*MailboxMessageResult, 0, len(messages))
+	// MbGetMessages iterates in head+offset..tail order; reproduce that
+	// here so the caller can correlate Index back to the on-chain slot.
+	startIdx := head + fromIndex
+	for i, m := range messages {
+		results = append(results, &MailboxMessageResult{
+			Index:          startIdx + uint64(i),
+			Sender:         m.Sender,
+			PayloadHash:    m.PayloadHash,
+			Timestamp:      m.Timestamp,
+			SequenceNumber: m.SequenceNumber,
+		})
+	}
+	return map[string]interface{}{
+		"mailboxId":  id.Hex(),
+		"owner":      obj.Owner.Hex(),
+		"queueHead":  head,
+		"queueTail":  tail,
+		"queueCount": count,
+		"fromIndex":  fromIndex,
+		"limit":      limit,
+		"returned":   len(results),
+		"messages":   results,
+	}, nil
+}
+
+// MailboxConfig returns Phase 4 metadata for clients/explorers. Wire
+// name: ethernova_mailboxConfig.
+func (api *EthernovaAPI) MailboxConfig() map[string]interface{} {
+	head := api.e.blockchain.CurrentBlock().Number.Uint64()
+	active := head >= ethernova.MailboxForkBlock
+	return map[string]interface{}{
+		"forkBlock":          ethernova.MailboxForkBlock,
+		"active":             active,
+		"currentBlock":       head,
+		"queueAddress":       vm.MailboxOpsAddr.Hex(),
+		"managerPrecompile":  "0x2C",
+		"opsPrecompile":      "0x35",
+		"absoluteCapacity":   vm.MailboxAbsoluteCapacity,
+		"maxACLEntries":      vm.MailboxMaxACLEntries,
+		"maxRetentionBlocks": vm.MailboxMaxRetentionBlocks,
+		"description":        "NIP-0004 Phase 4: Mailbox primitive — first stateful Protocol Object with queue and mutation. Send is deferred (block N -> N+1).",
+	}
+}
+
+// MailboxStats returns queue counters for a single mailbox. Wire name:
+// ethernova_mailboxStats. Useful for explorer / dashboard widgets.
+func (api *EthernovaAPI) MailboxStats(idHex string) (map[string]interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	id := common.HexToHash(idHex)
+	obj := vm.MbGetMailbox(statedb, id)
+	if obj == nil {
+		return map[string]interface{}{
+			"id":     id.Hex(),
+			"exists": false,
+		}, nil
+	}
+	return map[string]interface{}{
+		"id":         id.Hex(),
+		"exists":     true,
+		"owner":      obj.Owner.Hex(),
+		"queueHead":  vm.MbGetHead(statedb, id),
+		"queueTail":  vm.MbGetTail(statedb, id),
+		"queueCount": vm.MbGetCount(statedb, id),
+		"pending":    vm.MbGetPending(statedb, id),
+	}, nil
 }

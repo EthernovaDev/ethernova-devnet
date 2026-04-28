@@ -163,4 +163,32 @@ const (
 	// The cap is generous because the work is simple arithmetic +
 	// single-slot writes; 8192 objects = a few ms at most.
 	MaxContentRefsPerRentEpoch uint64 = 8192
+
+	// ============================================================
+	// NIP-0004 — Layered Deterministic Computer
+	// Phase 4: Mailbox Primitive
+	//
+	// Mailbox is the first stateful Protocol Object type with a queue
+	// and mutation. It exposes two precompiles:
+	//   - 0x2C novaMailboxManager : create / configure / destroy
+	//   - 0x35 novaMailboxOps     : send / recv / peek / count
+	//
+	// Send messages enter the Phase 2 deferred queue with effectType =
+	// EffectTypeMailboxSend (0x10). At block N+1 the deferred processing
+	// dispatcher routes them to vm.HandleMailboxSendEffect for delivery
+	// to the target mailbox's queue at MailboxOpsAddr (0xFF04).
+	//
+	// On devnet: block 0 (active from genesis, same as the rest of the
+	// NIP-0004 stack). On mainnet: set to the agreed activation block.
+	// Pre-fork, both 0x2C and 0x35 revert all selectors so there is no
+	// incidental state touch on early blocks.
+	// ============================================================
+
+	// MailboxForkBlock activates the Phase 4 Mailbox primitive: the 0x2C
+	// and 0x35 precompiles and the Mailbox handler in the deferred
+	// processing dispatcher. Gating MUST be identical on both validator
+	// and miner paths — the dispatch is reached from
+	// core.ProcessDeferredEffects which is called by both
+	// core/state_processor.go and miner/worker.go.
+	MailboxForkBlock uint64 = 0
 )

@@ -499,3 +499,90 @@ func (c *novaDeferredQueue) getQueueStats(evm *EVM) ([]byte, error) {
 	copy(out[128:160], common.BigToHash(new(big.Int).SetUint64(totalProcessed)).Bytes())
 	return out, nil
 }
+
+// =====================================================================
+// NIP-0004 Phase 4 hook
+// =====================================================================
+//
+// DqEnqueueDirectly is the in-process counterpart to the 0x2A precompile's
+// enqueueEffect selector. It is the SHARED enqueue path used by:
+//   - novaDeferredQueue.enqueueEffect (selector 0x01) — entry point for
+//     contracts that hand-craft deferred effects directly.
+//   - novaMailboxOps.sendMessage (NIP-0004 Phase 4) — entry point for the
+//     Mailbox primitive, which translates a sendMessage call into a
+//     MailboxSend deferred effect.
+//
+// Both paths MUST go through this helper so the per-block backpressure
+// cap, the monotonic seq counter, the SourceTxHash derivation, and the
+// EIP-161 anchor all behave identically. Any divergence between callers
+// would be a consensus split waiting to happen.
+//
+// The helper performs exactly the same work as enqueueEffect:
+//   1. Validates the effect type tag against types.IsValidDeferredEffectType.
+//   2. Validates the payload size against MaxDeferredEffectPayloadBytes.
+//   3. Reads/resets the per-block enqueue counter and rejects on cap.
+//   4. Anchors the queue system account (EIP-161).
+//   5. Mints the next sequence number from tail/global_seq.
+//   6. RLP-encodes a DeferredEffect with a deterministic SourceTxHash
+//      derived from (caller || blockNum || seq).
+//   7. Writes the entry chunked storage and advances tail/counter.
+//
+// Returns the assigned sequence number, or an error if any validation
+// fails. Errors are propagated back to the caller's revert path; on
+// error nothing has been written (early checks happen before any state
+// touches; later checks occur after dqEnsureExists which is idempotent
+// and safe to leave behind on a revert).
+func DqEnqueueDirectly(sdb StateDB, blockNum uint64, effectType uint8, sourceCaller common.Address, payload []byte) (uint64, error) {
+	if !types.IsValidDeferredEffectType(effectType) {
+		return 0, fmt.Errorf("DqEnqueueDirectly: invalid effect type 0x%02x", effectType)
+	}
+	if uint64(len(payload)) > ethernova.MaxDeferredEffectPayloadBytes {
+		return 0, fmt.Errorf("DqEnqueueDirectly: payload exceeds cap (%d > %d)",
+			len(payload), ethernova.MaxDeferredEffectPayloadBytes)
+	}
+
+	// Per-block backpressure. Reset counter on block boundary. Mirrors the
+	// inline logic in enqueueEffect — keep these two paths bit-identical.
+	lastBlock := dqReadUint64(sdb, dqKeyEnqLastBlock())
+	var enqCount uint64
+	if lastBlock == blockNum {
+		enqCount = dqReadUint64(sdb, dqKeyEnqCountAtBlock())
+	} else {
+		enqCount = 0
+	}
+	if enqCount >= ethernova.MaxPendingEffectsPerBlock {
+		return 0, fmt.Errorf("DqEnqueueDirectly: per-block cap reached (%d)",
+			ethernova.MaxPendingEffectsPerBlock)
+	}
+
+	dqEnsureExists(sdb)
+
+	tail := DqGetTail(sdb)
+	seq := tail
+
+	var seqBuf, blockBuf [8]byte
+	binary.BigEndian.PutUint64(seqBuf[:], seq)
+	binary.BigEndian.PutUint64(blockBuf[:], blockNum)
+	txHash := crypto.Keccak256Hash(sourceCaller.Bytes(), blockBuf[:], seqBuf[:])
+
+	ef := &types.DeferredEffect{
+		SeqNum:       seq,
+		EffectType:   effectType,
+		SourceBlock:  blockNum,
+		SourceCaller: sourceCaller,
+		SourceTxHash: txHash,
+		Payload:      payload,
+	}
+	data, err := ef.EncodeRLP()
+	if err != nil {
+		return 0, fmt.Errorf("DqEnqueueDirectly: RLP encode: %w", err)
+	}
+
+	dqWriteEntry(sdb, seq, data)
+	dqWriteUint64(sdb, dqKeyTail(), seq+1)
+	dqWriteUint64(sdb, dqKeyGlobalSeq(), seq+1)
+	dqWriteUint64(sdb, dqKeyEnqCountAtBlock(), enqCount+1)
+	dqWriteUint64(sdb, dqKeyEnqLastBlock(), blockNum)
+
+	return seq, nil
+}

@@ -228,8 +228,25 @@ func dispatchDeferredEffect(entry *types.DeferredEffect, statedb *state.StateDB,
 		// counters — useful for multi-sender ordering tests.
 		handlePing(entry, statedb)
 		return nil
-	case types.EffectTypeMailboxSend,
-		types.EffectTypeAsyncCallback,
+	case types.EffectTypeMailboxSend:
+		// NIP-0004 Phase 4: Mailbox delivery. Pre-MailboxForkBlock the
+		// handler is a no-op (matches Phase 2 behavior — entries enqueued
+		// before the fork drain to nothing). Post-fork, the handler in
+		// vm.HandleMailboxSendEffect performs the actual delivery into the
+		// target mailbox's queue at MailboxOpsAddr (0xFF04).
+		//
+		// Per NIP-0004 §18, "expected" failures (mailbox missing, expired,
+		// capacity raced) are silently dropped and return nil — the entry
+		// is still cleared from the queue by the dispatcher caller, the
+		// pending counter is released, and block validity is unaffected.
+		// Only catastrophic failures (e.g. corrupt RLP — should be
+		// unreachable) return an error, which the dispatcher logs and
+		// counts as a failed handler without reverting the block.
+		if blockNum < ethernova.MailboxForkBlock {
+			return nil
+		}
+		return vm.HandleMailboxSendEffect(statedb, entry, blockNum)
+	case types.EffectTypeAsyncCallback,
 		types.EffectTypeSessionUpdate:
 		// Reserved types — accepted at enqueue, no-op at drain until the
 		// corresponding fork phase lands a real handler. Not an error.
