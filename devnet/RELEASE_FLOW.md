@@ -47,7 +47,23 @@ bash scripts/build-linux.sh
 shasum -a 256 dist/ethernova-v2.0.0-devnet-linux-amd64
 ```
 
-5. Deploy to all devnet nodes.
+5. Create the GitHub release.
+
+Always publish a GitHub release before or immediately after deployment so
+operators can reproduce the exact binary.
+
+```bash
+TAG="v1.5.0-nip0004.phase4"
+git tag -a "$TAG" -m "Ethernova Devnet $TAG"
+git push origin "$TAG"
+gh release create "$TAG" \
+  --title "Ethernova Devnet v1.5.0 - NIP-0004 Phase 4" \
+  --notes-file /tmp/release-notes.md \
+  dist/ethernova-v2.0.0-devnet-linux-amd64 \
+  dist/ethernova-v2.0.0-devnet-linux-amd64.sha256
+```
+
+6. Deploy to all devnet nodes.
 
 - Node 1 miner: RPC `8551`, WS `8561`, P2P `30301`
 - Node 2 miner: RPC `8552`, WS `8562`, P2P `30302`
@@ -65,13 +81,13 @@ systemctl status ethernova --no-pager
 
 Adapt paths/service names to the actual VM setup.
 
-6. Deploy to the explorer VPS.
+7. Deploy to the explorer VPS.
 
 - Update the node binary used by the explorer/RPC backend.
 - Restart the explorer node/backend services.
 - Confirm the explorer points to devnet `121526` and sees the upgraded node.
 
-7. Post-deploy health checks.
+8. Post-deploy health checks.
 
 ```bash
 for port in 8551 8552 8553 8554; do
@@ -91,11 +107,12 @@ Also check:
 - `ethernova_mailboxConfig` reports Phase 4 active when testing Phase 4.
 - `ethernova_deferredProcessingStats` does not show stuck queue growth.
 
-8. Report results.
+9. Report results.
 
 Include:
 
 - Commit hash.
+- GitHub release URL.
 - Binary path and SHA256.
 - Tests run.
 - Nodes/VPS updated.
