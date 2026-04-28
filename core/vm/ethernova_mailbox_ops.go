@@ -200,7 +200,7 @@ func (c *novaMailboxOps) sendMessage(evm *EVM, caller common.Address, input []by
 	// could both pass this check and overflow at delivery.
 	cnt := mbReadUint64(sdb, mbKeyCount(mailboxID))
 	pending := mbReadUint64(sdb, mbKeyPending(mailboxID))
-	if cnt+pending >= cfg.CapacityLimit {
+	if cnt >= cfg.CapacityLimit || pending >= cfg.CapacityLimit-cnt {
 		return nil, fmt.Errorf("sendMessage: mailbox full (count=%d pending=%d cap=%d)",
 			cnt, pending, cfg.CapacityLimit)
 	}

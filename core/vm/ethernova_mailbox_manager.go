@@ -21,9 +21,11 @@
 //            [256..]    ACL[i]              (each 32 bytes, low 20 = address)
 //
 //   0x02 configureMailbox(...)                                   WRITE
-//          Same field layout as createMailbox, prefixed with the 32-byte
-//          mailbox ID. Caller MUST be the mailbox owner. Recreates the
-//          MailboxConfig RLP from scratch — partial updates not supported.
+//          Same MailboxConfig field layout as createMailbox, prefixed with
+//          the 32-byte mailbox ID. ExpiryBlock and RentPrepay live on the
+//          ProtocolObject body and are not changed by configureMailbox.
+//          Caller MUST be the mailbox owner. Recreates the MailboxConfig RLP
+//          from scratch — partial updates not supported.
 //          Input layout:
 //            [0..32]    mailboxID           (bytes32)
 //            [32..64]   capacityLimit
@@ -161,6 +163,28 @@ func (c *novaMailboxManager) RunStateful(evm *EVM, caller common.Address, input 
 
 // --- shared input parsing -----------------------------------------------
 
+func parseMailboxUint64Word(word []byte, field string) (uint64, error) {
+	if len(word) != 32 {
+		return 0, fmt.Errorf("%s: expected 32-byte word, got %d", field, len(word))
+	}
+	n := new(big.Int).SetBytes(word)
+	if !n.IsUint64() {
+		return 0, fmt.Errorf("%s exceeds uint64", field)
+	}
+	return n.Uint64(), nil
+}
+
+func parseMailboxUint8Word(word []byte, field string) (uint8, error) {
+	v, err := parseMailboxUint64Word(word, field)
+	if err != nil {
+		return 0, err
+	}
+	if v > 255 {
+		return 0, fmt.Errorf("%s exceeds uint8", field)
+	}
+	return uint8(v), nil
+}
+
 // parseACLTail decodes a fixed-width 32-byte-per-entry ACL slice. Each
 // entry's low 20 bytes form the address; the high 12 bytes are ignored
 // (Solidity ABI left-pads addresses with zeros, so this is the standard
@@ -221,14 +245,32 @@ func (c *novaMailboxManager) createMailbox(evm *EVM, caller common.Address, inpu
 		return nil, fmt.Errorf("createMailbox: input too short (need %d bytes head, got %d)",
 			headLen, len(input))
 	}
-	capacityLimit := new(big.Int).SetBytes(input[0:32]).Uint64()
-	retentionPolicy := uint8(new(big.Int).SetBytes(input[32:64]).Uint64())
-	retentionBlocks := new(big.Int).SetBytes(input[64:96]).Uint64()
+	capacityLimit, err := parseMailboxUint64Word(input[0:32], "capacityLimit")
+	if err != nil {
+		return nil, fmt.Errorf("createMailbox: %w", err)
+	}
+	retentionPolicy, err := parseMailboxUint8Word(input[32:64], "retentionPolicy")
+	if err != nil {
+		return nil, fmt.Errorf("createMailbox: %w", err)
+	}
+	retentionBlocks, err := parseMailboxUint64Word(input[64:96], "retentionBlocks")
+	if err != nil {
+		return nil, fmt.Errorf("createMailbox: %w", err)
+	}
 	minPostage := new(big.Int).SetBytes(input[96:128])
-	aclMode := uint8(new(big.Int).SetBytes(input[128:160]).Uint64())
-	expiryBlock := new(big.Int).SetBytes(input[160:192]).Uint64()
+	aclMode, err := parseMailboxUint8Word(input[128:160], "aclMode")
+	if err != nil {
+		return nil, fmt.Errorf("createMailbox: %w", err)
+	}
+	expiryBlock, err := parseMailboxUint64Word(input[160:192], "expiryBlock")
+	if err != nil {
+		return nil, fmt.Errorf("createMailbox: %w", err)
+	}
 	rentPrepay := new(big.Int).SetBytes(input[192:224])
-	aclCount := new(big.Int).SetBytes(input[224:256]).Uint64()
+	aclCount, err := parseMailboxUint64Word(input[224:256], "aclCount")
+	if err != nil {
+		return nil, fmt.Errorf("createMailbox: %w", err)
+	}
 
 	acl, err := parseACLTail(input[headLen:], aclCount)
 	if err != nil {
@@ -326,18 +368,33 @@ func (c *novaMailboxManager) createMailbox(evm *EVM, caller common.Address, inpu
 // --- 0x02 configureMailbox ----------------------------------------------
 
 func (c *novaMailboxManager) configureMailbox(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
-	const headLen = 32 + 7*32 // id + 7 fixed-width config words
+	const headLen = 32 + 6*32 // id + 6 fixed-width MailboxConfig words
 	if len(input) < headLen {
 		return nil, fmt.Errorf("configureMailbox: input too short (need %d, got %d)",
 			headLen, len(input))
 	}
 	id := common.BytesToHash(input[0:32])
-	capacityLimit := new(big.Int).SetBytes(input[32:64]).Uint64()
-	retentionPolicy := uint8(new(big.Int).SetBytes(input[64:96]).Uint64())
-	retentionBlocks := new(big.Int).SetBytes(input[96:128]).Uint64()
+	capacityLimit, err := parseMailboxUint64Word(input[32:64], "capacityLimit")
+	if err != nil {
+		return nil, fmt.Errorf("configureMailbox: %w", err)
+	}
+	retentionPolicy, err := parseMailboxUint8Word(input[64:96], "retentionPolicy")
+	if err != nil {
+		return nil, fmt.Errorf("configureMailbox: %w", err)
+	}
+	retentionBlocks, err := parseMailboxUint64Word(input[96:128], "retentionBlocks")
+	if err != nil {
+		return nil, fmt.Errorf("configureMailbox: %w", err)
+	}
 	minPostage := new(big.Int).SetBytes(input[128:160])
-	aclMode := uint8(new(big.Int).SetBytes(input[160:192]).Uint64())
-	aclCount := new(big.Int).SetBytes(input[192:224]).Uint64()
+	aclMode, err := parseMailboxUint8Word(input[160:192], "aclMode")
+	if err != nil {
+		return nil, fmt.Errorf("configureMailbox: %w", err)
+	}
+	aclCount, err := parseMailboxUint64Word(input[192:224], "aclCount")
+	if err != nil {
+		return nil, fmt.Errorf("configureMailbox: %w", err)
+	}
 
 	acl, err := parseACLTail(input[headLen:], aclCount)
 	if err != nil {
@@ -371,9 +428,10 @@ func (c *novaMailboxManager) configureMailbox(evm *EVM, caller common.Address, i
 	// because it could leave stranded messages that callers can't fully
 	// process if they expected the new cap immediately. Allow exactly-equal.
 	curCount := mbReadUint64(sdb, mbKeyCount(id))
-	if cfg.CapacityLimit < curCount {
-		return nil, fmt.Errorf("configureMailbox: capacity %d < current count %d",
-			cfg.CapacityLimit, curCount)
+	pendingCount := mbReadUint64(sdb, mbKeyPending(id))
+	if pendingCount > cfg.CapacityLimit || curCount > cfg.CapacityLimit-pendingCount {
+		return nil, fmt.Errorf("configureMailbox: capacity %d < current usage count=%d pending=%d",
+			cfg.CapacityLimit, curCount, pendingCount)
 	}
 
 	newStateData, err := cfg.EncodeRLP()
