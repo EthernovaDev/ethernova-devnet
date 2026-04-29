@@ -251,20 +251,20 @@ Requires: Go 1.21+, GCC, Make
       gate, static call, multi-node consensus, epoch-boundary consensus, harness
       roundtrip, pagination, rent deduction, under-funded expiry, neighbour
       precompiles still alive
-- [ ] Consensus verification: 3+ nodes, 500 blocks, zero BAD BLOCK (operator step)
+- [x] Consensus verification: 3+ nodes, 500 blocks, zero BAD BLOCK (operator step)
 
 ### Phase 4: Mailbox Primitive (NIP-0004)
-- [ ] `novaMailboxManager` precompile (**0x2C** — shifted from original 0x29 which is
+- [x] `novaMailboxManager` precompile (**0x2C** — shifted from original 0x29 which is
       Protocol Object Registry): create, configure (capacity, ACL, postage), destroy
-- [ ] Temporary `novaMailboxOps` precompile (0x33): sendMessage, recvMessage, peekMessage, countMessages
-- [ ] Mailbox as stateful Protocol Object with ordered message queue
-- [ ] Message send → Pending Queue (Phase 2) → delivered to target mailbox next block
-- [ ] Anti-spam: capacity limit, sender whitelist/blacklist, minimum postage for unknown senders
-- [ ] Substage 4A: mailbox lifecycle (create/configure/destroy, no messaging)
-- [ ] Substage 4B: message send/receive + deferred delivery integration
-- [ ] End-to-end test: Alice sends to Bob's mailbox, Bob reads next block
-- [ ] Stress test: 100 messages to same mailbox in one block
-- [ ] Consensus verification: 3+ nodes, 1000 blocks, 500+ messages, zero BAD BLOCK
+- [x] Temporary `novaMailboxOps` precompile (0x33): sendMessage, recvMessage, peekMessage, countMessages
+- [x] Mailbox as stateful Protocol Object with ordered message queue
+- [x] Message send → Pending Queue (Phase 2) → delivered to target mailbox next block
+- [x] Anti-spam: capacity limit, sender whitelist/blacklist, minimum postage for unknown senders
+- [x] Substage 4A: mailbox lifecycle (create/configure/destroy, no messaging)
+- [x] Substage 4B: message send/receive + deferred delivery integration
+- [x] End-to-end test: Alice sends to Bob's mailbox, Bob reads next block
+- [x] Stress test: 100 messages to same mailbox in one block
+- [x] Consensus verification: 3+ nodes, 1000 blocks, 500+ messages, zero BAD BLOCK
 
 ### Phase 5: State Lifecycle Tiers (NIP-0004)
 - [ ] 5-tier model: Active (100K blocks) → Warm (1M) → Cold (10M) → Archived (>10M) → Expired
