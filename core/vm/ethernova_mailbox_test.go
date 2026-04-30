@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/holiman/uint256"
 )
 
@@ -35,7 +36,7 @@ func mailboxManagerCreateInput(capacity, retentionPolicy, retentionBlocks, minPo
 	return input
 }
 
-func mailboxManagerConfigureInput(id common.Hash, capacity, retentionPolicy, retentionBlocks, minPostage, aclMode, aclCount *big.Int) []byte {
+func mailboxManagerConfigureInput(id common.Hash, capacity, retentionPolicy, retentionBlocks, minPostage, aclMode, expiryBlock, rentPrepay, aclCount *big.Int, acl ...common.Address) []byte {
 	input := []byte{0x02}
 	input = append(input, id.Bytes()...)
 	for _, word := range []*big.Int{
@@ -44,9 +45,14 @@ func mailboxManagerConfigureInput(id common.Hash, capacity, retentionPolicy, ret
 		retentionBlocks,
 		minPostage,
 		aclMode,
+		expiryBlock,
+		rentPrepay,
 		aclCount,
 	} {
 		input = append(input, mailboxWord(word)...)
+	}
+	for _, addr := range acl {
+		input = append(input, common.BytesToHash(addr.Bytes()).Bytes()...)
 	}
 	return input
 }
@@ -125,10 +131,52 @@ func TestMailboxConfigureRejectsCapacityBelowPendingUsage(t *testing.T) {
 		big.NewInt(0),
 		big.NewInt(0),
 		big.NewInt(0),
+		big.NewInt(0),
+		big.NewInt(0),
 	)
 	_, err := (&novaMailboxManager{}).RunStateful(evm, owner, input, false)
 	if err == nil || !strings.Contains(err.Error(), "capacity 2 < current usage") {
 		t.Fatalf("expected pending usage capacity rejection, got %v", err)
+	}
+}
+
+func TestMailboxConfigurePersistsACL(t *testing.T) {
+	evm, sdb := newTestEVM(t)
+	owner := common.HexToAddress("0x5555555555555555555555555555555555555555")
+	allowed := common.HexToAddress("0x6666666666666666666666666666666666666666")
+	sdb.CreateAccount(owner)
+	sdb.SetNonce(owner, 1)
+
+	id := createTestMailbox(t, evm, owner, 3)
+	input := mailboxManagerConfigureInput(
+		id,
+		big.NewInt(3),
+		big.NewInt(0),
+		big.NewInt(0),
+		big.NewInt(0),
+		big.NewInt(int64(types.MailboxACLModeWhitelist)),
+		big.NewInt(0),
+		big.NewInt(0),
+		big.NewInt(1),
+		allowed,
+	)
+	if _, err := (&novaMailboxManager{}).RunStateful(evm, owner, input, false); err != nil {
+		t.Fatalf("configureMailbox: %v", err)
+	}
+
+	obj := MbGetMailbox(sdb, id)
+	if obj == nil {
+		t.Fatal("mailbox not found after configure")
+	}
+	cfg, err := types.DecodeMailboxConfig(obj.StateData)
+	if err != nil {
+		t.Fatalf("DecodeMailboxConfig: %v", err)
+	}
+	if cfg.ACLMode != types.MailboxACLModeWhitelist {
+		t.Fatalf("ACLMode = %d, want whitelist", cfg.ACLMode)
+	}
+	if len(cfg.ACL) != 1 || cfg.ACL[0] != allowed {
+		t.Fatalf("ACL = %#v, want [%s]", cfg.ACL, allowed.Hex())
 	}
 }
 
