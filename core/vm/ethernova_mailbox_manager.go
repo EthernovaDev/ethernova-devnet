@@ -22,10 +22,13 @@
 //
 //   0x02 configureMailbox(...)                                   WRITE
 //          Same MailboxConfig field layout as createMailbox, prefixed with
-//          the 32-byte mailbox ID. ExpiryBlock and RentPrepay live on the
-//          ProtocolObject body and are not changed by configureMailbox.
+//          the 32-byte mailbox ID. ExpiryBlock and RentPrepay are accepted
+//          in the input for ABI shape parity with createMailbox but are
+//          NOT mutated by configureMailbox — they live on the ProtocolObject
+//          body and are managed separately (e.g. via the rent / GC paths).
 //          Caller MUST be the mailbox owner. Recreates the MailboxConfig RLP
-//          from scratch — partial updates not supported.
+//          from scratch — partial updates not supported. ACL is REPLACED,
+//          not merged: passing an empty ACL clears the existing list.
 //          Input layout:
 //            [0..32]    mailboxID           (bytes32)
 //            [32..64]   capacityLimit
@@ -33,8 +36,10 @@
 //            [96..128]  retentionBlocks
 //            [128..160] minPostageWei
 //            [160..192] aclMode
-//            [192..224] aclCount
-//            [224..]    ACL[i]
+//            [192..224] expiryBlock         (parsed for offset parity, ignored)
+//            [224..256] rentPrepayWei       (parsed for offset parity, ignored)
+//            [256..288] aclCount
+//            [288..]    ACL[i]
 //          Returns: 32-byte (1 = ok).
 //
 //   0x03 destroyMailbox(id:32)                                   WRITE
@@ -109,9 +114,11 @@ func (c *novaMailboxManager) RequiredGas(input []byte) uint64 {
 		}
 		return mailboxMgrGasCreateBase + extra
 	case 0x02: // configureMailbox
+		// Head = selector(1) + id(32) + 8 fixed-width MailboxConfig words(8*32)
+		//      = 1 + 9*32 = 289 bytes. Anything past that is the ACL tail.
 		extra := uint64(0)
-		if len(input) > 1+7*32 {
-			extraBytes := uint64(len(input)) - (1 + 7*32)
+		if len(input) > 1+9*32 {
+			extraBytes := uint64(len(input)) - (1 + 9*32)
 			extra = (extraBytes / 32) * mailboxMgrGasConfigPerACL
 		}
 		return mailboxMgrGasConfigureBase + extra
@@ -366,9 +373,27 @@ func (c *novaMailboxManager) createMailbox(evm *EVM, caller common.Address, inpu
 }
 
 // --- 0x02 configureMailbox ----------------------------------------------
+//
+// Input head = id(32) + 8 fixed-width MailboxConfig words(8*32) = 288 bytes,
+// matching the createMailbox field set 1:1 (just prefixed with the id).
+// expiryBlock and rentPrepay are accepted in the input for ABI-shape parity
+// with createMailbox but are intentionally NOT applied to the PO body —
+// they are managed by separate lifecycle paths (rent / GC).
+//
+// Historical note: a previous version of this handler declared headLen as
+// id + 6 fixed words, omitting expiryBlock and rentPrepay. Callers (and
+// the brutal test harness) send the full 8-word createMailbox layout, so
+// the handler ended up reading aclCount from the slot the caller had used
+// for expiryBlock (which is 0 in essentially every realistic call). The
+// silent-zero coincidence meant aclCount was always parsed as 0 and the
+// ACL list was silently dropped on every configure — every other field
+// landed at the right offset and persisted normally. The fix here aligns
+// the head with the createMailbox layout so the ACL tail offset is
+// correct; the consensus-determinism, owner-only, EIP-214 and bounds
+// checks below are unchanged from before.
 
 func (c *novaMailboxManager) configureMailbox(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
-	const headLen = 32 + 6*32 // id + 6 fixed-width MailboxConfig words
+	const headLen = 32 + 8*32 // id + 8 fixed-width MailboxConfig words
 	if len(input) < headLen {
 		return nil, fmt.Errorf("configureMailbox: input too short (need %d, got %d)",
 			headLen, len(input))
@@ -391,7 +416,16 @@ func (c *novaMailboxManager) configureMailbox(evm *EVM, caller common.Address, i
 	if err != nil {
 		return nil, fmt.Errorf("configureMailbox: %w", err)
 	}
-	aclCount, err := parseMailboxUint64Word(input[192:224], "aclCount")
+	// expiryBlock and rentPrepay are parsed for offset/ABI parity with
+	// createMailbox. They are NOT applied here — see header comment.
+	// We still validate their format (uint64 / non-negative big.Int) so
+	// malformed inputs surface deterministically rather than getting
+	// silently swallowed.
+	if _, err := parseMailboxUint64Word(input[192:224], "expiryBlock"); err != nil {
+		return nil, fmt.Errorf("configureMailbox: %w", err)
+	}
+	_ = new(big.Int).SetBytes(input[224:256]) // rentPrepayWei — accepted, ignored
+	aclCount, err := parseMailboxUint64Word(input[256:288], "aclCount")
 	if err != nil {
 		return nil, fmt.Errorf("configureMailbox: %w", err)
 	}
