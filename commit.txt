@@ -1,191 +1,152 @@
-feat(nip-0004): Phase 4 — Mailbox Primitive
+feat(phase5): implement NIP-0004 State Lifecycle Tiers
 
-Implements the first stateful Protocol Object type per NIP-0004 §10.
-Mailbox introduces queue + mutation semantics on top of the Phase 1
-Protocol Object Registry (0xFF01) and Phase 2 Deferred Queue (0xFF02),
-making it the canonical reference primitive for all subsequent stateful
-PO types (Session, ContentRef, Subscription, GameRoom).
+Adds the 5-tier state lifecycle (Active / Warm / Cold / Archived /
+Expired) for Account state and Contract storage, per NIP-0004 §5.
+Replaces the dormant Phase 15 state expiry v2 (disabled in v1.0.7
+after consensus split) with a non-destructive tier-marker model
+that uses Merkle-witness restoration instead of trie deletion.
 
-== New precompiles ==
+Devnet activation: block 0 (chain id 121526). Mainnet activation
+will be set in a follow-up commit once the agreed activation block
+is locked. All Phase 5 code is fork-gated; pre-fork behavior is a
+strict no-op (no surcharge, precompile reverts, RPC returns Active).
 
-0x2C novaMailboxManager — lifecycle:
-  0x01 createMailbox(capacity, retention, postage, aclMode, expiry,
-                     rentPrepay, aclCount, ACL[]) → 32-byte mailbox ID
-  0x02 configureMailbox(id, ...same fields)         WRITE, owner-only
-  0x03 destroyMailbox(id)                           WRITE, owner-only
-  0x04 getMailboxConfig(id)                         READ
+Architecture decisions:
 
-0x35 novaMailboxOps — messaging hot path:
-  0x01 sendMessage(mailboxID, payloadHash, postage) WRITE, deferred
-  0x02 recvMessage(mailboxID)                       WRITE, owner-only
-  0x03 peekMessage(mailboxID)                       READ
-  0x04 countMessages(mailboxID)                     READ
+- The lifecycle engine NEVER mutates the state trie. All tier
+  bookkeeping lives in the external LevelDB index alongside the
+  Phase 15 'X'/'x'/'A' prefixes (extended with 'T'/'C'/'W'/'L'/
+  'P'/'p'). This is the v1.0.7 lesson applied: removing the trie
+  mutation removes the entire class of consensus-split risk.
 
-Two-precompile design (instead of folding ops into 0x2C) keeps the
-gas table compact and lets the ops surface evolve (batch recv, future
-opcode bridge MSEND/MRECV/MPEEK/MCOUNT in Phase 12) without churning
-the manager.
+- Warming-fee surcharge is applied to SLOAD only, not SSTORE.
+  SSTORE naturally promotes the touched account back to Active
+  via the block touch list, and SSTORE refund interactions are
+  too delicate to bundle into Phase 5 v1.
 
-== Storage layout ==
+- Witness restoration verifies against the cold storage root
+  captured at archival time, not the live storage root. This
+  prevents witness replay across accounts.
 
-Mailbox PO body lives at 0xFF01 (Phase 1 Registry). StateData carries
-RLP-encoded MailboxConfig (capacity, retention policy/blocks, ACL mode
-+ entries, min postage). Owner, expiry, last-touched, rent balance use
-the canonical PO fields.
+- All sweep iteration is sorted by raw address bytes, fed from
+  the deterministic Phase 15 'x' index; no Go map iteration in
+  any consensus path.
 
-Per-mailbox queue + counters live at NEW system address 0xFF04
-(MailboxOpsAddr), distinct from 0xFF01/0xFF02/0xFF03 — each subsystem
-owns its reserved account so corruption in one cannot cross-contaminate
-another. Storage keys:
+- Tier classification is a pure uint64 function with saturating
+  multiplication; no floating point, no time.Now(), no randomness.
 
-  keccak256("mb_head", id)         → uint64 next msg index to recv
-  keccak256("mb_tail", id)         → uint64 next msg index to write
-  keccak256("mb_count", id)        → uint64 live message count
-  keccak256("mb_pending", id)      → uint64 in-flight (sent but not
-                                     yet delivered)
-  keccak256("mb_msg_marker"|len|chunks|chunk, id, idx) → chunked RLP
-                                     of MailboxMessage
-  keccak256("mb_owner_count"|slots|idx|slot_of, owner) → mailbox-
-                                     specific owner index (in addition
-                                     to the Phase 1 generic PO index)
+New files (7):
 
-Dual owner-index update keeps getProtocolObjectsByOwner working AND
-gives type-filtered getMailboxByOwner without a full PO scan.
+  consensus/lyra2/state_lifecycle_hook.go    runStateLifecycle driver
+  core/rawdb/accessors_ethernova_warm_state.go  Phase 5 schema extension
+  core/state/state_lifecycle.go              5-tier engine (617 lines)
+  core/state/witness_verifier.go             Pure Merkle proof verification
+  core/vm/ethernova_state_witness.go         Precompile 0x2F (3 selectors)
+  eth/api_ethernova_phase5.go                Storage proof RPC helper
 
-== Deferred delivery (block N → N+1) ==
+Modified files (6):
 
-sendMessage at block N:
-  1. Lookup mailbox PO; reject if absent or expired.
-  2. Decode MailboxConfig; check ACL (Open / Whitelist / Blacklist;
-     owner-to-self always allowed).
-  3. Reject if postage < MinPostageWei.
-  4. Reject if count + pending >= capacity_limit (capacity enforced at
-     SEND time so delivery never has to revert — see NIP-0004 §18).
-  5. Transfer postage from caller to mailbox owner via SubBalance/
-     AddBalance (uint256.Int per StateDB interface). Postage encoded
-     in input bytes, NOT msg.value, to avoid CALL value double-debit.
-  6. Encode MailboxSendEffect{MailboxID, Sender, PayloadHash,
-     SourceBlock}.
-  7. mb_pending++, then DqEnqueueDirectly with EffectTypeMailboxSend.
-     If enqueue fails (per-block cap or RLP error), mb_pending is
-     rolled back so it never sticks high.
-  8. Update mb_last_touched_block on the PO.
+  consensus/lyra2/consensus.go               Wire lifecycle hook into
+                                             Finalize and FinalizeAndAssemble
+                                             (mirror calls; identical placement)
+  core/state/state_expiry_v2.go              Refactored as Phase 15 shim;
+                                             SweepExpired is now no-op
+  core/state/statedb.go                      Add LifecycleTouchedAddresses();
+                                             import "bytes"
+  core/vm/contracts.go                       Register 0x2F: novaStateWitness
+  core/vm/operations_acl.go                  Tier-aware SLOAD surcharge
+                                             (cold and warm paths wrapped via
+                                             applyLifecycleSurcharge)
+  eth/api_ethernova.go                       Add ethernova_stateLifecycleConfig,
+                                             ethernova_getStateTier,
+                                             ethernova_getStateWitness,
+                                             ethernova_getWarmStateRoot
+  params/ethernova/forks.go                  Add 11 Phase 5 constants
 
-Block N+1 Phase 0 prologue:
-  ProcessDeferredEffects → dispatchDeferredEffect →
-  vm.HandleMailboxSendEffect:
-    - Decode payload; if RLP corrupt return error (unreachable on
-      canonical paths; dispatcher logs and continues without
-      reverting the block).
-    - Re-validate target mailbox (still exists, not expired, capacity
-      not raced). Any "expected" failure → silent drop, return nil.
-      mb_pending is released regardless of outcome.
-    - Append message slot, advance mb_tail, mb_count++, decrement
-      mb_pending.
+Precompile 0x2F (novaStateWitness) selectors:
 
-DqEnqueueDirectly is a NEW exported helper in the Phase 2 deferred
-queue that mirrors enqueueEffect byte-for-byte. Both the precompile
-selector path and the Mailbox in-process path go through it so per-
-block backpressure, monotonic seq minting, deterministic SourceTxHash
-derivation, and EIP-161 anchoring live in exactly one place. Any
-divergence between the two callers would be a consensus split.
+  0x01 verifyStateWitness(addr, slot, value, proofLen, proof)
+       READ-ONLY. Returns 0x01 if proof valid against cold root.
+       Gas: 5000.
 
-== Constants ==
+  0x02 restoreState(addr, slot, value, proofLen, proof)
+       WRITE. Verifies witness, clears archive marker, refreshes
+       lastTouched. Returns ErrWriteProtection in STATICCALL.
+       Gas: 25000.
 
-  MailboxAbsoluteCapacity   = 10000      (hard cap on capacity_limit;
-                                          ~1.2 MB max per mailbox)
-  MailboxMaxACLEntries      = 64
-  MailboxMaxRetentionBlocks = 10_000_000
-  MailboxMaxRecvPerCall     = 32         (bound per-tx work)
+  0x03 getCurrentTier(addr)
+       READ-ONLY. Returns 32-byte word, low byte = tier code.
+       Gas: 1000.
 
-== Fork gating ==
+RPC methods (namespace ethernova):
 
-MailboxForkBlock added to params/ethernova/forks.go, set to 0 on
-devnet (active from genesis, consistent with the rest of the NIP-0004
-stack: NovenForkBlock, ProtocolObjectForkBlock, DeferredExecForkBlock,
-ContentRefForkBlock all 0 on devnet).
+  ethernova_stateLifecycleConfig()      thresholds + fees + gas
+  ethernova_getStateTier(addr, slot)    current tier + lastTouched
+  ethernova_getStateWitness(addr, slot) Merkle proof for restoration
+                                        (archive node only)
+  ethernova_getWarmStateRoot()          rolling commitment chain
 
-Both 0x2C and 0x35 precompiles register at genesis but revert all
-selectors pre-fork so there is no incidental state touch on early
-blocks. The deferred handler in HandleMailboxSendEffect also gates
-on MailboxForkBlock — entries enqueued before the fork drain to
-nothing (matches Phase 2 behavior).
+Devnet thresholds (params/ethernova/forks.go):
 
-Gate is applied identically in the validator path (state_processor.go)
-and miner path (worker.go) — asymmetry between these two has been the
-canonical consensus-split mode on this chain (cf. SafeTuner postmortem).
+  ActiveTierBlocks         = 100      (~17 min)
+  WarmTierBlocks           = 500      (~1.5 h)
+  ColdTierBlocks           = 1000     (~3 h)
+  WarmingFeePerByte        = 5        (160 gas/slot at Warm)
+  MaxLifecycleSweepPerBlock = 256
 
-== readOnly / EIP-214 enforcement ==
+Mainnet targets (must be set in follow-up commit before activation):
 
-WRITE selectors return ErrWriteProtection in static-call context:
-  0x2C: 0x01 createMailbox, 0x02 configureMailbox, 0x03 destroyMailbox
-  0x35: 0x01 sendMessage,    0x02 recvMessage
+  ActiveTierBlocks         = 100_000     (~12.7 days)
+  WarmTierBlocks           = 1_000_000   (~127 days)
+  ColdTierBlocks           = 10_000_000  (~3.5 years)
+  WarmingFeePerByte        = 50          (calibration TBD)
+  MaxLifecycleSweepPerBlock = 2048
 
-READ selectors are static-call safe:
-  0x2C: 0x04 getMailboxConfig
-  0x35: 0x03 peekMessage, 0x04 countMessages
+EIP-214 / readOnly safety:
 
-== RPC endpoints (ethernova namespace) ==
+  Selector 0x02 explicitly returns ErrWriteProtection when readOnly
+  is true. Selectors 0x01 and 0x03 are pure reads and pass through
+  STATICCALL safely. Pattern matches novaContentRegistry (0x2B) and
+  novaAccountManager (0x22) precompiles.
 
-  ethernova_getMailbox(idHex)                           → MailboxResult | null
-  ethernova_getMailboxByOwner(ownerHex, offset, limit)  → list wrapper
-  ethernova_getMessages(idHex, fromIndex, limit)        → list wrapper
-  ethernova_mailboxConfig()                             → spec metadata
-  ethernova_mailboxStats(idHex)                         → queue counters
+Backward compatibility:
 
-Precompiles() slice updated to also surface 0x2B (Phase 3 — was
-missing from the listing) alongside 0x2C and 0x35 for explorer
-clients.
+  Phase 15 StateExpiryEngine type and method signatures are
+  preserved as a shim so existing callers compile unchanged.
+  TouchContract and RecordBlockTouches still write to the same
+  'X'/'x' prefixes; SweepExpired is now a no-op (was destructive
+  in v1.0.4-v1.0.6, disabled in v1.0.7, replaced in Phase 5).
 
-== Determinism / consensus invariants ==
+  Pre-fork SLOAD gas costs are unchanged (applyLifecycleSurcharge
+  returns base unchanged when block < StateLifecycleForkBlock).
 
-* No Go map iteration anywhere in consensus paths.
-* All storage keys are fixed-width 8-byte big-endian derived; no
-  float math, no time-of-day reads, no locale-dependent encoding.
-* All RLP via rlp.EncodeToBytes (canonical, deterministic).
-* Mailbox ID minted from the shared poKeyGlobalNonce monotonic
-  counter — guaranteed unique across PO types, no collision with
-  Phase 3 ContentRef IDs.
-* destroyMailbox does NOT iterate the queue (would be unbounded gas).
-  Orphan slots are GC'd by the state expiry sweeper. Mailbox ID is
-  unreachable post-destroy because IDs never reuse the global nonce.
-* HandleMailboxSendEffect returns nil for all expected failure modes
-  (mailbox missing, expired, capacity raced) so block validity is
-  never affected by deferred delivery outcomes (NIP-0004 §18).
+  Existing precompiles 0x20-0x2C, 0x35 unaffected. 0x2F was
+  previously unused.
 
-== What this commit does NOT include ==
+Out of scope (Phase 5C / 5D continuation work):
 
-* Solidity test harness — to be added after manual compile verification.
-* Opcodes MSEND/MRECV/MPEEK/MCOUNT (draft 0xf6–0xf9) — deferred to
-  Phase 12 per NIP-0004 §3.4 amendment.
-* TTL retention enforcement — config is stored, enforcement reserved
-  for a follow-up phase. RetentionPolicy=Never (0) is functionally
-  complete; RetentionPolicy=TTL (1) round-trips correctly but does
-  not yet sweep expired messages.
-* NIP-0003 chat layer on top of Mailbox — separate spec, separate
-  phase.
+  - Wiring RecordObjectBlockTouches into 0x29/0x2B/0x2C/0x35
+    mutation paths (Protocol Object lifecycle).
+  - ethernova_getObjectTier RPC.
+  - Reorg-aware rollback of external index entries.
+  - Actual state-trie deletion / pruning (currently markers only).
+  - SSTORE surcharge.
+  - Account-level surcharge for BALANCE/EXTCODEHASH/EXTCODECOPY.
+  - Expired-tier explicit policy drop.
+  - Witness format version byte for forward compatibility.
 
-== Files ==
+Testing:
 
-NEW:
-  core/types/mailbox.go                    +298
-  core/vm/ethernova_mailbox.go             +540
-  core/vm/ethernova_mailbox_manager.go     +452
-  core/vm/ethernova_mailbox_ops.go         +331
+  Validated end-to-end on dedicated Phase 5 devnet:
+  - Multi-node consensus across 2000+ blocks: zero BAD BLOCK.
+  - Active->Warm->Cold->Archived transitions fire at expected
+    thresholds.
+  - Witness generation via ethernova_getStateWitness, restoration
+    via 0x2F selector 0x02: round-trip works.
+  - Continuously-touched contracts never demoted.
+  - Cross-platform (Linux CGO_ENABLED=1, Windows CGO_ENABLED=0):
+    identical state roots and warm state roots.
 
-PATCHED:
-  core/vm/ethernova_deferred_queue.go      +87  (DqEnqueueDirectly)
-  core/vm/contracts.go                     +2   (register 0x2C, 0x35)
-  core/ethernova_deferred_processing.go    +19/-2 (wire MailboxSend
-                                                   handler with fork
-                                                   gate)
-  params/ethernova/forks.go                +28  (MailboxForkBlock)
-  eth/api_ethernova.go                     +242 (5 RPC methods + 3
-                                                 Precompiles entries)
-
-== Refs ==
-
-NIP-0004 §10 (Mailbox Primitive)
-NIP-0004 §3.4 amendment (precompile address split: 0x2C manager,
-                         0x35 ops; opcodes deferred to Phase 12)
-NIP-0004 §18 (deferred handlers must not invalidate blocks)
+Refs: NIP-0004 §5 (State Lifecycle Tiers), §3.4 (novaStateWitness),
+      §5.5 (Merkle Restoration Protocol), §8.2-8.4 (Bounded Resource
+      Growth, Efficient Sync, Pruning).

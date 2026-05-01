@@ -191,4 +191,114 @@ const (
 	// core.ProcessDeferredEffects which is called by both
 	// core/state_processor.go and miner/worker.go.
 	MailboxForkBlock uint64 = 0
+
+	// ============================================================
+	// NIP-0004 — Layered Deterministic Computer
+	// Phase 5: State Lifecycle Tiers
+	//
+	// 5-tier state lifecycle for Account state, Contract storage,
+	// and Protocol Object state:
+	//
+	//   Active   -> recently touched (<= ActiveTierBlocks since touch)
+	//   Warm     -> touched between ActiveTierBlocks and WarmTierBlocks
+	//   Cold     -> touched between WarmTierBlocks and ColdTierBlocks
+	//   Archived -> not touched within ColdTierBlocks (cold root persisted)
+	//   Expired  -> archive policy explicitly drops the cold root
+	//
+	// CONSENSUS-CRITICAL invariants:
+	//   1. Tier is a PURE FUNCTION of (lastTouched, currentBlock,
+	//      thresholds). No wall-clock, no map iteration, no randomness.
+	//   2. Sweep iteration order is sorted-bytes; the candidate list
+	//      comes from the Phase 15 'x' index which is itself written
+	//      sorted.
+	//   3. Warming fee = tier_gap * size * fee_per_byte using uint64
+	//      arithmetic with overflow-safe saturation.
+	//   4. The 0x2F novaStateWitness precompile only verifies proofs
+	//      and updates the external LevelDB index — it never mutates
+	//      the state trie. State-root divergence cannot originate
+	//      from Phase 5.
+	// ============================================================
+
+	// StateLifecycleForkBlock activates Phase 5 tier tracking, the
+	// SLOAD warming-fee surcharge, the novaStateWitness precompile
+	// (0x2F), and the ethernova_getStateTier / getStateWitness /
+	// getWarmStateRoot / stateLifecycleConfig RPC surface.
+	//
+	// On devnet: block 0 (active from genesis, same as the rest of
+	// the NIP-0004 stack). On mainnet: set to the agreed activation
+	// block. Pre-fork the tier surcharge is exactly zero, the
+	// precompile reverts on every selector, and the RPC methods
+	// return tier=Active for any query — strict no-op on early
+	// blocks.
+	StateLifecycleForkBlock uint64 = 0
+
+	// ActiveTierBlocks is the number of blocks since last_touched
+	// within which an account/object is considered Active (no
+	// surcharge). Devnet: 100 blocks (~17 minutes at ~10s/block).
+	// Mainnet target: 100_000 blocks (~12.7 days at 11s/block).
+	ActiveTierBlocks uint64 = 100
+
+	// WarmTierBlocks is the upper bound on the Warm tier age in
+	// blocks. Above ActiveTierBlocks and at-or-below WarmTierBlocks
+	// => Warm. Devnet: 500 blocks. Mainnet target: 1_000_000.
+	WarmTierBlocks uint64 = 500
+
+	// ColdTierBlocks is the upper bound on the Cold tier age in
+	// blocks. Above WarmTierBlocks and at-or-below ColdTierBlocks
+	// => Cold. Above ColdTierBlocks => Archived.
+	// Devnet: 1000 blocks. Mainnet target: 10_000_000.
+	ColdTierBlocks uint64 = 1000
+
+	// WarmingFeePerByte is the wei-of-gas surcharge applied per byte
+	// of touched state when the tier is non-Active:
+	//
+	//     fee_gas = tier_gap * size_bytes * WarmingFeePerByte
+	//
+	// where tier_gap is 1 for Warm, 2 for Cold, 3 for Archived. For
+	// a 32-byte slot at Warm: 32 * 1 * 5 = 160 extra gas. Cheap on
+	// devnet for testability; mainnet target 50–500 depending on
+	// calibration.
+	WarmingFeePerByte uint64 = 5
+
+	// MaxLifecycleSweepPerBlock caps the number of accounts the
+	// lifecycle sweep examines at a single block. Beyond this cap
+	// the remaining suffix rolls forward to the next block. The cap
+	// is generous because the work is integer comparisons + a small
+	// LevelDB batch.
+	MaxLifecycleSweepPerBlock uint64 = 256
+
+	// LifecycleStorageSlotSize is the canonical "size" used for the
+	// tier surcharge on a single storage-slot operation. EVM storage
+	// slots are always 32 bytes; this constant exists so the
+	// surcharge formula reads identically in operations_acl.go and
+	// in the lifecycle engine.
+	LifecycleStorageSlotSize uint64 = 32
+
+	// LifecycleAccountSize is the canonical "size" used for tier
+	// surcharge on a whole-account access. Conservative ~96 bytes
+	// covers the slim RLP account body. Phase 5 v1 only applies the
+	// storage-slot surcharge inside SLOAD; the account-level
+	// constant is reserved for the Phase 5D account-archival path
+	// that follows.
+	LifecycleAccountSize uint64 = 96
+
+	// StateWitnessVerifyGas prices selector 0x01 (read-only Merkle
+	// proof check). Comparable to one cold SLOAD plus a few hash
+	// ops for proof traversal.
+	StateWitnessVerifyGas uint64 = 5000
+
+	// StateWitnessRestoreGas prices selector 0x02 (verify + write).
+	// Verify cost plus an SSTORE-equivalent write surcharge.
+	StateWitnessRestoreGas uint64 = 25000
+
+	// StateWitnessGetTierGas prices selector 0x03 (single index
+	// read). Cheap because it is one LevelDB lookup with no trie
+	// traversal.
+	StateWitnessGetTierGas uint64 = 1000
+
+	// MaxStateWitnessProofBytes caps the proof payload accepted by
+	// 0x2F. Typical storage proofs at depth 8 with 532-byte branch
+	// nodes are ~4 KiB. 16 KiB leaves headroom while preventing
+	// gigabyte-sized "proofs" that would exhaust RAM.
+	MaxStateWitnessProofBytes uint64 = 16384
 )

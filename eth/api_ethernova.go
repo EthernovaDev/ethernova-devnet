@@ -535,6 +535,134 @@ func (api *EthernovaAPI) StateExpiry() map[string]interface{} {
 }
 
 // ============================================================
+// NIP-0004 Phase 5: State Lifecycle Tiers RPC surface
+// ============================================================
+
+// lifecycleEngine constructs a fresh engine wired to ChainDb. The
+// engine has no in-memory mutable state so building it on every RPC
+// call is fine — the cost is a struct allocation.
+func (api *EthernovaAPI) lifecycleEngine() *state.StateLifecycleEngine {
+	cfg := state.LifecycleConfig{
+		Thresholds: state.LifecycleThresholds{
+			ActiveBlocks: ethernova.ActiveTierBlocks,
+			WarmBlocks:   ethernova.WarmTierBlocks,
+			ColdBlocks:   ethernova.ColdTierBlocks,
+		},
+		Fees: state.LifecycleFees{
+			PerByte: ethernova.WarmingFeePerByte,
+		},
+		MaxSweepPerBlock: ethernova.MaxLifecycleSweepPerBlock,
+	}
+	return state.NewStateLifecycleEngine(api.e.ChainDb(), cfg)
+}
+
+// StateLifecycleConfig surfaces the Phase 5 thresholds and fees.
+func (api *EthernovaAPI) StateLifecycleConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"forkBlock":            ethernova.StateLifecycleForkBlock,
+		"activeTierBlocks":     ethernova.ActiveTierBlocks,
+		"warmTierBlocks":       ethernova.WarmTierBlocks,
+		"coldTierBlocks":       ethernova.ColdTierBlocks,
+		"warmingFeePerByte":    ethernova.WarmingFeePerByte,
+		"maxSweepPerBlock":     ethernova.MaxLifecycleSweepPerBlock,
+		"slotSize":             ethernova.LifecycleStorageSlotSize,
+		"maxWitnessProofBytes": ethernova.MaxStateWitnessProofBytes,
+		"witnessVerifyGas":     ethernova.StateWitnessVerifyGas,
+		"witnessRestoreGas":    ethernova.StateWitnessRestoreGas,
+		"witnessGetTierGas":    ethernova.StateWitnessGetTierGas,
+		"description":          "NIP-0004 Phase 5: 5-tier state lifecycle (Active/Warm/Cold/Archived/Expired)",
+	}
+}
+
+// GetStateTier returns the current tier of an account (read-only).
+// slot is accepted but ignored for Phase 5 v1 — tiers are
+// per-account, not per-slot. The slot parameter is reserved for
+// Phase 5D where slot-level tiers are introduced.
+func (api *EthernovaAPI) GetStateTier(addr common.Address, slot common.Hash) map[string]interface{} {
+	engine := api.lifecycleEngine()
+	currentBlock := api.e.blockchain.CurrentBlock().Number.Uint64()
+	tier := engine.TierOf(addr, currentBlock)
+	lastTouched := engine.LastTouched(addr)
+	var age uint64
+	if lastTouched != 0 && currentBlock >= lastTouched {
+		age = currentBlock - lastTouched
+	}
+	return map[string]interface{}{
+		"address":      addr,
+		"slot":         slot,
+		"tier":         tier.String(),
+		"tierCode":     uint8(tier),
+		"lastTouched":  lastTouched,
+		"currentBlock": currentBlock,
+		"ageBlocks":    age,
+		"isArchived":   engine.IsArchived(addr),
+	}
+}
+
+// StateWitnessResult is what GetStateWitness returns. The "proof"
+// field is the precompile-format payload (count + per-node length-
+// prefixed RLP) hex-encoded.
+type StateWitnessResult struct {
+	Address     common.Address `json:"address"`
+	Slot        common.Hash    `json:"slot"`
+	Value       common.Hash    `json:"value"`
+	StorageRoot common.Hash    `json:"storageRoot"`
+	ColdRoot    common.Hash    `json:"coldRoot"`
+	ProofHex    string         `json:"proof"`
+	NodeCount   int            `json:"nodeCount"`
+}
+
+// GetStateWitness generates a Merkle proof suitable for submission
+// to precompile 0x2F selector 0x02 (restoreState). The proof is
+// built against the LIVE storage trie at head — for an Archived
+// account that storage root must equal the cold root recorded at
+// archival time, otherwise the witness will not verify on-chain.
+// Archive nodes that retain the original trie produce verifiable
+// proofs; pruned nodes will produce proofs against an empty trie
+// which the precompile will reject.
+func (api *EthernovaAPI) GetStateWitness(addr common.Address, slot common.Hash) (*StateWitnessResult, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	engine := api.lifecycleEngine()
+	storageRoot := statedb.GetStorageRoot(addr)
+	coldRoot := engine.ColdStorageRoot(addr)
+	value := statedb.GetState(addr, slot)
+
+	// Use the existing eth_getProof machinery to build a Merkle
+	// proof, then encode it in the precompile's payload format.
+	headRoot := api.e.blockchain.CurrentBlock().Root
+	proofNodes, err := generateStorageProof(statedb, headRoot, addr, slot)
+	if err != nil {
+		return nil, err
+	}
+	payload := state.EncodeProofPayload(proofNodes)
+
+	return &StateWitnessResult{
+		Address:     addr,
+		Slot:        slot,
+		Value:       value,
+		StorageRoot: storageRoot,
+		ColdRoot:    coldRoot,
+		ProofHex:    "0x" + commonBytes2Hex(payload),
+		NodeCount:   len(proofNodes),
+	}, nil
+}
+
+// GetWarmStateRoot returns the rolling Warm State Commitment Root
+// the lifecycle engine has accumulated. Two nodes that have observed
+// the same demotion sequence should report the same value.
+func (api *EthernovaAPI) GetWarmStateRoot() map[string]interface{} {
+	engine := api.lifecycleEngine()
+	root := engine.WarmStateRoot()
+	return map[string]interface{}{
+		"warmStateRoot": root,
+		"description":   "rolling keccak256 chain over (prev || addr || demotionBlock) for every demotion",
+	}
+}
+
+// ============================================================
 // NIP-0004 Protocol Object RPC endpoints
 // ============================================================
 

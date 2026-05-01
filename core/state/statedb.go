@@ -18,6 +18,7 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"time"
@@ -357,6 +358,32 @@ func (s *StateDB) GetCommittedState(addr common.Address, hash common.Hash) commo
 // Database retrieves the low level database supporting the lower level trie ops.
 func (s *StateDB) Database() Database {
 	return s.db
+}
+
+// LifecycleTouchedAddresses returns the sorted, deduplicated list of
+// addresses that were modified during the current block. It is
+// consumed by the Phase 5 lifecycle hook in consensus/lyra2 to
+// populate the external 'X' (per-account last-touched) and 'x'
+// (per-block touch list) indexes.
+//
+// CONSENSUS-CRITICAL: the result is sorted by raw address bytes so
+// the lifecycle hook produces identical output on every node. We
+// derive the list from stateObjectsDirty (the set of state objects
+// modified during the block, populated by Finalise()) — this is the
+// canonical "touched in block" set already used by Commit. The
+// returned slice is a copy, safe for the caller to retain.
+func (s *StateDB) LifecycleTouchedAddresses() []common.Address {
+	if len(s.stateObjectsDirty) == 0 {
+		return nil
+	}
+	out := make([]common.Address, 0, len(s.stateObjectsDirty))
+	for addr := range s.stateObjectsDirty {
+		out = append(out, addr)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return bytes.Compare(out[i][:], out[j][:]) < 0
+	})
+	return out
 }
 
 func (s *StateDB) HasSelfDestructed(addr common.Address) bool {

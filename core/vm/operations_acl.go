@@ -21,8 +21,87 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/params/ethernova"
 	"github.com/ethereum/go-ethereum/params/vars"
 )
+
+// applyLifecycleSurcharge adds the Phase 5 warming-fee surcharge to a
+// base gas amount when the contract address is in a non-Active tier.
+// Returns the (possibly-unchanged) gas amount and any overflow error.
+//
+// SCOPE NOTE (Phase 5 v1): the surcharge is applied to SLOAD only,
+// not SSTORE. SSTORE behavior is to PROMOTE the touched account back
+// to Active (the touch list updated by the consensus engine at end
+// of block makes this automatic), so the very next SLOAD is cheap
+// again. Charging on SSTORE as well would double-bill the same
+// access and would require touching the SSTORE refund table, which
+// is too risky to bundle into Phase 5. Phase 5D / 6 may extend this
+// if the economic model demands it.
+//
+// CONSENSUS-CRITICAL invariants:
+//
+//  1. Pre-fork (block < StateLifecycleForkBlock) this returns base
+//     unchanged. The function MUST be a strict no-op before the
+//     fork to preserve gas costs across the activation boundary.
+//
+//  2. The tier is computed from the external Phase 5 LevelDB index
+//     via the state.StateLifecycleEngine. The engine reads only
+//     LevelDB; it never touches the state trie. So this surcharge
+//     cannot create a state-root divergence. (It CAN create a gas
+//     divergence if two nodes disagree on the index — but the
+//     index is itself written deterministically by the consensus
+//     Finalize() hook, so they must agree post-block.)
+//
+//  3. ComputeWarmingFee uses overflow-safe uint64 multiplication
+//     and saturates at MaxUint64 on overflow, so ErrGasUintOverflow
+//     arises only from the SafeAdd on top of base gas — the same
+//     mechanism EIP-2929 uses.
+//
+//  4. If the underlying StateDB is not *state.StateDB (e.g. a test
+//     harness using an alternative implementation) the surcharge
+//     is silently zero. Tests of EVM-only behavior can therefore
+//     run without wiring a Phase 5 engine.
+func applyLifecycleSurcharge(evm *EVM, contract *Contract, base uint64) (uint64, error) {
+	// Cheap fork gate first — every SLOAD hits this path.
+	if evm.Context.BlockNumber == nil ||
+		evm.Context.BlockNumber.Uint64() < ethernova.StateLifecycleForkBlock {
+		return base, nil
+	}
+	concrete, ok := evm.StateDB.(*state.StateDB)
+	if !ok {
+		return base, nil
+	}
+	disk := concrete.Database().DiskDB()
+	if disk == nil {
+		return base, nil
+	}
+	cfg := state.LifecycleConfig{
+		Thresholds: state.LifecycleThresholds{
+			ActiveBlocks: ethernova.ActiveTierBlocks,
+			WarmBlocks:   ethernova.WarmTierBlocks,
+			ColdBlocks:   ethernova.ColdTierBlocks,
+		},
+		Fees: state.LifecycleFees{
+			PerByte: ethernova.WarmingFeePerByte,
+		},
+		MaxSweepPerBlock: ethernova.MaxLifecycleSweepPerBlock,
+	}
+	engine := state.NewStateLifecycleEngine(disk, cfg)
+	tier := engine.TierOf(contract.Address(), evm.Context.BlockNumber.Uint64())
+	if tier == state.TierActive {
+		return base, nil
+	}
+	surcharge := state.ComputeWarmingFee(tier, ethernova.LifecycleStorageSlotSize, cfg.Fees)
+	if surcharge == 0 {
+		return base, nil
+	}
+	out, overflow := math.SafeAdd(base, surcharge)
+	if overflow {
+		return 0, ErrGasUintOverflow
+	}
+	return out, nil
+}
 
 func makeGasSStoreFunc(clearingRefund uint64) gasFunc {
 	return func(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
@@ -108,9 +187,13 @@ func gasSLoadEIP2929(evm *EVM, contract *Contract, stack *Stack, mem *Memory, me
 		// If the caller cannot afford the cost, this change will be rolled back
 		// If he does afford it, we can skip checking the same thing later on, during execution
 		evm.StateDB.AddSlotToAccessList(contract.Address(), slot)
-		return vars.ColdSloadCostEIP2929, nil
+		// Phase 5: apply lifecycle warming-fee surcharge on the cold
+		// access path. Pre-fork this returns the base unchanged.
+		return applyLifecycleSurcharge(evm, contract, vars.ColdSloadCostEIP2929)
 	}
-	return vars.WarmStorageReadCostEIP2929, nil
+	// Phase 5: apply lifecycle warming-fee surcharge on the warm
+	// access path. Pre-fork this returns the base unchanged.
+	return applyLifecycleSurcharge(evm, contract, vars.WarmStorageReadCostEIP2929)
 }
 
 // gasExtCodeCopyEIP2929 implements extcodecopy according to EIP-2929

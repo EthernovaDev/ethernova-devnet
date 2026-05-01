@@ -426,6 +426,28 @@ func (lyra2 *Lyra2) Finalize(chain consensus.ChainHeaderReader, header *types.He
 	// 0xFF01 hook directly above.
 	vm.CrProcessRentEpoch(state, header.Number.Uint64())
 
+	// NIP-0004 Phase 5: 5-tier State Lifecycle.
+	//
+	// At every post-fork block we (a) record the set of accounts
+	// touched during this block to the external Phase 15+5 index,
+	// then (b) run a bounded sweep of the candidate block
+	// (currentBlock - ColdBlocks - 1) to flip any still-untouched
+	// accounts into the Archived tier and snapshot their storage
+	// root.
+	//
+	// The lifecycle hook writes ONLY to the external LevelDB index;
+	// it does NOT mutate the state trie. This keeps Phase 5 v1
+	// strictly safe-for-consensus: every node reproduces the same
+	// state root from the same inputs regardless of whether the
+	// index is up-to-date.
+	//
+	// MUST mirror the same call in FinalizeAndAssemble below. Any
+	// asymmetry here = consensus-asymmetric index state, which would
+	// later produce divergent witness-restoration outcomes.
+	if header.Number.Uint64() >= ethernova.StateLifecycleForkBlock {
+		runStateLifecycle(state, header.Number.Uint64())
+	}
+
 	header.Root = state.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 }
 
@@ -452,6 +474,13 @@ func (lyra2 *Lyra2) FinalizeAndAssemble(chain consensus.ChainHeaderReader, heade
 	// NIP-0004 Phase 3: Rent epoch — mirror of Finalize() above. See the
 	// comment on the same call in Finalize() for the invariant.
 	vm.CrProcessRentEpoch(state, header.Number.Uint64())
+
+	// NIP-0004 Phase 5: 5-tier State Lifecycle. Mirror of Finalize()
+	// above — see the comment there for the invariant. This call must
+	// stay byte-for-byte equivalent to the Finalize() one.
+	if header.Number.Uint64() >= ethernova.StateLifecycleForkBlock {
+		runStateLifecycle(state, header.Number.Uint64())
+	}
 
 	header.Root = state.IntermediateRoot(chain.Config().IsEnabled(chain.Config().GetEIP161dTransition, header.Number))
 
