@@ -647,6 +647,17 @@ func (ethash *Ethash) Finalize(chain consensus.ChainHeaderReader, header *types.
 	// FinalizeAndAssemble below piggy-backs via its call to Finalize().
 	vm.CrProcessRentEpoch(state, header.Number.Uint64())
 
+	// NIP-0004 Phase 5: 5-tier State Lifecycle. Mirrors lyra2.Finalize —
+	// the lifecycle hook records touched accounts to the external
+	// LevelDB index and runs the bounded archive sweep. BOTH engines
+	// MUST invoke runStateLifecycle on every post-fork Finalize, or
+	// blocks mined by the engine that lacks the call will silently
+	// fail to update the index, breaking tier classification.
+	// FinalizeAndAssemble below piggy-backs via its call to Finalize().
+	if header.Number.Uint64() >= ethernova.StateLifecycleForkBlock {
+		runStateLifecycle(state, header.Number.Uint64())
+	}
+
 	// Log block reward for Ethernova monitoring
 	reward, _ := mutations.GetRewards(chain.Config(), header, uncles)
 	log.Debug("Block reward", "block", header.Number, "miner", header.Coinbase, "reward", reward, "uncles", len(uncles), "txs", len(txs))
