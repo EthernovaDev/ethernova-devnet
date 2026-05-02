@@ -267,17 +267,17 @@ Requires: Go 1.21+, GCC, Make
 - [x] Consensus verification: 3+ nodes, 1000 blocks, 500+ messages, zero BAD BLOCK
 
 ### Phase 5: State Lifecycle Tiers (NIP-0004)
-- [ ] 5-tier model: Active (100K blocks) → Warm (1M) → Cold (10M) → Archived (>10M) → Expired
-- [ ] Lazy tier transition on access: check `last_touched_block`, apply warming fee, promote
-- [ ] Tier-adjusted SLOAD/SSTORE costs: Warm = 3x, Cold = 10x + witness required
-- [ ] `novaStateWitness` precompile (0x2F): Merkle proof verification for Cold/Archived state restoration
-- [ ] Warm State Commitment Root in state root calculation
-- [ ] Devnet: shortened thresholds (Active=100, Warm=500, Cold=1000 blocks)
-- [ ] Substage 5A: tier tracking + RPC query (no demotion yet)
-- [ ] Substage 5B: tier demotion + warming fees (Active → Warm → Cold)
-- [ ] Substage 5C: witness verification + state restoration (Cold → Active via proof)
-- [ ] End-to-end test: create state → wait → verify demotion → restore with witness
-- [ ] Consensus verification: 3+ nodes, 2000 blocks, tier transitions occurring, zero BAD BLOCK
+- [x] 5-tier model: Active (100K blocks) → Warm (1M) → Cold (10M) → Archived (>10M) → Expired
+- [x] Lazy tier transition on access: check `last_touched_block`, apply warming fee, promote
+- [x] Tier-adjusted SLOAD/SSTORE costs: Warm = 3x, Cold = 10x + witness required
+- [x] `novaStateWitness` precompile (0x2F): Merkle proof verification for Cold/Archived state restoration
+- [x] Warm State Commitment Root in state root calculation
+- [x] Devnet: shortened thresholds (Active=100, Warm=500, Cold=1000 blocks)
+- [x] Substage 5A: tier tracking + RPC query (no demotion yet)
+- [x] Substage 5B: tier demotion + warming fees (Active → Warm → Cold)
+- [x] Substage 5C: witness verification + state restoration (Cold → Active via proof)
+- [x] End-to-end test: create state → wait → verify demotion → restore with witness
+- [x] Consensus verification: 3+ nodes, 2000 blocks, tier transitions occurring, zero BAD BLOCK
 
 ### Phase 6: Execution Domains & Capability Model (NIP-0004)
 - [ ] Domain declaration at contract deployment: Domain 0 (Classic), Domain 1 (Deferred), Domain 2 (Channel)
