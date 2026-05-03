@@ -116,8 +116,8 @@ func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = databaseIdentifier
 	cfg.Version = params.Version
-	cfg.HTTPModules = append(cfg.HTTPModules, "eth")
-	cfg.WSModules = append(cfg.WSModules, "eth")
+	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "ethernova")
+	cfg.WSModules = append(cfg.WSModules, "eth", "ethernova")
 	cfg.IPCPath = "geth.ipc"
 	return cfg
 }
