@@ -236,18 +236,18 @@ const (
 	// within which an account/object is considered Active (no
 	// surcharge). Devnet: 100 blocks (~17 minutes at ~10s/block).
 	// Mainnet target: 100_000 blocks (~12.7 days at 11s/block).
-	ActiveTierBlocks uint64 = 100
+	ActiveTierBlocks uint64 = 10
 
 	// WarmTierBlocks is the upper bound on the Warm tier age in
 	// blocks. Above ActiveTierBlocks and at-or-below WarmTierBlocks
 	// => Warm. Devnet: 500 blocks. Mainnet target: 1_000_000.
-	WarmTierBlocks uint64 = 500
+	WarmTierBlocks uint64 = 25
 
 	// ColdTierBlocks is the upper bound on the Cold tier age in
 	// blocks. Above WarmTierBlocks and at-or-below ColdTierBlocks
 	// => Cold. Above ColdTierBlocks => Archived.
 	// Devnet: 1000 blocks. Mainnet target: 10_000_000.
-	ColdTierBlocks uint64 = 1000
+	ColdTierBlocks uint64 = 50
 
 	// WarmingFeePerByte is the wei-of-gas surcharge applied per byte
 	// of touched state when the tier is non-Active:

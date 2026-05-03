@@ -1,152 +1,24 @@
-feat(phase5): implement NIP-0004 State Lifecycle Tiers
+devnet: reduce State Lifecycle tier thresholds for faster testing
 
-Adds the 5-tier state lifecycle (Active / Warm / Cold / Archived /
-Expired) for Account state and Contract storage, per NIP-0004 §5.
-Replaces the dormant Phase 15 state expiry v2 (disabled in v1.0.7
-after consensus split) with a non-destructive tier-marker model
-that uses Merkle-witness restoration instead of trie deletion.
+Reduce Active/Warm/Cold tier thresholds to significantly speed up Phase 5 testing on devnet.
 
-Devnet activation: block 0 (chain id 121526). Mainnet activation
-will be set in a follow-up commit once the agreed activation block
-is locked. All Phase 5 code is fork-gated; pre-fork behavior is a
-strict no-op (no surcharge, precompile reverts, RPC returns Active).
+Changes:
+- ActiveTierBlocks: 100 -> 10
+- WarmTierBlocks:   500 -> 25
+- ColdTierBlocks:   1000 -> 50
 
-Architecture decisions:
+Rationale:
+Current devnet values require ~3 hours to reach Archived state (1000 blocks at ~10-11s/block),
+making iterative testing (tier transitions, witness restore, stress tests) extremely slow.
 
-- The lifecycle engine NEVER mutates the state trie. All tier
-  bookkeeping lives in the external LevelDB index alongside the
-  Phase 15 'X'/'x'/'A' prefixes (extended with 'T'/'C'/'W'/'L'/
-  'P'/'p'). This is the v1.0.7 lesson applied: removing the trie
-  mutation removes the entire class of consensus-split risk.
+With the new values:
+- Full lifecycle (Active -> Archived) completes in ~9 minutes
+- Enables rapid iteration and debugging for Phase 5 features
 
-- Warming-fee surcharge is applied to SLOAD only, not SSTORE.
-  SSTORE naturally promotes the touched account back to Active
-  via the block touch list, and SSTORE refund interactions are
-  too delicate to bundle into Phase 5 v1.
+IMPORTANT:
+These values are NOT intended for mainnet.
+Mainnet should use significantly higher thresholds (e.g. 100k / 1M / 10M blocks)
+to preserve long-term state economics and realistic lifecycle behavior.
 
-- Witness restoration verifies against the cold storage root
-  captured at archival time, not the live storage root. This
-  prevents witness replay across accounts.
-
-- All sweep iteration is sorted by raw address bytes, fed from
-  the deterministic Phase 15 'x' index; no Go map iteration in
-  any consensus path.
-
-- Tier classification is a pure uint64 function with saturating
-  multiplication; no floating point, no time.Now(), no randomness.
-
-New files (7):
-
-  consensus/lyra2/state_lifecycle_hook.go    runStateLifecycle driver
-  core/rawdb/accessors_ethernova_warm_state.go  Phase 5 schema extension
-  core/state/state_lifecycle.go              5-tier engine (617 lines)
-  core/state/witness_verifier.go             Pure Merkle proof verification
-  core/vm/ethernova_state_witness.go         Precompile 0x2F (3 selectors)
-  eth/api_ethernova_phase5.go                Storage proof RPC helper
-
-Modified files (6):
-
-  consensus/lyra2/consensus.go               Wire lifecycle hook into
-                                             Finalize and FinalizeAndAssemble
-                                             (mirror calls; identical placement)
-  core/state/state_expiry_v2.go              Refactored as Phase 15 shim;
-                                             SweepExpired is now no-op
-  core/state/statedb.go                      Add LifecycleTouchedAddresses();
-                                             import "bytes"
-  core/vm/contracts.go                       Register 0x2F: novaStateWitness
-  core/vm/operations_acl.go                  Tier-aware SLOAD surcharge
-                                             (cold and warm paths wrapped via
-                                             applyLifecycleSurcharge)
-  eth/api_ethernova.go                       Add ethernova_stateLifecycleConfig,
-                                             ethernova_getStateTier,
-                                             ethernova_getStateWitness,
-                                             ethernova_getWarmStateRoot
-  params/ethernova/forks.go                  Add 11 Phase 5 constants
-
-Precompile 0x2F (novaStateWitness) selectors:
-
-  0x01 verifyStateWitness(addr, slot, value, proofLen, proof)
-       READ-ONLY. Returns 0x01 if proof valid against cold root.
-       Gas: 5000.
-
-  0x02 restoreState(addr, slot, value, proofLen, proof)
-       WRITE. Verifies witness, clears archive marker, refreshes
-       lastTouched. Returns ErrWriteProtection in STATICCALL.
-       Gas: 25000.
-
-  0x03 getCurrentTier(addr)
-       READ-ONLY. Returns 32-byte word, low byte = tier code.
-       Gas: 1000.
-
-RPC methods (namespace ethernova):
-
-  ethernova_stateLifecycleConfig()      thresholds + fees + gas
-  ethernova_getStateTier(addr, slot)    current tier + lastTouched
-  ethernova_getStateWitness(addr, slot) Merkle proof for restoration
-                                        (archive node only)
-  ethernova_getWarmStateRoot()          rolling commitment chain
-
-Devnet thresholds (params/ethernova/forks.go):
-
-  ActiveTierBlocks         = 100      (~17 min)
-  WarmTierBlocks           = 500      (~1.5 h)
-  ColdTierBlocks           = 1000     (~3 h)
-  WarmingFeePerByte        = 5        (160 gas/slot at Warm)
-  MaxLifecycleSweepPerBlock = 256
-
-Mainnet targets (must be set in follow-up commit before activation):
-
-  ActiveTierBlocks         = 100_000     (~12.7 days)
-  WarmTierBlocks           = 1_000_000   (~127 days)
-  ColdTierBlocks           = 10_000_000  (~3.5 years)
-  WarmingFeePerByte        = 50          (calibration TBD)
-  MaxLifecycleSweepPerBlock = 2048
-
-EIP-214 / readOnly safety:
-
-  Selector 0x02 explicitly returns ErrWriteProtection when readOnly
-  is true. Selectors 0x01 and 0x03 are pure reads and pass through
-  STATICCALL safely. Pattern matches novaContentRegistry (0x2B) and
-  novaAccountManager (0x22) precompiles.
-
-Backward compatibility:
-
-  Phase 15 StateExpiryEngine type and method signatures are
-  preserved as a shim so existing callers compile unchanged.
-  TouchContract and RecordBlockTouches still write to the same
-  'X'/'x' prefixes; SweepExpired is now a no-op (was destructive
-  in v1.0.4-v1.0.6, disabled in v1.0.7, replaced in Phase 5).
-
-  Pre-fork SLOAD gas costs are unchanged (applyLifecycleSurcharge
-  returns base unchanged when block < StateLifecycleForkBlock).
-
-  Existing precompiles 0x20-0x2C, 0x35 unaffected. 0x2F was
-  previously unused.
-
-Out of scope (Phase 5C / 5D continuation work):
-
-  - Wiring RecordObjectBlockTouches into 0x29/0x2B/0x2C/0x35
-    mutation paths (Protocol Object lifecycle).
-  - ethernova_getObjectTier RPC.
-  - Reorg-aware rollback of external index entries.
-  - Actual state-trie deletion / pruning (currently markers only).
-  - SSTORE surcharge.
-  - Account-level surcharge for BALANCE/EXTCODEHASH/EXTCODECOPY.
-  - Expired-tier explicit policy drop.
-  - Witness format version byte for forward compatibility.
-
-Testing:
-
-  Validated end-to-end on dedicated Phase 5 devnet:
-  - Multi-node consensus across 2000+ blocks: zero BAD BLOCK.
-  - Active->Warm->Cold->Archived transitions fire at expected
-    thresholds.
-  - Witness generation via ethernova_getStateWitness, restoration
-    via 0x2F selector 0x02: round-trip works.
-  - Continuously-touched contracts never demoted.
-  - Cross-platform (Linux CGO_ENABLED=1, Windows CGO_ENABLED=0):
-    identical state roots and warm state roots.
-
-Refs: NIP-0004 §5 (State Lifecycle Tiers), §3.4 (novaStateWitness),
-      §5.5 (Merkle Restoration Protocol), §8.2-8.4 (Bounded Resource
-      Growth, Efficient Sync, Pruning).
+Reminder:
+Revert or adjust these parameters before mainnet deployment.
