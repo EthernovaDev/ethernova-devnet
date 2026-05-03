@@ -139,6 +139,18 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	// NIP-0004 Phase 5: register chainDb for the EVM gas-path lookup of
+	// the lifecycle tier index. Without this call, applyLifecycleSurcharge
+	// in core/vm/operations_acl.go silently no-ops during eth_call /
+	// eth_estimateGas / debug-trace simulations because the wrapped /
+	// copied StateDB used in those paths does not always expose its
+	// underlying disk DB. Setting the global once at startup means every
+	// gas calculation — production AND simulation — reads from the same
+	// LevelDB, which keeps wallet gas estimates accurate for non-Active
+	// tiers. MUST be called before any block is processed; here is the
+	// canonical place.
+	vm.SetLifecycleDB(chainDb)
+
 	scheme, err := rawdb.ParseStateScheme(config.StateScheme, chainDb)
 	if err != nil {
 		return nil, err

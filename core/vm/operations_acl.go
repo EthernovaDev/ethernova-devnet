@@ -36,8 +36,7 @@ import (
 // of block makes this automatic), so the very next SLOAD is cheap
 // again. Charging on SSTORE as well would double-bill the same
 // access and would require touching the SSTORE refund table, which
-// is too risky to bundle into Phase 5. Phase 5D / 6 may extend this
-// if the economic model demands it.
+// is too risky to bundle into Phase 5.
 //
 // CONSENSUS-CRITICAL invariants:
 //
@@ -48,34 +47,53 @@ import (
 //  2. The tier is computed from the external Phase 5 LevelDB index
 //     via the state.StateLifecycleEngine. The engine reads only
 //     LevelDB; it never touches the state trie. So this surcharge
-//     cannot create a state-root divergence. (It CAN create a gas
-//     divergence if two nodes disagree on the index — but the
-//     index is itself written deterministically by the consensus
-//     Finalize() hook, so they must agree post-block.)
+//     cannot create a state-root divergence.
 //
 //  3. ComputeWarmingFee uses overflow-safe uint64 multiplication
 //     and saturates at MaxUint64 on overflow, so ErrGasUintOverflow
-//     arises only from the SafeAdd on top of base gas — the same
-//     mechanism EIP-2929 uses.
+//     arises only from the SafeAdd on top of base gas.
 //
-//  4. If the underlying StateDB is not *state.StateDB (e.g. a test
-//     harness using an alternative implementation) the surcharge
-//     is silently zero. Tests of EVM-only behavior can therefore
-//     run without wiring a Phase 5 engine.
+//  4. The chain DB used for the lookup comes from the package-global
+//     registered at node startup via SetLifecycleDB. This avoids the
+//     type-assertion-on-StateDB anti-pattern that was failing during
+//     eth_estimateGas / eth_call simulation paths where the StateDB
+//     is a copy or wrapper that doesn't expose the disk DB. The
+//     simulation StateDB and the production StateDB read from the
+//     SAME LevelDB now, so estimate gas matches mined gas.
+//
+//  5. If the global has not been set (test harness, very early init)
+//     we fall through to the legacy type-assertion path, then to a
+//     final no-op. The fallthrough is the conservative default —
+//     consensus is preserved (every node that lacks the registration
+//     applies the same zero surcharge), but estimate accuracy is
+//     lost. Production startup always sets the global.
 func applyLifecycleSurcharge(evm *EVM, contract *Contract, base uint64) (uint64, error) {
 	// Cheap fork gate first — every SLOAD hits this path.
 	if evm.Context.BlockNumber == nil ||
 		evm.Context.BlockNumber.Uint64() < ethernova.StateLifecycleForkBlock {
 		return base, nil
 	}
-	concrete, ok := evm.StateDB.(*state.StateDB)
-	if !ok {
-		return base, nil
-	}
-	disk := concrete.Database().DiskDB()
+
+	// Resolve the chain DB. Primary path: package-global registered at
+	// node startup (works for ANY StateDB type — production, copy,
+	// override, simulated). Fallback path: type-assert evm.StateDB to
+	// *state.StateDB and reach DiskDB through it (works only for the
+	// production StateDB; silently drops to no-op in simulations).
+	disk := getLifecycleDB()
 	if disk == nil {
-		return base, nil
+		concrete, ok := evm.StateDB.(*state.StateDB)
+		if !ok {
+			return base, nil
+		}
+		if concrete.Database() == nil {
+			return base, nil
+		}
+		disk = concrete.Database().DiskDB()
+		if disk == nil {
+			return base, nil
+		}
 	}
+
 	cfg := state.LifecycleConfig{
 		Thresholds: state.LifecycleThresholds{
 			ActiveBlocks: ethernova.ActiveTierBlocks,
