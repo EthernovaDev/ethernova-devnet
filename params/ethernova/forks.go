@@ -220,7 +220,7 @@ const (
 	// ============================================================
 
 	// StateLifecycleForkBlock activates Phase 5 tier tracking, the
-	// SLOAD warming-fee surcharge, the novaStateWitness precompile
+	// novaStateWitness precompile
 	// (0x2F), and the ethernova_getStateTier / getStateWitness /
 	// getWarmStateRoot / stateLifecycleConfig RPC surface.
 	//
@@ -231,6 +231,15 @@ const (
 	// return tier=Active for any query — strict no-op on early
 	// blocks.
 	StateLifecycleForkBlock uint64 = 0
+
+	// LifecycleSloadSurchargeForkBlock activates the consensus gas-rule
+	// portion of Phase 5: the SLOAD warming-fee surcharge. This is split
+	// from StateLifecycleForkBlock on devnet because the first surcharge
+	// implementation only covered the EIP-2929 SLOAD path. Enabling the
+	// corrected pre-EIP-2929 SLOAD path retroactively would make existing
+	// historical blocks recompute different gasUsed. Treat it as a normal
+	// hard-fork and activate only after every devnet node has upgraded.
+	LifecycleSloadSurchargeForkBlock uint64 = 90480
 
 	// ActiveTierBlocks is the number of blocks since last_touched
 	// within which an account/object is considered Active (no

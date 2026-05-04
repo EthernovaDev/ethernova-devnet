@@ -352,10 +352,26 @@ func (e *StateLifecycleEngine) ProcessLifecycle(currentBlock uint64) SweepResult
 		return res
 	}
 	candidate := currentBlock - e.cfg.Thresholds.ColdBlocks - 1
+	// The lifecycle hook can be reached more than once for the same
+	// block on miner/import paths. WarmStateRoot is a rolling accumulator,
+	// so replaying the same candidate would permanently diverge the
+	// external index even though the state trie remains identical. Use the
+	// existing global cursor to make the sweep idempotent and to catch up
+	// one missed candidate per subsequent block.
+	const sweepEpoch uint64 = 0
+	if next := rawdb.ReadLifecycleSweepCursor(e.db, sweepEpoch); next != 0 {
+		if candidate < next {
+			return res
+		}
+		if candidate > next {
+			candidate = next
+		}
+	}
 	res.BlockProcessed = candidate
 
 	addrs := rawdb.ReadBlockTouchedAddresses(e.db, candidate)
 	if len(addrs) == 0 {
+		rawdb.WriteLifecycleSweepCursor(e.db, sweepEpoch, candidate+1)
 		return res
 	}
 	// Apply per-block cap. Beyond the limit we leave the rest of the
@@ -419,6 +435,7 @@ func (e *StateLifecycleEngine) ProcessLifecycle(currentBlock uint64) SweepResult
 		}
 	}
 	rawdb.WriteWarmStateRoot(batch, warmRoot)
+	rawdb.WriteLifecycleSweepCursor(batch, sweepEpoch, candidate+1)
 	if err := batch.Write(); err != nil {
 		log.Error("StateLifecycle: sweep batch write failed",
 			"block", currentBlock, "err", err)

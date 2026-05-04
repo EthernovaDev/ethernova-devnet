@@ -559,18 +559,19 @@ func (api *EthernovaAPI) lifecycleEngine() *state.StateLifecycleEngine {
 // StateLifecycleConfig surfaces the Phase 5 thresholds and fees.
 func (api *EthernovaAPI) StateLifecycleConfig() map[string]interface{} {
 	return map[string]interface{}{
-		"forkBlock":            ethernova.StateLifecycleForkBlock,
-		"activeTierBlocks":     ethernova.ActiveTierBlocks,
-		"warmTierBlocks":       ethernova.WarmTierBlocks,
-		"coldTierBlocks":       ethernova.ColdTierBlocks,
-		"warmingFeePerByte":    ethernova.WarmingFeePerByte,
-		"maxSweepPerBlock":     ethernova.MaxLifecycleSweepPerBlock,
-		"slotSize":             ethernova.LifecycleStorageSlotSize,
-		"maxWitnessProofBytes": ethernova.MaxStateWitnessProofBytes,
-		"witnessVerifyGas":     ethernova.StateWitnessVerifyGas,
-		"witnessRestoreGas":    ethernova.StateWitnessRestoreGas,
-		"witnessGetTierGas":    ethernova.StateWitnessGetTierGas,
-		"description":          "NIP-0004 Phase 5: 5-tier state lifecycle (Active/Warm/Cold/Archived/Expired)",
+		"forkBlock":               ethernova.StateLifecycleForkBlock,
+		"sloadSurchargeForkBlock": ethernova.LifecycleSloadSurchargeForkBlock,
+		"activeTierBlocks":        ethernova.ActiveTierBlocks,
+		"warmTierBlocks":          ethernova.WarmTierBlocks,
+		"coldTierBlocks":          ethernova.ColdTierBlocks,
+		"warmingFeePerByte":       ethernova.WarmingFeePerByte,
+		"maxSweepPerBlock":        ethernova.MaxLifecycleSweepPerBlock,
+		"slotSize":                ethernova.LifecycleStorageSlotSize,
+		"maxWitnessProofBytes":    ethernova.MaxStateWitnessProofBytes,
+		"witnessVerifyGas":        ethernova.StateWitnessVerifyGas,
+		"witnessRestoreGas":       ethernova.StateWitnessRestoreGas,
+		"witnessGetTierGas":       ethernova.StateWitnessGetTierGas,
+		"description":             "NIP-0004 Phase 5: 5-tier state lifecycle (Active/Warm/Cold/Archived/Expired)",
 	}
 }
 

@@ -70,7 +70,7 @@ import (
 func applyLifecycleSurcharge(evm *EVM, contract *Contract, base uint64) (uint64, error) {
 	// Cheap fork gate first — every SLOAD hits this path.
 	if evm.Context.BlockNumber == nil ||
-		evm.Context.BlockNumber.Uint64() < ethernova.StateLifecycleForkBlock {
+		evm.Context.BlockNumber.Uint64() < ethernova.LifecycleSloadSurchargeForkBlock {
 		return base, nil
 	}
 
@@ -212,6 +212,16 @@ func gasSLoadEIP2929(evm *EVM, contract *Contract, stack *Stack, mem *Memory, me
 	// Phase 5: apply lifecycle warming-fee surcharge on the warm
 	// access path. Pre-fork this returns the base unchanged.
 	return applyLifecycleSurcharge(evm, contract, vars.WarmStorageReadCostEIP2929)
+}
+
+// makeGasSLoadLifecycle wraps pre-EIP-2929 SLOAD pricing with the Phase 5
+// warming-fee surcharge. On this chain EIP-2929 is not active, so SLOAD is
+// normally a constant-gas opcode (800 after EIP-2200) and would otherwise never
+// enter gasSLoadEIP2929.
+func makeGasSLoadLifecycle(base uint64) gasFunc {
+	return func(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
+		return applyLifecycleSurcharge(evm, contract, base)
+	}
 }
 
 // gasExtCodeCopyEIP2929 implements extcodecopy according to EIP-2929
