@@ -1,1 +1,3 @@
-# Dev/test bootnodes (optional). Leave empty for local single-node runs.
+# Ethernova devnet public P2P anchor.
+# This VPS is also compiled into devnet builds as a static/trusted peer.
+enode://c56f025f5df73df9e9415f9df459dc7fbe204875e5972fda9cdc61ef4b4f7164aa2f886120f6352665eabedbfeda96119cd7c0f76e637f0752cff0783fa982d8@207.180.230.125:30301?discport=0
