@@ -1,0 +1,9 @@
+.env
+node_modules/
+artifacts/
+cache/
+report.json
+.deployments.json
+.tier-probe.json
+marker-scan.txt
+sload-scan.txt

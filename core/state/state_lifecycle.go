@@ -535,6 +535,15 @@ func (e *StateLifecycleEngine) RestoreFromWitness(
 	maxProofBytes uint64,
 ) error {
 	if rawdb.ReadArchiveMarker(e.db, addr) != rawdb.ArchiveMarkerArchived {
+		// Restore writes the Phase 5 metadata index outside the trie. If a
+		// block import is retried after the first execution already cleared
+		// the marker, replaying the same restore transaction must remain
+		// deterministic. Treat "already restored in this exact block" as an
+		// idempotent success, while still rejecting normal non-archived calls.
+		if rawdb.ReadLastTouched(e.db, addr) == currentBlock &&
+			rawdb.ReadColdStorageRoot(e.db, addr) == (common.Hash{}) {
+			return nil
+		}
 		// The address is not archived — nothing to restore. Refuse to
 		// silently succeed because a "no-op restore" gives caller no
 		// signal that the witness was wrong.

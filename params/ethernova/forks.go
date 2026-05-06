@@ -239,7 +239,7 @@ const (
 	// corrected pre-EIP-2929 SLOAD path retroactively would make existing
 	// historical blocks recompute different gasUsed. Treat it as a normal
 	// hard-fork and activate only after every devnet node has upgraded.
-	LifecycleSloadSurchargeForkBlock uint64 = 90480
+	LifecycleSloadSurchargeForkBlock uint64 = 96300
 
 	// ActiveTierBlocks is the number of blocks since last_touched
 	// within which an account/object is considered Active (no
