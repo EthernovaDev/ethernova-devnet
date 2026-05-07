@@ -55,6 +55,7 @@ type Contract struct {
 	CodeHash common.Hash
 	CodeAddr *common.Address
 	Input    []byte
+	Domain   ExecutionDomain
 
 	Gas   uint64
 	value *uint256.Int
@@ -178,9 +179,11 @@ func (c *Contract) Value() *uint256.Int {
 // SetCallCode sets the code of the contract and address of the backing data
 // object
 func (c *Contract) SetCallCode(addr *common.Address, hash common.Hash, code []byte) {
-	c.Code = code
+	domain, runtime := parseExecutionDomain(code)
+	c.Code = runtime
 	c.CodeHash = hash
 	c.CodeAddr = addr
+	c.Domain = domain
 }
 
 // SetCodeOptionalHash can be used to provide code, but it's optional to provide hash.

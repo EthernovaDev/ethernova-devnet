@@ -67,6 +67,8 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 				}(evm.interpreter)
 				evm.interpreter = interpreter
 			}
+			evm.pushExecutionFrame(contract.Domain)
+			defer evm.popExecutionFrame()
 			return interpreter.Run(contract, input, readOnly)
 		}
 	}
@@ -141,6 +143,9 @@ type EVM struct {
 	// callErrorTemp holds any errors caused during the execution of system opcodes (0xf0)
 	// NOTE: it's being used only for tracers
 	CallErrorTemp error
+	// executionFrames tracks Phase 6 domain/capability narrowing across the
+	// active contract call stack.
+	executionFrames []executionFrame
 
 	// Ethernova v2.0 (Noven Fork): Trace-based adaptive gas counters.
 	// Collects opcode execution counts during EVM execution for post-execution
@@ -214,6 +219,7 @@ func (evm *EVM) Reset(txCtx TxContext, statedb StateDB) {
 	// Ethernova v2.0 (Noven Fork): reset trace counters and reentrancy guard
 	evm.TraceCounters.Reset()
 	evm.reentrancyGuard.Reset()
+	evm.executionFrames = evm.executionFrames[:0]
 }
 
 // Cancel cancels any running EVM operation. This may be called concurrently and
@@ -284,8 +290,16 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	if isPrecompile {
+		if err = evm.checkPrecompileCapabilities(caller.Address(), addr); err != nil {
+			evm.StateDB.RevertToSnapshot(snapshot)
+			return nil, gas, err
+		}
 		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, evm.inReadOnlyContext())
 	} else {
+		if err = evm.checkContractDomainCall(caller, addr); err != nil {
+			evm.StateDB.RevertToSnapshot(snapshot)
+			return nil, gas, err
+		}
 		// Initialise a new contract and set the code that is to be used by the EVM.
 		// The contract is a scoped environment for this execution context only.
 		code := evm.StateDB.GetCode(addr)
@@ -356,8 +370,16 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 
 	// It is allowed to call precompiles, even via delegatecall
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
+		if err = evm.checkPrecompileCapabilities(caller.Address(), addr); err != nil {
+			evm.StateDB.RevertToSnapshot(snapshot)
+			return nil, gas, err
+		}
 		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, evm.inReadOnlyContext())
 	} else {
+		if err = evm.checkContractDomainCall(caller, addr); err != nil {
+			evm.StateDB.RevertToSnapshot(snapshot)
+			return nil, gas, err
+		}
 		addrCopy := addr
 		// Initialise a new contract and set the code that is to be used by the EVM.
 		// The contract is a scoped environment for this execution context only.
@@ -401,8 +423,16 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 
 	// It is allowed to call precompiles, even via delegatecall
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
+		if err = evm.checkPrecompileCapabilities(caller.Address(), addr); err != nil {
+			evm.StateDB.RevertToSnapshot(snapshot)
+			return nil, gas, err
+		}
 		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, evm.inReadOnlyContext())
 	} else {
+		if err = evm.checkContractDomainCall(caller, addr); err != nil {
+			evm.StateDB.RevertToSnapshot(snapshot)
+			return nil, gas, err
+		}
 		addrCopy := addr
 		// Initialise a new contract and make initialise the delegate values
 		contract := NewContract(caller, AccountRef(caller.Address()), nil, gas).AsDelegate()
@@ -450,10 +480,18 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	}
 
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
+		if err = evm.checkPrecompileCapabilities(caller.Address(), addr); err != nil {
+			evm.StateDB.RevertToSnapshot(snapshot)
+			return nil, gas, err
+		}
 		// NIP-0004: stateful precompiles dispatched via runPrecompileOrStateful.
 		// StaticCall: readOnly=true enforces EIP-214 — write ops return ErrWriteProtection.
 		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, true)
 	} else {
+		if err = evm.checkContractDomainCall(caller, addr); err != nil {
+			evm.StateDB.RevertToSnapshot(snapshot)
+			return nil, gas, err
+		}
 		// At this point, we use a copy of address. If we don't, the go compiler will
 		// leak the 'contract' to the outer scope, and make allocation for 'contract'
 		// even if the actual execution ends on RunPrecompiled above.
@@ -528,6 +566,11 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// The contract is a scoped environment for this execution context only.
 	contract := NewContract(caller, AccountRef(address), value, gas)
 	contract.SetCodeOptionalHash(&address, codeAndHash)
+	if evm.callerIsContract(caller) {
+		contract.Domain = evm.currentExecutionDomain(caller.Address())
+	} else {
+		contract.Domain = DomainNova
+	}
 
 	if evm.Config.Tracer != nil {
 		if evm.depth == 0 {
@@ -545,7 +588,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 
 	// Reject code starting with 0xEF if EIP-3541 is enabled.
-	if err == nil && len(ret) >= 1 && ret[0] == 0xEF && evm.ChainConfig().IsEnabled(evm.chainConfig.GetEIP3541Transition, evm.Context.BlockNumber) {
+	if err == nil && len(ret) >= 1 && ret[0] == 0xEF && !hasExecutionDomainPrefix(ret) && evm.ChainConfig().IsEnabled(evm.chainConfig.GetEIP3541Transition, evm.Context.BlockNumber) {
 		err = ErrInvalidCode
 	}
 
