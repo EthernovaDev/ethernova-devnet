@@ -11,6 +11,8 @@ import (
 )
 
 func TestEthernovaForkIDChangesWithForkBlock(t *testing.T) {
+	const futureForkBlock = 105000
+
 	baseCfg := &coregeth.CoreGethChainConfig{
 		NetworkID: ethernova.NewChainID,
 		ChainID:   new(big.Int).SetUint64(ethernova.NewChainID),
@@ -28,17 +30,17 @@ func TestEthernovaForkIDChangesWithForkBlock(t *testing.T) {
 	forkCfg := &coregeth.CoreGethChainConfig{
 		NetworkID:           ethernova.NewChainID,
 		ChainID:             new(big.Int).SetUint64(ethernova.NewChainID),
-		ConstantinopleBlock: new(big.Int).SetUint64(ethernova.EVMCompatibilityForkBlock),
-		PetersburgBlock:     new(big.Int).SetUint64(ethernova.EVMCompatibilityForkBlock),
-		IstanbulBlock:       new(big.Int).SetUint64(ethernova.EVMCompatibilityForkBlock),
+		ConstantinopleBlock: new(big.Int).SetUint64(futureForkBlock),
+		PetersburgBlock:     new(big.Int).SetUint64(futureForkBlock),
+		IstanbulBlock:       new(big.Int).SetUint64(futureForkBlock),
 	}
 	idFork := NewID(forkCfg, genesisBlock, 0, 0)
 
 	if idFork == idNoFork {
 		t.Fatalf("forkid should change when fork block is configured")
 	}
-	if idFork.Next != ethernova.EVMCompatibilityForkBlock {
-		t.Fatalf("unexpected forkid next: have %d want %d", idFork.Next, ethernova.EVMCompatibilityForkBlock)
+	if idFork.Next != futureForkBlock {
+		t.Fatalf("unexpected forkid next: have %d want %d", idFork.Next, futureForkBlock)
 	}
 }
 

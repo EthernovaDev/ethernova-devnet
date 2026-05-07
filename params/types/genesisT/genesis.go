@@ -76,6 +76,22 @@ func (g *Genesis) SetBaseFeeChangeDenominator(n uint64) error {
 	return g.Config.SetBaseFeeChangeDenominator(n)
 }
 
+func (g *Genesis) GetBaseFeeVault() *common.Address {
+	return g.Config.GetBaseFeeVault()
+}
+
+func (g *Genesis) SetBaseFeeVault(a *common.Address) error {
+	return g.Config.SetBaseFeeVault(a)
+}
+
+func (g *Genesis) GetBaseFeeVaultFromBlock() *uint64 {
+	return g.Config.GetBaseFeeVaultFromBlock()
+}
+
+func (g *Genesis) SetBaseFeeVaultFromBlock(n *uint64) error {
+	return g.Config.SetBaseFeeVaultFromBlock(n)
+}
+
 func (g *Genesis) GetEIP3651TransitionTime() *uint64 {
 	return g.Config.GetEIP3651TransitionTime()
 }

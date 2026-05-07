@@ -101,3 +101,9 @@ checksums-sha256.txt
 
 .tools/
 _tools/
+
+# Local devnet operation reports/log captures
+/devnet-logs/
+
+# macOS local metadata
+.DS_Store
