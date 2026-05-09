@@ -28,11 +28,45 @@ func parseExecutionDomain(code []byte) (ExecutionDomain, []byte) {
 	return DomainLegacy, code
 }
 
+// ParseExecutionDomain returns the declared execution domain and interpreter
+// bytecode. It is exported for RPC/tooling only; consensus execution continues
+// to use the same internal parser.
+func ParseExecutionDomain(code []byte) (ExecutionDomain, []byte) {
+	return parseExecutionDomain(code)
+}
+
+// InspectExecutionDomain returns the declared execution domain and the number
+// of metadata prefix bytes present in stored bytecode.
+func InspectExecutionDomain(code []byte) (ExecutionDomain, int) {
+	domain, runtimeCode := parseExecutionDomain(code)
+	return domain, len(code) - len(runtimeCode)
+}
+
 func hasExecutionDomainPrefix(code []byte) bool {
 	if len(code) < 2 || code[0] != 0xEF {
 		return false
 	}
 	return code[1] == 0x01 || code[1] == 0x02
+}
+
+// HasExecutionDomainPrefix reports whether stored bytecode carries an EF01/EF02
+// domain prefix.
+func HasExecutionDomainPrefix(code []byte) bool {
+	return hasExecutionDomainPrefix(code)
+}
+
+// ExecutionDomainName renders a stable label for RPC and explorer clients.
+func ExecutionDomainName(domain ExecutionDomain) string {
+	switch domain {
+	case DomainLegacy:
+		return "Domain 0 / Legacy"
+	case DomainNova:
+		return "Domain 1 / Nova"
+	case DomainChannel:
+		return "Domain 2 / Channel"
+	default:
+		return "Unknown"
+	}
 }
 
 func (evm *EVM) domainOfAddress(addr common.Address) ExecutionDomain {

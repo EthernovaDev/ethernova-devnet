@@ -124,7 +124,7 @@ func applyEthernovaOneClickDefaults(ctx *cli.Context) (uint64, error) {
 	if len(os.Args) > 1 {
 		return 0, nil
 	}
-	apiList := "eth,net,web3,debug,txpool,ethernova"
+	apiList := "eth,net,web3,debug,txpool,ethernova,nova"
 
 	if !ctx.IsSet(utils.HTTPEnabledFlag.Name) {
 		if err := ctx.Set(utils.HTTPEnabledFlag.Name, "true"); err != nil {
@@ -382,8 +382,8 @@ func printEthernovaStartup(info *ethernovaGenesisInfo) {
 	fmt.Printf("    %s•%s Legacy Chain Enforcement                 block %s\n", cPurple, cReset, ethernova.FormatBlockWithCommas(ethernova.LegacyForkEnforcementBlock))
 	fmt.Printf("    %s•%s NIP-0004 Protocol Object Registry        block %s\n", cPurple, cReset, ethernova.FormatBlockWithCommas(ethernova.ProtocolObjectForkBlock))
 	fmt.Println(cDim + "  ─────────────────────────────────────────────────────────────────────────────" + cReset)
-	fmt.Println("  " + cBold + "RPC Namespaces" + cReset + "   eth, net, web3, txpool, debug, " + cCyan + "ethernova" + cReset)
-	fmt.Println("  " + cBold + "Custom RPCs" + cReset + "      ethernova_forkStatus  ethernova_chainConfig  ethernova_nodeHealth")
+	fmt.Println("  " + cBold + "RPC Namespaces" + cReset + "   eth, net, web3, txpool, debug, " + cCyan + "ethernova, nova" + cReset)
+	fmt.Println("  " + cBold + "Custom RPCs" + cReset + "      ethernova_forkStatus  nova_getProtocolObject  nova_getDomain")
 	fmt.Println(cDim + "  ─────────────────────────────────────────────────────────────────────────────" + cReset)
 	fmt.Println()
 }

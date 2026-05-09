@@ -42,6 +42,12 @@ func defaultCapabilitiesForDomain(domain ExecutionDomain) CapabilityMask {
 	}
 }
 
+// DefaultCapabilitiesForDomain exposes the Phase 6 default capability grant
+// for RPC/tooling. Runtime enforcement continues through execution frames.
+func DefaultCapabilitiesForDomain(domain ExecutionDomain) CapabilityMask {
+	return defaultCapabilitiesForDomain(domain)
+}
+
 func requiredCapabilityForPrecompile(addr common.Address) CapabilityMask {
 	switch addr[19] {
 	case 0x29:
@@ -61,6 +67,54 @@ func requiredCapabilityForPrecompile(addr common.Address) CapabilityMask {
 	default:
 		return CapabilityNone
 	}
+}
+
+// RequiredCapabilityForPrecompile returns the capability bit needed to call a
+// Nova precompile. Non-Nova precompiles return CapabilityNone.
+func RequiredCapabilityForPrecompile(addr common.Address) CapabilityMask {
+	return requiredCapabilityForPrecompile(addr)
+}
+
+// CapabilityName renders a stable label for a single capability bit.
+func CapabilityName(cap CapabilityMask) string {
+	switch cap {
+	case CapabilityProtocolObjects:
+		return "protocolObjects"
+	case CapabilityDeferredQueue:
+		return "deferredQueue"
+	case CapabilityContentRegistry:
+		return "contentRegistry"
+	case CapabilityMailboxManager:
+		return "mailboxManager"
+	case CapabilityStateWitness:
+		return "stateWitness"
+	case CapabilityMailboxOps:
+		return "mailboxOps"
+	case CapabilitySessionArbiter:
+		return "sessionArbiter"
+	default:
+		return "unknown"
+	}
+}
+
+// CapabilityNames returns all labels enabled in the mask.
+func CapabilityNames(mask CapabilityMask) []string {
+	catalog := []CapabilityMask{
+		CapabilityProtocolObjects,
+		CapabilityDeferredQueue,
+		CapabilityContentRegistry,
+		CapabilityMailboxManager,
+		CapabilityStateWitness,
+		CapabilityMailboxOps,
+		CapabilitySessionArbiter,
+	}
+	names := make([]string, 0, len(catalog))
+	for _, cap := range catalog {
+		if mask&cap != 0 {
+			names = append(names, CapabilityName(cap))
+		}
+	}
+	return names
 }
 
 func (evm *EVM) pushExecutionFrame(domain ExecutionDomain) {

@@ -61,10 +61,10 @@ exec $GETH \
     --datadir "$DATADIR" \
     --port $P2P_PORT \
     --http --http.addr 0.0.0.0 --http.port $RPC_PORT \
-    --http.api eth,net,web3,debug,txpool,admin,ethernova \
+    --http.api eth,net,web3,debug,txpool,admin,ethernova,nova \
     --http.corsdomain "*" \
     --ws --ws.addr 0.0.0.0 --ws.port $WS_PORT \
-    --ws.api eth,net,web3,debug,txpool,admin,ethernova \
+    --ws.api eth,net,web3,debug,txpool,admin,ethernova,nova \
     --ws.origins "*" \
     --miner.etherbase "$ETHERBASE" \
     --allow-insecure-unlock \

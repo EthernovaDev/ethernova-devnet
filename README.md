@@ -304,11 +304,13 @@ Requires: Go 1.21+, GCC, Make
 - [x] Consensus verification: 3+ nodes, 500 blocks, session operations, zero BAD BLOCK
 
 ### Phase 8: Nova RPC Namespace & Developer Tooling (NIP-0004)
-- [ ] Unified `nova_*` RPC namespace: getProtocolObject, getProtocolObjectTier, getMailbox, getMessages, getContentRef, getSession, getStateTier, getStateWitness, getPendingEffects, getCapabilities, getDomain
-- [ ] ethers.js provider extensions (Nova SDK)
-- [ ] Hardhat plugin for Domain 1/2 deployment
-- [ ] Block explorer extensions for Protocol Objects, Mailbox states, Channel activities
-- [ ] Developer documentation and example contracts
+- [x] Unified `nova_*` RPC namespace: getProtocolObject, getProtocolObjectTier, getMailbox, getMessages, getContentRef, getSession, getStateTier, getStateWitness, getPendingEffects, getCapabilities, getDomain
+- [x] Backward-compatible `ethernova_*` namespace retained for existing scripts and dashboards
+- [x] Nova SDK provider helper in `devnet/nova-sdk` with namespace fallback support
+- [x] Hardhat helper in `devnet/nova-hardhat-plugin` for constructor-free Domain 1/2 runtime deployment
+- [x] Explorer-facing discovery endpoints: `nova_developerTooling`, `nova_getDomain`, `nova_getCapabilities`, `nova_getSession`
+- [x] Block explorer extension spec for Protocol Objects, Mailbox states, and Session/Channel activity in `devnet/phase8/explorer-extension-spec.md`
+- [x] Developer documentation and RPC validation script in `devnet/phase8/phase8-rpc-tooling-test.js`
 
 ### Phase 9: NIP-0003 Chat Rebase to NIP-0004 Primitives
 - [ ] Chat registry → Mailbox owner lookup + X25519 pubkey in Mailbox metadata
@@ -627,7 +629,7 @@ These contracts demonstrate how adaptive gas treats different execution patterns
 
 ## Custom Precompiles
 
-Ethernova Devnet includes 12 custom precompiled contracts not found on any other EVM chain:
+Ethernova Devnet includes 16 custom precompiled contracts not found on any other EVM chain:
 
 | Address | Name | Description | Gas |
 |---------|------|-------------|-----|
@@ -643,6 +645,10 @@ Ethernova Devnet includes 12 custom precompiled contracts not found on any other
 | `0x29` | `novaProtocolObjectRegistry` | NIP-0004 Phase 1 — first-class Protocol Objects | 2k-20k |
 | `0x2A` | `novaDeferredQueue` | NIP-0004 Phase 2 — pending effects queue + block-prologue drain | 2k-10k |
 | `0x2B` | `novaContentRegistry` | NIP-0004 Phase 3 — content references with rent-backed expiry | 2k-10k |
+| `0x2C` | `novaMailboxManager` | NIP-0004 Phase 4 — mailbox lifecycle and configuration | 2k-20k |
+| `0x2D` | `novaSessionArbiter` | NIP-0004 Phase 7 — session/channel open, commit, close, dispute | 2k-50k |
+| `0x2F` | `novaStateWitness` | NIP-0004 Phase 5 — state witness verification and restoration | 2k-50k |
+| `0x35` | `novaMailboxOps` | NIP-0004 Phase 4 — mailbox send, receive, peek, count | 2k-20k |
 
 ### Using novaBatchHash from Solidity
 
