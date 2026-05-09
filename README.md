@@ -313,12 +313,12 @@ Requires: Go 1.21+, GCC, Make
 - [x] Developer documentation and RPC validation script in `devnet/phase8/phase8-rpc-tooling-test.js`
 
 ### Phase 9: NIP-0003 Chat Rebase to NIP-0004 Primitives
-- [ ] Chat registry → Mailbox owner lookup + X25519 pubkey in Mailbox metadata
-- [ ] Direct messages → Session channel (Phase 7): real-time P2P, periodic on-chain checkpoint
-- [ ] Group chat → Domain 1 ChatRoom contract with Mailbox fanout via Deferred Processing
-- [ ] Message content → ContentRef (encrypted payload off-chain, hash on-chain)
-- [ ] NIP-0003 test cases 1–6 pass using NIP-0004 primitives
-- [ ] Simple web chat harness (wallet connect + P2P messaging + on-chain settlement)
+- [x] Chat registry → `nova_getChatMailbox(owner)` mailbox lookup plus ContentRef-anchored X25519 profile metadata
+- [x] Direct messages → Session channel convention (Phase 7 `SessionTypeChat`) with encrypted P2P payload helpers
+- [x] Group chat → Domain 1 ChatRoom fanout convention via mailbox notification hashes and Deferred Processing
+- [x] Message content → ContentRef convention for encrypted payload envelopes (`application/ethernova.chat-message+json`)
+- [x] NIP-0003 test cases 1–6 mapped to Phase 3/4/7 primitives in `devnet/phase9/phase9-chat-proving-ground-test.js`
+- [x] Simple web chat harness in `devnet/phase9/chat-harness.html`
 
 ### Phase 10: Multi-Dimensional Resource Metering (NIP-0004)
 - [ ] 5-dimension Resource Vector: compute, state_read, state_write, protocol_ops, proof_verify

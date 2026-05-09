@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ethernova Phase 9 Chat Harness</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #071a22;
+      --panel: rgba(12, 39, 52, 0.86);
+      --line: rgba(94, 234, 255, 0.22);
+      --text: #e9fbff;
+      --muted: #9cc3ce;
+      --accent: #58eaff;
+      --gold: #ffb36a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(88,234,255,0.18), transparent 32rem),
+        radial-gradient(circle at 85% 20%, rgba(255,179,106,0.14), transparent 28rem),
+        linear-gradient(145deg, #061018, var(--bg));
+      color: var(--text);
+      padding: 28px;
+    }
+    main { max-width: 1100px; margin: 0 auto; }
+    h1 { font-size: clamp(2rem, 6vw, 5rem); letter-spacing: -0.08em; margin: 0 0 12px; }
+    p { color: var(--muted); line-height: 1.55; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.32);
+    }
+    label { display: block; color: var(--muted); margin: 12px 0 6px; }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.28);
+      color: var(--text);
+      padding: 12px;
+      font: inherit;
+    }
+    button {
+      border: 1px solid rgba(88,234,255,0.55);
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent), #4967d8);
+      color: #061018;
+      font-weight: 800;
+      padding: 12px 18px;
+      margin: 12px 8px 0 0;
+      cursor: pointer;
+    }
+    pre {
+      overflow: auto;
+      white-space: pre-wrap;
+      color: #cdf8ff;
+      background: rgba(0, 0, 0, 0.24);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      min-height: 180px;
+    }
+    .wide { grid-column: 1 / -1; }
+    .pill { color: var(--gold); letter-spacing: 0.18em; text-transform: uppercase; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="pill">NIP-0003 over NIP-0004</p>
+  <h1>Phase 9 Chat Harness</h1>
+  <p>Read-only browser harness for resolving chat mailbox metadata and building a deterministic message envelope. Transaction sending stays in wallet tooling.</p>
+
+  <section class="grid">
+    <div class="card">
+      <h2>RPC</h2>
+      <label>RPC URL</label>
+      <input id="rpc" value="https://devrpc.ethnova.net">
+      <label>Owner Address</label>
+      <input id="owner" value="0x0000000000000000000000000000000000000000">
+      <button onclick="loadConfig()">Load Config</button>
+      <button onclick="resolveMailbox()">Resolve Mailbox</button>
+    </div>
+
+    <div class="card">
+      <h2>Message Builder</h2>
+      <label>To Mailbox ID</label>
+      <input id="mailbox" value="0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb">
+      <label>Message</label>
+      <textarea id="message">hello from phase9</textarea>
+      <button onclick="buildEnvelope()">Build Envelope Hash</button>
+    </div>
+
+    <div class="card wide">
+      <h2>Output</h2>
+      <pre id="out">Ready.</pre>
+    </div>
+  </section>
+</main>
+<script>
+async function rpc(method, params = []) {
+  const res = await fetch(document.getElementById("rpc").value, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: Date.now() })
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message);
+  return json.result;
+}
+function out(value) {
+  document.getElementById("out").textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+}
+async function loadConfig() {
+  out(await rpc("nova_chatConfig"));
+}
+async function resolveMailbox() {
+  out(await rpc("nova_getChatMailbox", [document.getElementById("owner").value, 0, 10]));
+}
+async function sha256Hex(text) {
+  const bytes = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return "0x" + [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+async function buildEnvelope() {
+  const envelope = {
+    version: 1,
+    from: document.getElementById("owner").value,
+    toMailboxId: document.getElementById("mailbox").value,
+    payload: { cleartextDemo: document.getElementById("message").value },
+    contentRefId: "0x" + "00".repeat(32),
+    sessionId: "0x" + "00".repeat(32),
+    timestamp: Math.floor(Date.now() / 1000)
+  };
+  const canonical = JSON.stringify(envelope, Object.keys(envelope).sort());
+  out({ envelope, payloadHash: await sha256Hex(canonical) });
+}
+</script>
+</body>
+</html>

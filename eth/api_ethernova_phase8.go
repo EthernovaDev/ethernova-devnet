@@ -304,6 +304,8 @@ func (api *EthernovaAPI) DeveloperTooling() map[string]interface{} {
 			"nova_getPendingEffects",
 			"nova_getCapabilities",
 			"nova_getDomain",
+			"nova_chatConfig",
+			"nova_getChatMailbox",
 		},
 	}
 }

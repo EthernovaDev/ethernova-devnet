@@ -2,6 +2,7 @@
 
 const http = require("http");
 const https = require("https");
+const crypto = require("crypto");
 
 const CHAIN_ID = 121526;
 
@@ -23,6 +24,9 @@ const PRECOMPILES = Object.freeze({
   stateWitness: "0x000000000000000000000000000000000000002F",
   mailboxOps: "0x0000000000000000000000000000000000000035",
 });
+
+const CHAT_PROFILE_CONTENT_TYPE = "application/ethernova.chat-profile+json";
+const CHAT_MESSAGE_CONTENT_TYPE = "application/ethernova.chat-message+json";
 
 class NovaProvider {
   constructor(rpcUrl, options = {}) {
@@ -116,6 +120,14 @@ class NovaProvider {
   developerTooling() {
     return this.nova("developerTooling", []);
   }
+
+  chatConfig() {
+    return this.nova("chatConfig", []);
+  }
+
+  getChatMailbox(owner, offset = 0, limit = 25) {
+    return this.nova("getChatMailbox", [owner, offset, limit]);
+  }
 }
 
 const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -125,6 +137,50 @@ function normalizeHex(value) {
     throw new Error("hex value must be a string");
   }
   return value.startsWith("0x") ? value.slice(2) : value;
+}
+
+function strip0x(value) {
+  return normalizeHex(value).toLowerCase();
+}
+
+function wordHex(value) {
+  if (typeof value === "bigint" || typeof value === "number") {
+    if (BigInt(value) < 0n) {
+      throw new Error("wordHex cannot encode negative values");
+    }
+    return BigInt(value).toString(16).padStart(64, "0");
+  }
+  const hex = strip0x(value);
+  if (hex.length > 64) {
+    throw new Error(`word too large: ${value}`);
+  }
+  return hex.padStart(64, "0");
+}
+
+function addressWord(address) {
+  const hex = strip0x(address);
+  if (hex.length !== 40) {
+    throw new Error(`invalid address: ${address}`);
+  }
+  return hex.padStart(64, "0");
+}
+
+function hashHex(data) {
+  const buf = Buffer.isBuffer(data) ? data : Buffer.from(String(data));
+  return `0x${crypto.createHash("sha256").update(buf).digest("hex")}`;
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function domainRuntimeBytecode(domain, runtimeBytecode) {
@@ -144,6 +200,170 @@ function buildDomainInitcode(domain, runtimeBytecode) {
   const len = runtimeBytes.toString(16).padStart(4, "0");
   const offset = "000f";
   return `0x61${len}61${offset}60003961${len}6000f3${runtime}`;
+}
+
+function generateChatIdentity() {
+  try {
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("x25519");
+    const publicDer = publicKey.export({ type: "spki", format: "der" });
+    const privateDer = privateKey.export({ type: "pkcs8", format: "der" });
+    return {
+      algorithm: "X25519",
+      publicKey: publicDer.toString("base64"),
+      privateKey: privateDer.toString("base64"),
+      publicKeyHash: hashHex(publicDer),
+    };
+  } catch (_) {
+    const privateKey = crypto.randomBytes(32);
+    const publicKey = crypto.createHash("sha256").update(privateKey).digest();
+    return {
+      algorithm: "X25519-dev-fallback",
+      publicKey: publicKey.toString("base64"),
+      privateKey: privateKey.toString("base64"),
+      publicKeyHash: hashHex(publicKey),
+    };
+  }
+}
+
+function importX25519Private(privateKeyBase64) {
+  return crypto.createPrivateKey({
+    key: Buffer.from(privateKeyBase64, "base64"),
+    type: "pkcs8",
+    format: "der",
+  });
+}
+
+function importX25519Public(publicKeyBase64) {
+  return crypto.createPublicKey({
+    key: Buffer.from(publicKeyBase64, "base64"),
+    type: "spki",
+    format: "der",
+  });
+}
+
+function deriveChatKey(privateKeyBase64, peerPublicKeyBase64) {
+  const secret = crypto.diffieHellman({
+    privateKey: importX25519Private(privateKeyBase64),
+    publicKey: importX25519Public(peerPublicKeyBase64),
+  });
+  return crypto.createHash("sha256").update("EthernovaChat:v1").update(secret).digest();
+}
+
+function encryptChatPayload(plaintext, privateKeyBase64, peerPublicKeyBase64, aad = "") {
+  const key = deriveChatKey(privateKeyBase64, peerPublicKeyBase64);
+  const nonce = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, nonce);
+  if (aad) {
+    cipher.setAAD(Buffer.from(aad));
+  }
+  const ciphertext = Buffer.concat([cipher.update(String(plaintext), "utf8"), cipher.final()]);
+  return {
+    version: 1,
+    algorithm: "X25519+AES-256-GCM",
+    nonce: nonce.toString("base64"),
+    ciphertext: ciphertext.toString("base64"),
+    tag: cipher.getAuthTag().toString("base64"),
+  };
+}
+
+function decryptChatPayload(payload, privateKeyBase64, peerPublicKeyBase64, aad = "") {
+  const key = deriveChatKey(privateKeyBase64, peerPublicKeyBase64);
+  const decipher = crypto.createDecipheriv("aes-256-gcm", key, Buffer.from(payload.nonce, "base64"));
+  if (aad) {
+    decipher.setAAD(Buffer.from(aad));
+  }
+  decipher.setAuthTag(Buffer.from(payload.tag, "base64"));
+  return Buffer.concat([
+    decipher.update(Buffer.from(payload.ciphertext, "base64")),
+    decipher.final(),
+  ]).toString("utf8");
+}
+
+function buildChatProfile({ owner, mailboxId, identity, createdAtBlock = 0, profileNonce = "" }) {
+  if (!identity || !identity.publicKey) {
+    throw new Error("buildChatProfile requires a generated chat identity");
+  }
+  const profile = {
+    version: 1,
+    owner,
+    mailboxId,
+    x25519PublicKey: identity.publicKey,
+    x25519PublicKeyHash: identity.publicKeyHash || hashHex(Buffer.from(identity.publicKey, "base64")),
+    createdAtBlock,
+    profileNonce,
+  };
+  const canonical = stableStringify(profile);
+  return {
+    profile,
+    canonical,
+    contentType: CHAT_PROFILE_CONTENT_TYPE,
+    contentHash: hashHex(canonical),
+    size: Buffer.byteLength(canonical),
+  };
+}
+
+function buildChatMessageEnvelope({
+  from,
+  to,
+  toMailboxId,
+  sessionId = ZERO_HASH,
+  contentRefId = ZERO_HASH,
+  payload,
+  timestamp = 0,
+}) {
+  const envelope = {
+    version: 1,
+    from,
+    to,
+    toMailboxId,
+    sessionId,
+    contentRefId,
+    payload,
+    timestamp,
+  };
+  const canonical = stableStringify(envelope);
+  return {
+    envelope,
+    canonical,
+    contentType: CHAT_MESSAGE_CONTENT_TYPE,
+    payloadHash: hashHex(canonical),
+    size: Buffer.byteLength(canonical),
+  };
+}
+
+function buildContentRefInput({
+  contentHash,
+  size,
+  contentType,
+  availabilityProof = "",
+  rentPrepay = 1n,
+  expiryBlock = 0n,
+}) {
+  const typeBytes = Buffer.from(contentType || "", "utf8");
+  const proofBytes = Buffer.from(availabilityProof || "", "utf8");
+  return `0x01${wordHex(contentHash)}${wordHex(size)}${wordHex(typeBytes.length)}${wordHex(proofBytes.length)}${wordHex(rentPrepay)}${wordHex(expiryBlock)}${typeBytes.toString("hex")}${proofBytes.toString("hex")}`;
+}
+
+function buildCreateMailboxInput({
+  capacityLimit = 256n,
+  retentionPolicy = 0n,
+  retentionBlocks = 0n,
+  minPostageWei = 0n,
+  aclMode = 0n,
+  expiryBlock = 0n,
+  rentPrepay = 0n,
+  acl = [],
+} = {}) {
+  const aclTail = acl.map(addressWord).join("");
+  return `0x01${wordHex(capacityLimit)}${wordHex(retentionPolicy)}${wordHex(retentionBlocks)}${wordHex(minPostageWei)}${wordHex(aclMode)}${wordHex(expiryBlock)}${wordHex(rentPrepay)}${wordHex(acl.length)}${aclTail}`;
+}
+
+function buildMailboxSendInput(mailboxId, payloadHash, postage = 0n) {
+  return `0x01${wordHex(mailboxId)}${wordHex(payloadHash)}${wordHex(postage)}`;
+}
+
+function buildOpenChatSessionInput(counterparty, timeoutBlocks, disputeRules = ZERO_HASH, rentPrepay = 0n) {
+  return `0x01${addressWord(counterparty)}${wordHex(1n)}${wordHex(timeoutBlocks)}${wordHex(disputeRules)}${wordHex(rentPrepay)}`;
 }
 
 async function postJson(url, payload) {
@@ -192,8 +412,22 @@ module.exports = {
   CHAIN_ID,
   DOMAIN_PREFIXES,
   PRECOMPILES,
+  CHAT_MESSAGE_CONTENT_TYPE,
+  CHAT_PROFILE_CONTENT_TYPE,
   ZERO_HASH,
   NovaProvider,
   buildDomainInitcode,
+  buildChatMessageEnvelope,
+  buildChatProfile,
+  buildContentRefInput,
+  buildCreateMailboxInput,
   domainRuntimeBytecode,
+  buildMailboxSendInput,
+  buildOpenChatSessionInput,
+  decryptChatPayload,
+  deriveChatKey,
+  encryptChatPayload,
+  generateChatIdentity,
+  hashHex,
+  stableStringify,
 };
