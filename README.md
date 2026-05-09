@@ -256,7 +256,7 @@ Requires: Go 1.21+, GCC, Make
 ### Phase 4: Mailbox Primitive (NIP-0004)
 - [x] `novaMailboxManager` precompile (**0x2C** — shifted from original 0x29 which is
       Protocol Object Registry): create, configure (capacity, ACL, postage), destroy
-- [x] Temporary `novaMailboxOps` precompile (0x33): sendMessage, recvMessage, peekMessage, countMessages
+- [x] Temporary `novaMailboxOps` precompile (0x35): sendMessage, recvMessage, peekMessage, countMessages
 - [x] Mailbox as stateful Protocol Object with ordered message queue
 - [x] Message send → Pending Queue (Phase 2) → delivered to target mailbox next block
 - [x] Anti-spam: capacity limit, sender whitelist/blacklist, minimum postage for unknown senders
@@ -267,41 +267,44 @@ Requires: Go 1.21+, GCC, Make
 - [x] Consensus verification: 3+ nodes, 1000 blocks, 500+ messages, zero BAD BLOCK
 
 ### Phase 5: State Lifecycle Tiers (NIP-0004)
-- [x] 5-tier model: Active (100K blocks) → Warm (1M) → Cold (10M) → Archived (>10M) → Expired
-- [x] Lazy tier transition on access: check `last_touched_block`, apply warming fee, promote
-- [x] Tier-adjusted SLOAD/SSTORE costs: Warm = 3x, Cold = 10x + witness required
-- [x] `novaStateWitness` precompile (0x2F): Merkle proof verification for Cold/Archived state restoration
-- [x] Warm State Commitment Root in state root calculation
-- [x] Devnet: shortened thresholds (Active=100, Warm=500, Cold=1000 blocks)
-- [x] Substage 5A: tier tracking + RPC query (no demotion yet)
-- [x] Substage 5B: tier demotion + warming fees (Active → Warm → Cold)
-- [x] Substage 5C: witness verification + state restoration (Cold → Active via proof)
+- [x] 5-tier model: Active → Warm → Cold → Archived → Expired
+- [x] Account lifecycle index: deterministic per-block touches mirrored into the external Phase 5 index
+- [x] Lazy tier query on access: check `last_touched_block`, apply SLOAD warming surcharge, keep trie data intact
+- [x] Tier-adjusted `SLOAD` surcharge only; `SSTORE` surcharge is intentionally deferred to avoid refund/gas edge cases
+- [x] `novaStateWitness` precompile (0x2F): Merkle proof verification for Archived state restoration
+- [x] Warm State Commitment Root maintained in the external lifecycle index; state trie roots remain non-destructive
+- [x] Devnet: shortened thresholds (Active=10, Warm=25, Cold=50 blocks)
+- [x] Substage 5A: tier tracking + RPC query
+- [x] Substage 5B: account tier demotion + SLOAD warming fees
+- [x] Substage 5C: witness verification + account state restoration (Archived → Active via proof)
+- [x] Substage 5C continuation: Protocol Object lifecycle touches for 0x29/0x2B/0x2C/0x2D/0x35, journaled in StateDB and mirrored to the external object index
+- [ ] Phase 5D: real trie pruning / deletion. Deliberately not active; this requires a separate future fork and soak period.
 - [x] End-to-end test: create state → wait → verify demotion → restore with witness
 - [x] Consensus verification: 3+ nodes, 2000 blocks, tier transitions occurring, zero BAD BLOCK
 
 ### Phase 6: Execution Domains & Capability Model (NIP-0004)
-- [ ] Domain declaration at contract deployment: Domain 0 (Classic), Domain 1 (Deferred), Domain 2 (Channel)
-- [ ] Domain 0 = no prefix (fully backward compatible); Domain 1 = prefix 0xEF01; Domain 2 = prefix 0xEF02
-- [ ] Domain enforcement: Domain 0 contracts CANNOT call Nova precompiles (0x29+) → revert
-- [ ] Capability bitmask (`msg.capabilities`): narrowing-only propagation through call chains
-- [ ] Domain Bridge Protocol: Domain 0 → Domain 1 via MSEND (response is deferred, not synchronous)
-- [ ] Existing precompiles 0x20–0x28 remain accessible from Domain 0
-- [ ] Consensus verification: 3+ nodes, 500 blocks, cross-domain calls tested, zero BAD BLOCK
+- [x] Domain declaration at contract deployment: Domain 0 (Classic), Domain 1 (Deferred), Domain 2 (Channel)
+- [x] Domain 0 = no prefix (fully backward compatible); Domain 1 = prefix 0xEF01; Domain 2 = prefix 0xEF02
+- [x] Domain enforcement: Domain 0 contracts CANNOT call Nova precompiles (0x29+) → revert
+- [x] Capability bitmask: narrowing-only propagation through call chains
+- [x] Domain Bridge Protocol: Domain 0 → Domain 1 via deferred bridge path
+- [x] Existing precompiles 0x20–0x28 remain accessible from Domain 0
+- [x] Consensus verification: 3+ nodes, 500 blocks, cross-domain calls tested, zero BAD BLOCK
 
 ### Phase 7: Session/Channel Primitive (NIP-0004)
-- [ ] Session Protocol Object: counterparties, state_hash, sequence_number, timeout_block, dispute_rules
-- [ ] `novaSessionArbiter` precompile (0x2D): open, commit, close, dispute resolution
-- [ ] Off-chain signed state updates: monotonically increasing sequence numbers, both-party signatures
-- [ ] Dispute resolution: highest valid sequence number with valid signatures wins (deterministic)
-- [ ] Session timeout: checked in Deferred Processing Phase
-- [ ] Substage 7A: session lifecycle (open/close, no dispute)
-- [ ] Substage 7B: state commit + sequence number validation
-- [ ] Substage 7C: dispute resolution + timeout handling
-- [ ] End-to-end test: two wallets open session, exchange signed updates P2P, commit checkpoint on-chain
-- [ ] Consensus verification: 3+ nodes, 500 blocks, session operations, zero BAD BLOCK
+- [x] Session Protocol Object: counterparties, state_hash, sequence_number, timeout_block, dispute_rules
+- [x] `novaSessionArbiter` precompile (0x2D): open, commit, close, dispute resolution
+- [x] Off-chain signed state updates: monotonically increasing sequence numbers, both-party signatures
+- [x] Dispute resolution: highest valid sequence number with valid signatures wins (deterministic)
+- [x] Session timeout: checked in Deferred Processing Phase
+- [x] Substage 7A: session lifecycle (open/close, no dispute)
+- [x] Substage 7B: state commit + sequence number validation
+- [x] Substage 7C: dispute resolution + timeout handling
+- [x] End-to-end test: two wallets open session, exchange signed updates P2P, commit checkpoint on-chain
+- [x] Consensus verification: 3+ nodes, 500 blocks, session operations, zero BAD BLOCK
 
 ### Phase 8: Nova RPC Namespace & Developer Tooling (NIP-0004)
-- [ ] Unified `nova_*` RPC namespace: getProtocolObject, getMailbox, getMessages, getContentRef, getSession, getStateTier, getStateWitness, getPendingEffects, getCapabilities, getDomain
+- [ ] Unified `nova_*` RPC namespace: getProtocolObject, getProtocolObjectTier, getMailbox, getMessages, getContentRef, getSession, getStateTier, getStateWitness, getPendingEffects, getCapabilities, getDomain
 - [ ] ethers.js provider extensions (Nova SDK)
 - [ ] Hardhat plugin for Domain 1/2 deployment
 - [ ] Block explorer extensions for Protocol Objects, Mailbox states, Channel activities

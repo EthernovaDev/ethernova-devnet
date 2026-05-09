@@ -719,6 +719,68 @@ func (api *EthernovaAPI) GetProtocolObject(idHex string) (interface{}, error) {
 	return protocolObjectToResult(obj), nil
 }
 
+// GetProtocolObjectTier returns the Phase 5 lifecycle tier for a Protocol
+// Object. The external Phase 5C index is preferred; for pre-Phase-5C objects
+// that have not been touched since this release, the Protocol Object body's
+// LastTouchedBlock is used as a read-only compatibility fallback.
+func (api *EthernovaAPI) GetProtocolObjectTier(idHex string) (map[string]interface{}, error) {
+	statedb, err := api.getStateDB()
+	if err != nil {
+		return nil, err
+	}
+	id := common.HexToHash(idHex)
+	obj := vm.PoGetObject(statedb, id)
+	engine := api.lifecycleEngine()
+	currentBlock := api.e.blockchain.CurrentBlock().Number.Uint64()
+
+	lastTouched := engine.LastTouchedObject(id)
+	source := "lifecycle-index"
+	exists := obj != nil
+	var bodyLastTouched uint64
+	var typeTag uint8
+	typeName := "Unknown"
+	var owner common.Address
+	if obj != nil {
+		bodyLastTouched = obj.LastTouchedBlock
+		typeTag = obj.TypeTag
+		typeName = types.ProtocolObjectTypeName(obj.TypeTag)
+		owner = obj.Owner
+		if lastTouched == 0 || bodyLastTouched > lastTouched {
+			lastTouched = bodyLastTouched
+			source = "protocol-object-body"
+		}
+	}
+
+	tier := engine.TierOfObject(id, currentBlock)
+	if source == "protocol-object-body" {
+		tier = state.ComputeTier(lastTouched, currentBlock, state.LifecycleThresholds{
+			ActiveBlocks: ethernova.ActiveTierBlocks,
+			WarmBlocks:   ethernova.WarmTierBlocks,
+			ColdBlocks:   ethernova.ColdTierBlocks,
+		})
+	}
+	var age uint64
+	if lastTouched != 0 && currentBlock >= lastTouched {
+		age = currentBlock - lastTouched
+	}
+	return map[string]interface{}{
+		"id":                    id,
+		"exists":                exists,
+		"owner":                 owner,
+		"typeTag":               typeTag,
+		"typeName":              typeName,
+		"tier":                  tier.String(),
+		"tierCode":              uint8(tier),
+		"lastTouched":           lastTouched,
+		"bodyLastTouched":       bodyLastTouched,
+		"indexedLastTouched":    engine.LastTouchedObject(id),
+		"lastTouchedSource":     source,
+		"currentBlock":          currentBlock,
+		"ageBlocks":             age,
+		"phase5cIndexAvailable": engine.LastTouchedObject(id) != 0,
+	}, nil
+}
+
 // GetProtocolObjectCount returns the total number of Protocol Objects.
 func (api *EthernovaAPI) GetProtocolObjectCount() (map[string]interface{}, error) {
 	statedb, err := api.getStateDB()

@@ -126,6 +126,7 @@ func poWriteRLP(sdb StateDB, id common.Hash, data []byte) {
 		copy(chunk[:], data[start:end])
 		sdb.SetState(sys, poKeyChunk(id, i), common.BytesToHash(chunk[:]))
 	}
+	poRecordLifecycleTouch(sdb, id)
 }
 
 func poReadRLP(sdb StateDB, id common.Hash) []byte {
@@ -154,6 +155,17 @@ func poClearRLP(sdb StateDB, id common.Hash) {
 	}
 	poWriteUint64(sdb, poKeyDataLen(id), 0)
 	poWriteUint64(sdb, poKeyChunkCount(id), 0)
+	poRecordLifecycleTouch(sdb, id)
+}
+
+type protocolObjectTouchRecorder interface {
+	RecordProtocolObjectTouch(common.Hash)
+}
+
+func poRecordLifecycleTouch(sdb StateDB, id common.Hash) {
+	if recorder, ok := sdb.(protocolObjectTouchRecorder); ok {
+		recorder.RecordProtocolObjectTouch(id)
+	}
 }
 
 // poEnsureRegistryExists makes sure the system account at

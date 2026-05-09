@@ -60,6 +60,10 @@ func runStateLifecycle(statedb *state.StateDB, currentBlock uint64) {
 	if len(touched) > 0 {
 		engine.RecordBlockTouches(currentBlock, touched)
 	}
+	touchedObjects := statedb.LifecycleTouchedObjects()
+	if len(touchedObjects) > 0 {
+		engine.RecordObjectBlockTouches(currentBlock, touchedObjects)
+	}
 
 	// 2. Sweep: flip any still-untouched accounts into Archived tier
 	//    in the external index. Bounded by MaxLifecycleSweepPerBlock.

@@ -136,6 +136,9 @@ type (
 	touchChange struct {
 		account *common.Address
 	}
+	protocolObjectTouchChange struct {
+		id common.Hash
+	}
 	// Changes to the access list
 	accessListAddAccountChange struct {
 		address *common.Address
@@ -202,6 +205,14 @@ func (ch touchChange) revert(s *StateDB) {
 
 func (ch touchChange) dirtied() *common.Address {
 	return ch.account
+}
+
+func (ch protocolObjectTouchChange) revert(s *StateDB) {
+	delete(s.protocolObjectsDirty, ch.id)
+}
+
+func (ch protocolObjectTouchChange) dirtied() *common.Address {
+	return nil
 }
 
 func (ch balanceChange) revert(s *StateDB) {

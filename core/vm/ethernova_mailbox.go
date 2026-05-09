@@ -527,5 +527,14 @@ func HandleMailboxSendEffect(sdb StateDB, entry *types.DeferredEffect, currentBl
 	}
 	// mbAppend may fail only if RLP encoding of a known struct fails,
 	// which is a programming error worth surfacing.
-	return mbAppend(sdb, payload.MailboxID, msg)
+	if err := mbAppend(sdb, payload.MailboxID, msg); err != nil {
+		return err
+	}
+	obj.LastTouchedBlock = currentBlock
+	objData, err := obj.EncodeRLP()
+	if err != nil {
+		return err
+	}
+	poWriteRLP(sdb, payload.MailboxID, objData)
+	return nil
 }

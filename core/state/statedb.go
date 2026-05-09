@@ -83,6 +83,7 @@ type StateDB struct {
 	stateObjectsPending  map[common.Address]struct{}            // State objects finalized but not yet written to the trie
 	stateObjectsDirty    map[common.Address]struct{}            // State objects modified in the current execution
 	stateObjectsDestruct map[common.Address]*types.StateAccount // State objects destructed in the block along with its previous value
+	protocolObjectsDirty map[common.Hash]struct{}               // Protocol Objects modified during the current block
 
 	// DB error.
 	// State objects are used by the consensus core and VM which are
@@ -159,6 +160,7 @@ func New(root common.Hash, db Database, snaps *snapshot.Tree) (*StateDB, error) 
 		stateObjectsPending:  make(map[common.Address]struct{}),
 		stateObjectsDirty:    make(map[common.Address]struct{}),
 		stateObjectsDestruct: make(map[common.Address]*types.StateAccount),
+		protocolObjectsDirty: make(map[common.Hash]struct{}),
 		logs:                 make(map[common.Hash][]*types.Log),
 		preimages:            make(map[common.Hash][]byte),
 		journal:              newJournal(),
@@ -379,6 +381,37 @@ func (s *StateDB) LifecycleTouchedAddresses() []common.Address {
 	out := make([]common.Address, 0, len(s.stateObjectsDirty))
 	for addr := range s.stateObjectsDirty {
 		out = append(out, addr)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return bytes.Compare(out[i][:], out[j][:]) < 0
+	})
+	return out
+}
+
+// RecordProtocolObjectTouch marks a NIP-0004 Protocol Object as touched in the
+// current block. The marker is journaled, so a reverted EVM frame does not leak
+// into the Phase 5 external lifecycle index.
+func (s *StateDB) RecordProtocolObjectTouch(id common.Hash) {
+	if id == (common.Hash{}) {
+		return
+	}
+	if _, ok := s.protocolObjectsDirty[id]; ok {
+		return
+	}
+	s.journal.append(protocolObjectTouchChange{id: id})
+	s.protocolObjectsDirty[id] = struct{}{}
+}
+
+// LifecycleTouchedObjects returns the sorted, deduplicated list of Protocol
+// Object IDs modified during the current block. The consensus lifecycle hook
+// mirrors these into the external 'P'/'p' object lifecycle indexes.
+func (s *StateDB) LifecycleTouchedObjects() []common.Hash {
+	if len(s.protocolObjectsDirty) == 0 {
+		return nil
+	}
+	out := make([]common.Hash, 0, len(s.protocolObjectsDirty))
+	for id := range s.protocolObjectsDirty {
+		out = append(out, id)
 	}
 	sort.Slice(out, func(i, j int) bool {
 		return bytes.Compare(out[i][:], out[j][:]) < 0
@@ -724,6 +757,7 @@ func (s *StateDB) Copy() *StateDB {
 		stateObjectsPending:  make(map[common.Address]struct{}, len(s.stateObjectsPending)),
 		stateObjectsDirty:    make(map[common.Address]struct{}, len(s.journal.dirties)),
 		stateObjectsDestruct: make(map[common.Address]*types.StateAccount, len(s.stateObjectsDestruct)),
+		protocolObjectsDirty: make(map[common.Hash]struct{}, len(s.protocolObjectsDirty)),
 		refund:               s.refund,
 		logs:                 make(map[common.Hash][]*types.Log, len(s.logs)),
 		logSize:              s.logSize,
@@ -770,6 +804,9 @@ func (s *StateDB) Copy() *StateDB {
 			state.stateObjects[addr] = s.stateObjects[addr].deepCopy(state)
 		}
 		state.stateObjectsDirty[addr] = struct{}{}
+	}
+	for id := range s.protocolObjectsDirty {
+		state.protocolObjectsDirty[id] = struct{}{}
 	}
 	// Deep copy the destruction markers.
 	for addr, value := range s.stateObjectsDestruct {
@@ -1322,6 +1359,7 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 	s.storagesOrigin = make(map[common.Address]map[common.Hash][]byte)
 	s.stateObjectsDirty = make(map[common.Address]struct{})
 	s.stateObjectsDestruct = make(map[common.Address]*types.StateAccount)
+	s.protocolObjectsDirty = make(map[common.Hash]struct{})
 	return root, nil
 }
 

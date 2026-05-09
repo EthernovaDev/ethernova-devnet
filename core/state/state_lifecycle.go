@@ -495,6 +495,12 @@ func (e *StateLifecycleEngine) LastTouched(addr common.Address) uint64 {
 	return rawdb.ReadLastTouched(e.db, addr)
 }
 
+// LastTouchedObject returns the persisted object last_touched_block mirror, or
+// 0 if the Protocol Object has not yet been indexed by Phase 5C.
+func (e *StateLifecycleEngine) LastTouchedObject(id common.Hash) uint64 {
+	return rawdb.ReadObjectLastTouched(e.db, id)
+}
+
 // WarmStateRoot returns the rolling Warm State Commitment Root.
 // Exposed for the RPC layer (ethernova_getWarmStateRoot).
 func (e *StateLifecycleEngine) WarmStateRoot() common.Hash {
