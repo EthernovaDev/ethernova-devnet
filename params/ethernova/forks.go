@@ -310,4 +310,42 @@ const (
 	// nodes are ~4 KiB. 16 KiB leaves headroom while preventing
 	// gigabyte-sized "proofs" that would exhaust RAM.
 	MaxStateWitnessProofBytes uint64 = 16384
+
+	// ============================================================
+	// NIP-0004 — Layered Deterministic Computer
+	// Phase 7: Session / Channel Primitive
+	//
+	// Adds the Session Protocol Object and novaSessionArbiter (0x2D).
+	// Sessions are bilateral off-chain state channels with deterministic
+	// on-chain checkpoint, close, dispute, and timeout resolution.
+	//
+	// On devnet: block 0 so Phase 7 can be exercised immediately. Mainnet
+	// activation must be a future hard-fork block and is intentionally not
+	// represented in this devnet tree.
+	// ============================================================
+
+	// SessionForkBlock activates the 0x2D novaSessionArbiter precompile and
+	// the Phase 0 timeout sweep for due session objects.
+	SessionForkBlock uint64 = 0
+
+	// SessionMinTimeoutBlocks prevents same-block timeouts that would make
+	// open/commit behavior ambiguous inside a single block.
+	SessionMinTimeoutBlocks uint64 = 1
+
+	// SessionMaxTimeoutBlocks bounds timeout index growth on devnet while
+	// still leaving enough room for long-running channel tests.
+	SessionMaxTimeoutBlocks uint64 = 1000000
+
+	// SessionDisputeGraceBlocks is added when a valid disputed checkpoint is
+	// posted. The highest valid sequence can still win until this deadline.
+	SessionDisputeGraceBlocks uint64 = 20
+
+	// MaxSessionTimeoutsPerBlock bounds Phase 0 session timeout work.
+	MaxSessionTimeoutsPerBlock uint64 = 512
+
+	// MaxSessionStateBytes caps the RLP body stored in ProtocolObject.StateData.
+	MaxSessionStateBytes uint64 = 512
+
+	// MaxSessionSignatures caps commit/close/dispute signature tails.
+	MaxSessionSignatures uint64 = 2
 )

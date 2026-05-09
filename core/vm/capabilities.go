@@ -14,6 +14,7 @@ const (
 	CapabilityMailboxManager
 	CapabilityStateWitness
 	CapabilityMailboxOps
+	CapabilitySessionArbiter
 )
 
 const (
@@ -23,7 +24,8 @@ const (
 		CapabilityContentRegistry |
 		CapabilityMailboxManager |
 		CapabilityStateWitness |
-		CapabilityMailboxOps
+		CapabilityMailboxOps |
+		CapabilitySessionArbiter
 )
 
 type executionFrame struct {
@@ -50,6 +52,8 @@ func requiredCapabilityForPrecompile(addr common.Address) CapabilityMask {
 		return CapabilityContentRegistry
 	case 0x2C:
 		return CapabilityMailboxManager
+	case 0x2D:
+		return CapabilitySessionArbiter
 	case 0x2F:
 		return CapabilityStateWitness
 	case 0x35:

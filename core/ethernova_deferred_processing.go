@@ -67,15 +67,17 @@ var errUnknownEffectType = errors.New("deferred: unknown effect type")
 // returned mostly for RPC/metrics; nothing in here feeds back into
 // consensus beyond what has already been written to state by the drain.
 type DeferredProcessingResult struct {
-	BlockNumber      uint64
-	Head             uint64 // head BEFORE drain
-	Frontier         uint64 // tail snapshotted at start of drain
-	NewHead          uint64 // head AFTER drain (== Head + Processed)
-	Processed        uint64 // number of entries successfully handled
-	FailedHandlers   uint64 // entries whose handler returned an error
-	Skipped          uint64 // entries where marker was absent (already cleared)
-	CapHit           bool   // true if drain stopped due to per-block cap
-	NoOp             bool   // true if head == tail at entry (fast path)
+	BlockNumber     uint64
+	Head            uint64 // head BEFORE drain
+	Frontier        uint64 // tail snapshotted at start of drain
+	NewHead         uint64 // head AFTER drain (== Head + Processed)
+	Processed       uint64 // number of entries successfully handled
+	FailedHandlers  uint64 // entries whose handler returned an error
+	Skipped         uint64 // entries where marker was absent (already cleared)
+	SessionTimeouts uint64 // Phase 7 timeout-index entries inspected
+	SessionsExpired uint64 // Phase 7 sessions closed by timeout sweep
+	CapHit          bool   // true if drain stopped due to per-block cap
+	NoOp            bool   // true if head == tail at entry (fast path)
 }
 
 // ProcessDeferredEffects runs the Phase 0 prologue for the given block
@@ -107,11 +109,20 @@ func ProcessDeferredEffects(header *types.Header, statedb *state.StateDB) *Defer
 	result.Head = head
 	result.Frontier = tail
 
+	if blockNum >= ethernova.SessionForkBlock {
+		result.SessionTimeouts, result.SessionsExpired = vm.ProcessSessionTimeouts(
+			statedb, blockNum, ethernova.MaxSessionTimeoutsPerBlock)
+	}
+
 	// Fast path: empty queue. No state writes. This matches the kriteria
 	// selesai checklist item: "Jika queue kosong, Phase 0 = no-op
 	// (no overhead pada existing blocks)."
 	if head >= tail {
-		result.NoOp = true
+		if result.SessionTimeouts == 0 && result.SessionsExpired == 0 {
+			result.NoOp = true
+		} else {
+			statedb.Finalise(true)
+		}
 		return result
 	}
 
