@@ -291,7 +291,7 @@ func (api *EthernovaAPI) SessionConfig() map[string]interface{} {
 // explorers and SDKs one cheap endpoint to discover the canonical namespace.
 func (api *EthernovaAPI) DeveloperTooling() map[string]interface{} {
 	return map[string]interface{}{
-		"phase":              8,
+		"phase":              10,
 		"canonicalNamespace": "nova",
 		"legacyNamespace":    "ethernova",
 		"sdkPath":            "devnet/nova-sdk",
@@ -310,6 +310,10 @@ func (api *EthernovaAPI) DeveloperTooling() map[string]interface{} {
 			"nova_getDomain",
 			"nova_chatConfig",
 			"nova_getChatMailbox",
+			"nova_resourceConfig",
+			"nova_resourcePrices",
+			"nova_estimateResourceLimits",
+			"nova_getResourceVector",
 		},
 	}
 }

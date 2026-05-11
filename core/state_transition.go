@@ -35,10 +35,11 @@ import (
 // ExecutionResult includes all output after executing given evm
 // message no matter the execution itself is successful or not.
 type ExecutionResult struct {
-	UsedGas     uint64 // Total used gas, not including the refunded gas
-	RefundedGas uint64 // Total gas refunded after execution
-	Err         error  // Any error encountered during the execution(listed in core/vm/errors.go)
-	ReturnData  []byte // Returned data from evm(function result or data supplied with revert opcode)
+	UsedGas        uint64 // Total used gas, not including the refunded gas
+	RefundedGas    uint64 // Total gas refunded after execution
+	Err            error  // Any error encountered during the execution(listed in core/vm/errors.go)
+	ReturnData     []byte // Returned data from evm(function result or data supplied with revert opcode)
+	ResourceVector *vm.ResourceVector
 }
 
 // Unwrap returns the internal evm error which allows us for further
@@ -459,6 +460,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
 	// Ethernova v2.0 (Noven Fork): reset trace counters before execution.
 	st.evm.TraceCounters.Reset()
+	st.evm.ResourceMeter.Reset()
 
 	var (
 		ret   []byte
@@ -597,11 +599,16 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 
 	return &ExecutionResult{
-		UsedGas:     st.gasUsed(),
-		RefundedGas: gasRefund,
-		Err:         vmerr,
-		ReturnData:  ret,
+		UsedGas:        st.gasUsed(),
+		RefundedGas:    gasRefund,
+		Err:            vmerr,
+		ReturnData:     ret,
+		ResourceVector: ptrResourceVector(vm.ResourceVectorFromExecution(&st.evm.TraceCounters, st.evm.ResourceMeter.Vector(), st.gasUsed(), gas)),
 	}, nil
+}
+
+func ptrResourceVector(v vm.ResourceVector) *vm.ResourceVector {
+	return &v
 }
 
 func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {

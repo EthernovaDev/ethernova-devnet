@@ -128,6 +128,23 @@ class NovaProvider {
   getChatMailbox(owner, offset = 0, limit = 25) {
     return this.nova("getChatMailbox", [owner, offset, limit]);
   }
+
+  resourceConfig() {
+    return this.nova("resourceConfig", []);
+  }
+
+  resourcePrices() {
+    return this.nova("resourcePrices", []);
+  }
+
+  estimateResourceLimits(gasLimit) {
+    const encoded = typeof gasLimit === "string" ? gasLimit : `0x${BigInt(gasLimit).toString(16)}`;
+    return this.nova("estimateResourceLimits", [encoded]);
+  }
+
+  getResourceVector(txHash) {
+    return this.nova("getResourceVector", [txHash]);
+  }
 }
 
 const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";

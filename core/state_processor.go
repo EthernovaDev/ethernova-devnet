@@ -217,6 +217,9 @@ func applyTransaction(msg *Message, config ctypes.ChainConfigurator, gp *GasPool
 	receipt.BlockHash = blockHash
 	receipt.BlockNumber = blockNumber
 	receipt.TransactionIndex = uint(statedb.TxIndex())
+	if result.ResourceVector != nil {
+		vm.GlobalResourceMonitor.RecordTx(tx.Hash(), blockNumber.Uint64(), receipt.TransactionIndex, *result.ResourceVector)
+	}
 	return receipt, err
 }
 

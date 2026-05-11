@@ -321,12 +321,12 @@ Requires: Go 1.21+, GCC, Make
 - [x] Simple web chat harness in `devnet/phase9/chat-harness.html`
 
 ### Phase 10: Multi-Dimensional Resource Metering (NIP-0004)
-- [ ] 5-dimension Resource Vector: compute, state_read, state_write, protocol_ops, proof_verify
+- [x] 5-dimension Resource Vector: compute, state_read, state_write, protocol_ops, proof_verify (10A monitoring)
 - [ ] Per-dimension adaptive pricing (EIP-1559 style, ±12.5% per block, per dimension)
 - [ ] Congestion isolation: busy DeFi (compute) does NOT make chat (protocol_ops) expensive
-- [ ] Backward compatibility: standard `gasLimit` deterministically mapped to Resource Vector
+- [x] Backward compatibility: standard `gasLimit` deterministically mapped to Resource Vector
 - [ ] Extended transaction format (EIP-2718 style) for fine-grained per-dimension limits
-- [ ] Substage 10A: Resource Vector tracking (monitoring only, no pricing change)
+- [x] Substage 10A: Resource Vector tracking (monitoring only, no pricing change)
 - [ ] Substage 10B: per-dimension pricing active (generous initial multipliers)
 - [ ] Substage 10C: full adaptive pricing + congestion isolation validation
 - [ ] Consensus verification: 3+ nodes, 2000 blocks, all transaction types, zero BAD BLOCK

@@ -168,11 +168,19 @@ func RunStatefulPrecompiledContract(p StatefulPrecompiledContract, evm *EVM, cal
 
 // runPrecompileOrStateful dispatches to RunStateful if available, else Run.
 // readOnly is true when called from StaticCall — passed through to precompile.
-func runPrecompileOrStateful(p PrecompiledContract, evm *EVM, caller common.Address, input []byte, gas uint64, readOnly bool) ([]byte, uint64, error) {
-	if sp, ok := p.(StatefulPrecompiledContract); ok {
-		return RunStatefulPrecompiledContract(sp, evm, caller, input, gas, readOnly)
+func runPrecompileOrStateful(p PrecompiledContract, evm *EVM, caller common.Address, addr common.Address, input []byte, gas uint64, readOnly bool) ([]byte, uint64, error) {
+	gasCost := p.RequiredGas(input)
+	if gas < gasCost {
+		return nil, 0, ErrOutOfGas
 	}
-	return RunPrecompiledContract(p, input, gas)
+	evm.ResourceMeter.RecordPrecompile(addr, input, gasCost)
+	gas -= gasCost
+	if sp, ok := p.(StatefulPrecompiledContract); ok {
+		output, err := sp.RunStateful(evm, caller, input, readOnly)
+		return output, gas, err
+	}
+	output, err := p.Run(input)
+	return output, gas, err
 }
 
 // ECRECOVER implemented as a native contract.

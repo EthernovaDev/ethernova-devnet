@@ -170,6 +170,10 @@ type EVM struct {
 	// Keep this field intact across evm.Reset(...) calls so the same aggregator
 	// survives for every transaction in the block.
 	BlockAggregator *BlockTraceAggregator
+
+	// ResourceMeter tracks NIP-0004 Phase 10A resource-vector usage for the
+	// current transaction. It is monitoring-only and never feeds gas/state.
+	ResourceMeter ResourceMeter
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -218,6 +222,7 @@ func (evm *EVM) Reset(txCtx TxContext, statedb StateDB) {
 	evm.StateDB = statedb
 	// Ethernova v2.0 (Noven Fork): reset trace counters and reentrancy guard
 	evm.TraceCounters.Reset()
+	evm.ResourceMeter.Reset()
 	evm.reentrancyGuard.Reset()
 	evm.executionFrames = evm.executionFrames[:0]
 }
@@ -294,7 +299,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			evm.StateDB.RevertToSnapshot(snapshot)
 			return nil, gas, err
 		}
-		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, evm.inReadOnlyContext())
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), addr, input, gas, evm.inReadOnlyContext())
 	} else {
 		if err = evm.checkContractDomainCall(caller, addr); err != nil {
 			evm.StateDB.RevertToSnapshot(snapshot)
@@ -374,7 +379,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 			evm.StateDB.RevertToSnapshot(snapshot)
 			return nil, gas, err
 		}
-		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, evm.inReadOnlyContext())
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), addr, input, gas, evm.inReadOnlyContext())
 	} else {
 		if err = evm.checkContractDomainCall(caller, addr); err != nil {
 			evm.StateDB.RevertToSnapshot(snapshot)
@@ -427,7 +432,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 			evm.StateDB.RevertToSnapshot(snapshot)
 			return nil, gas, err
 		}
-		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, evm.inReadOnlyContext())
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), addr, input, gas, evm.inReadOnlyContext())
 	} else {
 		if err = evm.checkContractDomainCall(caller, addr); err != nil {
 			evm.StateDB.RevertToSnapshot(snapshot)
@@ -486,7 +491,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 		}
 		// NIP-0004: stateful precompiles dispatched via runPrecompileOrStateful.
 		// StaticCall: readOnly=true enforces EIP-214 — write ops return ErrWriteProtection.
-		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), input, gas, true)
+		ret, gas, err = runPrecompileOrStateful(p, evm, caller.Address(), addr, input, gas, true)
 	} else {
 		if err = evm.checkContractDomainCall(caller, addr); err != nil {
 			evm.StateDB.RevertToSnapshot(snapshot)
