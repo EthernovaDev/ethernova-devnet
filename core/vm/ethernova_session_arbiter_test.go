@@ -15,14 +15,30 @@ func sessionWord(v *big.Int) []byte              { return common.BigToHash(v).By
 func sessionU64Word(v uint64) []byte             { return sessionWord(new(big.Int).SetUint64(v)) }
 func sessionAddressWord(a common.Address) []byte { return common.BytesToHash(a.Bytes()).Bytes() }
 
-func sessionOpenInput(counterparty common.Address, sessionType uint8, timeoutBlocks uint64) []byte {
+// sessionOpenInput builds openSession calldata. The two final signer args
+// default to common.Address{} (zero) which the precompile auto-fills with
+// caller/counterparty for backward-compatible behavior.
+func sessionOpenInput(counterparty common.Address, sessionType uint8, timeoutBlocks uint64, signers ...common.Address) []byte {
+	var initiatorSigner, counterpartySigner common.Address
+	if len(signers) >= 1 {
+		initiatorSigner = signers[0]
+	}
+	if len(signers) >= 2 {
+		counterpartySigner = signers[1]
+	}
 	input := []byte{0x01}
 	input = append(input, sessionAddressWord(counterparty)...)
 	input = append(input, sessionU64Word(uint64(sessionType))...)
 	input = append(input, sessionU64Word(timeoutBlocks)...)
 	input = append(input, common.HexToHash("0x7777").Bytes()...)
 	input = append(input, sessionU64Word(0)...)
+	input = append(input, sessionAddressWord(initiatorSigner)...)
+	input = append(input, sessionAddressWord(counterpartySigner)...)
 	return input
+}
+
+func hasRevertReason(out []byte, want string) bool {
+	return strings.Contains(string(out), want)
 }
 
 func sessionSignedInput(selector byte, id common.Hash, seq uint64, stateHash common.Hash, sigs ...[]byte) []byte {
@@ -90,9 +106,9 @@ func TestSessionArbiterOpenCommitDisputeClose(t *testing.T) {
 	if st.SequenceNumber != 1 || st.StateHash != state1 {
 		t.Fatalf("commit did not persist: %#v", st)
 	}
-	_, err = arbiter.RunStateful(evm, initiator, sessionSignedInput(0x02, id, 1, state1, sigA1, sigB1), false)
-	if err == nil || !strings.Contains(err.Error(), "sequence must increase") {
-		t.Fatalf("expected stale sequence rejection, got %v", err)
+	out, err := arbiter.RunStateful(evm, initiator, sessionSignedInput(0x02, id, 1, state1, sigA1, sigB1), false)
+	if err != ErrExecutionReverted || !hasRevertReason(out, "sequence must increase") {
+		t.Fatalf("expected stale sequence rejection with reason, got err=%v out=%x", err, out)
 	}
 
 	state2 := common.HexToHash("0x2002")
@@ -118,6 +134,107 @@ func TestSessionArbiterOpenCommitDisputeClose(t *testing.T) {
 	}
 }
 
+// TestSessionArbiterContractCallerWithExplicitSigners proves that a Domain 2
+// channel contract -- which by construction has no private key -- can open a
+// session, delegate signing to two EOAs, and have the precompile accept their
+// signatures on commitState.
+func TestSessionArbiterContractCallerWithExplicitSigners(t *testing.T) {
+	evm, sdb := newTestEVM(t)
+	channel := common.HexToAddress("0xCAFEFEEDcafefEED00000000000000000000C001")
+	sdb.CreateAccount(channel)
+	sdb.SetNonce(channel, 1)
+	sdb.SetCode(channel, []byte{0xEF, 0x02, 0x00})
+
+	ka, signerA := func() (*ecdsa.PrivateKey, common.Address) {
+		k, err := crypto.GenerateKey()
+		if err != nil {
+			t.Fatalf("GenerateKey signerA: %v", err)
+		}
+		return k, crypto.PubkeyToAddress(k.PublicKey)
+	}()
+	kb, signerB := func() (*ecdsa.PrivateKey, common.Address) {
+		k, err := crypto.GenerateKey()
+		if err != nil {
+			t.Fatalf("GenerateKey signerB: %v", err)
+		}
+		return k, crypto.PubkeyToAddress(k.PublicKey)
+	}()
+	counterparty := common.HexToAddress("0xDEADBEEFdeadBEEF11111111111111111111B002")
+	sdb.CreateAccount(counterparty)
+	sdb.SetNonce(counterparty, 1)
+
+	arbiter := &novaSessionArbiter{}
+	idBytes, err := arbiter.RunStateful(evm, channel, sessionOpenInput(counterparty, types.SessionTypeChat, 40, signerA, signerB), false)
+	if err != nil {
+		t.Fatalf("openSession from Domain 2 contract: %v", err)
+	}
+	id := common.BytesToHash(idBytes)
+
+	st := SessGetSessionState(sdb, id)
+	if st == nil {
+		t.Fatal("session not stored")
+	}
+	if st.Initiator != channel {
+		t.Errorf("Initiator should be channel contract: got %s, want %s", st.Initiator, channel)
+	}
+	if st.InitiatorSigner != signerA {
+		t.Errorf("InitiatorSigner should be signerA: got %s, want %s", st.InitiatorSigner, signerA)
+	}
+	if st.CounterpartySigner != signerB {
+		t.Errorf("CounterpartySigner should be signerB: got %s, want %s", st.CounterpartySigner, signerB)
+	}
+
+	state1 := common.HexToHash("0xC0FFEE0001")
+	sigA1 := sessionSign(t, ka, id, 1, state1)
+	sigB1 := sessionSign(t, kb, id, 1, state1)
+	if _, err := arbiter.RunStateful(evm, channel, sessionSignedInput(0x02, id, 1, state1, sigA1, sigB1), false); err != nil {
+		t.Fatalf("commitState with explicit signers: %v", err)
+	}
+
+	after := SessGetSessionState(sdb, id)
+	if after.SequenceNumber != 1 || after.StateHash != state1 {
+		t.Fatalf("commit did not persist: %#v", after)
+	}
+}
+
+// TestSessionArbiterRejectsNonSignerEvenIfParticipant locks in the new signer
+// model: once explicit signer EOAs are configured, the nominal initiator/caller
+// is not accepted unless it is also one of those signer EOAs.
+func TestSessionArbiterRejectsNonSignerEvenIfParticipant(t *testing.T) {
+	evm, sdb := newTestEVM(t)
+	ka, signerA, kb, signerB := newSessionKeys(t)
+	callerKey, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatalf("GenerateKey caller: %v", err)
+	}
+	caller := crypto.PubkeyToAddress(callerKey.PublicKey)
+	sdb.CreateAccount(caller)
+	sdb.SetNonce(caller, 1)
+	sdb.SetCode(caller, []byte{0xEF, 0x02})
+
+	counterparty := common.HexToAddress("0xC0DEC0DEc0deC0DE22222222222222222222C002")
+
+	arbiter := &novaSessionArbiter{}
+	idBytes, err := arbiter.RunStateful(evm, caller, sessionOpenInput(counterparty, types.SessionTypeChat, 40, signerA, signerB), false)
+	if err != nil {
+		t.Fatalf("openSession: %v", err)
+	}
+	id := common.BytesToHash(idBytes)
+
+	state1 := common.HexToHash("0xBADF00D0001")
+	sigCaller := sessionSign(t, callerKey, id, 1, state1)
+	sigB := sessionSign(t, kb, id, 1, state1)
+	out, err := arbiter.RunStateful(evm, caller, sessionSignedInput(0x02, id, 1, state1, sigCaller, sigB), false)
+	if err != ErrExecutionReverted || !hasRevertReason(out, "non-participant") {
+		t.Fatalf("expected rejection of caller-as-signer when explicit signers configured, got err=%v out=%x", err, out)
+	}
+
+	sigA := sessionSign(t, ka, id, 1, state1)
+	if _, err := arbiter.RunStateful(evm, caller, sessionSignedInput(0x02, id, 1, state1, sigA, sigB), false); err != nil {
+		t.Fatalf("commit with explicit signers should succeed: %v", err)
+	}
+}
+
 func TestSessionArbiterRejectsInvalidSignatures(t *testing.T) {
 	evm, sdb := newTestEVM(t)
 	ka, initiator, _, counterparty := newSessionKeys(t)
@@ -138,9 +255,9 @@ func TestSessionArbiterRejectsInvalidSignatures(t *testing.T) {
 	state := common.HexToHash("0x9999")
 	sigA := sessionSign(t, ka, id, 1, state)
 	sigBad := sessionSign(t, badKey, id, 1, state)
-	_, err = arbiter.RunStateful(evm, initiator, sessionSignedInput(0x02, id, 1, state, sigA, sigBad), false)
-	if err == nil || !strings.Contains(err.Error(), "non-participant") {
-		t.Fatalf("expected non-participant signature rejection, got %v", err)
+	out, err := arbiter.RunStateful(evm, initiator, sessionSignedInput(0x02, id, 1, state, sigA, sigBad), false)
+	if err != ErrExecutionReverted || !hasRevertReason(out, "non-participant") {
+		t.Fatalf("expected non-participant signature rejection with reason, got err=%v out=%x", err, out)
 	}
 }
 

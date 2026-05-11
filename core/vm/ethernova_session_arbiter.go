@@ -10,6 +10,7 @@ package vm
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -29,9 +30,31 @@ const (
 	sessionGasResolve       uint64 = 30000
 	sessionGasPerSignature  uint64 = 8000
 	sessionSignatureLen     uint64 = 65
-	sessionOpenInputWords          = 5
+	sessionOpenInputWords          = 7
 	sessionSignedInputWords        = 4
 )
+
+// encodeRevertReason returns ABI-encoded Error(string) revert data so Solidity,
+// ethers.js, viem, and JSON-RPC eth_call can surface human-readable reasons.
+func encodeRevertReason(msg string) []byte {
+	const selector = "08c379a0"
+	sel, _ := hex.DecodeString(selector)
+	msgBytes := []byte(msg)
+	msgLen := len(msgBytes)
+	paddedLen := (msgLen + 31) / 32 * 32
+	out := make([]byte, 0, 4+32+32+paddedLen)
+	out = append(out, sel...)
+	out = append(out, common.BigToHash(big.NewInt(0x20)).Bytes()...)
+	out = append(out, common.BigToHash(big.NewInt(int64(msgLen))).Bytes()...)
+	padded := make([]byte, paddedLen)
+	copy(padded, msgBytes)
+	out = append(out, padded...)
+	return out
+}
+
+func sessRevert(format string, a ...interface{}) ([]byte, error) {
+	return encodeRevertReason(fmt.Sprintf(format, a...)), ErrExecutionReverted
+}
 
 // SessionArbiterAddr is the Phase 7 system address for session indexes.
 var SessionArbiterAddr = common.HexToAddress("0x000000000000000000000000000000000000FF05")
@@ -69,15 +92,15 @@ func (c *novaSessionArbiter) RequiredGas(input []byte) uint64 {
 }
 
 func (c *novaSessionArbiter) Run(input []byte) ([]byte, error) {
-	return nil, errors.New("novaSessionArbiter: requires stateful execution")
+	return sessRevert("novaSessionArbiter: requires stateful execution")
 }
 
 func (c *novaSessionArbiter) RunStateful(evm *EVM, caller common.Address, input []byte, readOnly bool) ([]byte, error) {
 	if len(input) < 1 {
-		return nil, errors.New("novaSessionArbiter: empty input")
+		return sessRevert("novaSessionArbiter: empty input")
 	}
 	if evm.Context.BlockNumber.Uint64() < ethernova.SessionForkBlock {
-		return nil, errors.New("novaSessionArbiter: not yet active")
+		return sessRevert("novaSessionArbiter: not yet active")
 	}
 	switch input[0] {
 	case 0x01: // openSession(counterparty, type, timeoutBlocks, disputeRules, rentPrepay)
@@ -123,7 +146,7 @@ func (c *novaSessionArbiter) RunStateful(evm *EVM, caller common.Address, input 
 		}
 		return c.resolveTimeout(evm, input[1:])
 	default:
-		return nil, errors.New("novaSessionArbiter: unknown selector")
+		return sessRevert("novaSessionArbiter: unknown selector")
 	}
 }
 
@@ -142,34 +165,46 @@ func requireSessionWriteDomain(evm *EVM, caller common.Address) error {
 func (c *novaSessionArbiter) openSession(evm *EVM, caller common.Address, input []byte) ([]byte, error) {
 	const headLen = sessionOpenInputWords * 32
 	if len(input) < headLen {
-		return nil, fmt.Errorf("openSession: input too short (need %d, got %d)", headLen, len(input))
+		return sessRevert("openSession: input too short (need %d, got %d)", headLen, len(input))
 	}
 	counterparty := common.BytesToAddress(input[0:32])
 	if counterparty == (common.Address{}) || counterparty == caller {
-		return nil, errors.New("openSession: invalid counterparty")
+		return sessRevert("openSession: invalid counterparty")
 	}
 	sessionType, err := parseSessionUint8Word(input[32:64], "sessionType")
 	if err != nil {
-		return nil, fmt.Errorf("openSession: %w", err)
+		return sessRevert("openSession: %v", err)
 	}
 	if !types.IsValidSessionType(sessionType) {
-		return nil, fmt.Errorf("openSession: invalid sessionType 0x%02x", sessionType)
+		return sessRevert("openSession: invalid sessionType 0x%02x", sessionType)
 	}
 	timeoutBlocks, err := parseSessionUint64Word(input[64:96], "timeoutBlocks")
 	if err != nil {
-		return nil, fmt.Errorf("openSession: %w", err)
+		return sessRevert("openSession: %v", err)
 	}
 	if timeoutBlocks < ethernova.SessionMinTimeoutBlocks || timeoutBlocks > ethernova.SessionMaxTimeoutBlocks {
-		return nil, fmt.Errorf("openSession: timeoutBlocks outside range (%d)", timeoutBlocks)
+		return sessRevert("openSession: timeoutBlocks outside range (%d)", timeoutBlocks)
 	}
 	disputeRules := common.BytesToHash(input[96:128])
 	rentPrepay := new(big.Int).SetBytes(input[128:160])
+
+	initiatorSigner := common.BytesToAddress(input[160:192])
+	counterpartySigner := common.BytesToAddress(input[192:224])
+	if initiatorSigner == (common.Address{}) {
+		initiatorSigner = caller
+	}
+	if counterpartySigner == (common.Address{}) {
+		counterpartySigner = counterparty
+	}
+	if initiatorSigner == counterpartySigner {
+		return sessRevert("openSession: initiator and counterparty signers must differ")
+	}
 
 	sdb := evm.StateDB
 	blockNum := evm.Context.BlockNumber.Uint64()
 	timeoutBlock := blockNum + timeoutBlocks
 	if timeoutBlock < blockNum {
-		return nil, errors.New("openSession: timeoutBlock overflow")
+		return sessRevert("openSession: timeoutBlock overflow")
 	}
 
 	poEnsureRegistryExists(sdb)
@@ -188,21 +223,23 @@ func (c *novaSessionArbiter) openSession(evm *EVM, caller common.Address, input 
 	poWriteUint64(sdb, poKeyGlobalNonce(), globalNonce+1)
 
 	state := &types.SessionState{
-		Initiator:      caller,
-		Counterparty:   counterparty,
-		SessionType:    sessionType,
-		Status:         types.SessionStatusOpen,
-		TimeoutBlock:   timeoutBlock,
-		DisputeRules:   disputeRules,
-		OpenedBlock:    blockNum,
-		SequenceNumber: 0,
+		Initiator:          caller,
+		Counterparty:       counterparty,
+		SessionType:        sessionType,
+		Status:             types.SessionStatusOpen,
+		TimeoutBlock:       timeoutBlock,
+		DisputeRules:       disputeRules,
+		OpenedBlock:        blockNum,
+		SequenceNumber:     0,
+		InitiatorSigner:    initiatorSigner,
+		CounterpartySigner: counterpartySigner,
 	}
 	stateData, err := state.EncodeRLP()
 	if err != nil {
-		return nil, fmt.Errorf("openSession: encode state: %w", err)
+		return sessRevert("openSession: encode state: %v", err)
 	}
 	if uint64(len(stateData)) > ethernova.MaxSessionStateBytes {
-		return nil, fmt.Errorf("openSession: state data exceeds cap (%d > %d)", len(stateData), ethernova.MaxSessionStateBytes)
+		return sessRevert("openSession: state data exceeds cap (%d > %d)", len(stateData), ethernova.MaxSessionStateBytes)
 	}
 	obj := &types.ProtocolObject{
 		ID:               id,
@@ -215,7 +252,7 @@ func (c *novaSessionArbiter) openSession(evm *EVM, caller common.Address, input 
 	}
 	objData, err := obj.EncodeRLP()
 	if err != nil {
-		return nil, fmt.Errorf("openSession: encode object: %w", err)
+		return sessRevert("openSession: encode object: %v", err)
 	}
 
 	sdb.SetState(ProtocolObjectRegistryAddr, poKeyObject(id), common.BytesToHash([]byte{0x01}))
@@ -240,26 +277,26 @@ func (c *novaSessionArbiter) openSession(evm *EVM, caller common.Address, input 
 func (c *novaSessionArbiter) commitState(evm *EVM, input []byte) ([]byte, error) {
 	id, seq, stateHash, sigs, err := parseSessionSignedInput(input, "commitState")
 	if err != nil {
-		return nil, err
+		return encodeRevertReason(err.Error()), ErrExecutionReverted
 	}
 	obj, st, err := sessGetObjectAndState(evm.StateDB, id)
 	if err != nil {
-		return nil, fmt.Errorf("commitState: %w", err)
+		return sessRevert("commitState: %v", err)
 	}
 	if !types.IsLiveSessionStatus(st.Status) {
-		return nil, errors.New("commitState: session is not live")
+		return sessRevert("commitState: session is not live")
 	}
 	if seq <= st.SequenceNumber {
-		return nil, errors.New("commitState: sequence must increase")
+		return sessRevert("commitState: sequence must increase (have %d, got %d)", st.SequenceNumber, seq)
 	}
 	if err := verifySessionSignatures(st, id, seq, stateHash, sigs); err != nil {
-		return nil, fmt.Errorf("commitState: %w", err)
+		return sessRevert("commitState: %v", err)
 	}
 	blockNum := evm.Context.BlockNumber.Uint64()
 	st.StateHash = stateHash
 	st.SequenceNumber = seq
 	if err := sessWriteSessionState(evm.StateDB, obj, st, blockNum); err != nil {
-		return nil, fmt.Errorf("commitState: %w", err)
+		return sessRevert("commitState: %v", err)
 	}
 	return common.BigToHash(big.NewInt(1)).Bytes(), nil
 }
@@ -267,20 +304,20 @@ func (c *novaSessionArbiter) commitState(evm *EVM, input []byte) ([]byte, error)
 func (c *novaSessionArbiter) closeSession(evm *EVM, input []byte) ([]byte, error) {
 	id, seq, stateHash, sigs, err := parseSessionSignedInput(input, "closeSession")
 	if err != nil {
-		return nil, err
+		return encodeRevertReason(err.Error()), ErrExecutionReverted
 	}
 	obj, st, err := sessGetObjectAndState(evm.StateDB, id)
 	if err != nil {
-		return nil, fmt.Errorf("closeSession: %w", err)
+		return sessRevert("closeSession: %v", err)
 	}
 	if !types.IsLiveSessionStatus(st.Status) {
-		return nil, errors.New("closeSession: session is not live")
+		return sessRevert("closeSession: session is not live")
 	}
 	if seq < st.SequenceNumber {
-		return nil, errors.New("closeSession: sequence regresses")
+		return sessRevert("closeSession: sequence regresses")
 	}
 	if err := verifySessionSignatures(st, id, seq, stateHash, sigs); err != nil {
-		return nil, fmt.Errorf("closeSession: %w", err)
+		return sessRevert("closeSession: %v", err)
 	}
 	blockNum := evm.Context.BlockNumber.Uint64()
 	st.StateHash = stateHash
@@ -288,7 +325,7 @@ func (c *novaSessionArbiter) closeSession(evm *EVM, input []byte) ([]byte, error
 	st.Status = types.SessionStatusClosed
 	st.ClosedBlock = blockNum
 	if err := sessWriteSessionState(evm.StateDB, obj, st, blockNum); err != nil {
-		return nil, fmt.Errorf("closeSession: %w", err)
+		return sessRevert("closeSession: %v", err)
 	}
 	sessDecrementLive(evm.StateDB)
 	return common.BigToHash(big.NewInt(1)).Bytes(), nil
@@ -297,32 +334,32 @@ func (c *novaSessionArbiter) closeSession(evm *EVM, input []byte) ([]byte, error
 func (c *novaSessionArbiter) disputeSession(evm *EVM, input []byte) ([]byte, error) {
 	id, seq, stateHash, sigs, err := parseSessionSignedInput(input, "disputeSession")
 	if err != nil {
-		return nil, err
+		return encodeRevertReason(err.Error()), ErrExecutionReverted
 	}
 	obj, st, err := sessGetObjectAndState(evm.StateDB, id)
 	if err != nil {
-		return nil, fmt.Errorf("disputeSession: %w", err)
+		return sessRevert("disputeSession: %v", err)
 	}
 	if !types.IsLiveSessionStatus(st.Status) {
-		return nil, errors.New("disputeSession: session is not live")
+		return sessRevert("disputeSession: session is not live")
 	}
 	if seq <= st.SequenceNumber {
-		return nil, errors.New("disputeSession: sequence must beat current")
+		return sessRevert("disputeSession: sequence must beat current")
 	}
 	if err := verifySessionSignatures(st, id, seq, stateHash, sigs); err != nil {
-		return nil, fmt.Errorf("disputeSession: %w", err)
+		return sessRevert("disputeSession: %v", err)
 	}
 	blockNum := evm.Context.BlockNumber.Uint64()
 	deadline := blockNum + ethernova.SessionDisputeGraceBlocks
 	if deadline < blockNum {
-		return nil, errors.New("disputeSession: dispute deadline overflow")
+		return sessRevert("disputeSession: dispute deadline overflow")
 	}
 	st.StateHash = stateHash
 	st.SequenceNumber = seq
 	st.Status = types.SessionStatusDisputed
 	st.DisputeDeadline = deadline
 	if err := sessWriteSessionState(evm.StateDB, obj, st, blockNum); err != nil {
-		return nil, fmt.Errorf("disputeSession: %w", err)
+		return sessRevert("disputeSession: %v", err)
 	}
 	sessDueIndexAdd(evm.StateDB, deadline, id)
 	return common.BigToHash(big.NewInt(1)).Bytes(), nil
@@ -330,27 +367,31 @@ func (c *novaSessionArbiter) disputeSession(evm *EVM, input []byte) ([]byte, err
 
 func (c *novaSessionArbiter) getSession(evm *EVM, input []byte) ([]byte, error) {
 	if len(input) < 32 {
-		return nil, fmt.Errorf("getSession: input too short (need 32, got %d)", len(input))
+		return sessRevert("getSession: input too short (need 32, got %d)", len(input))
 	}
 	_, st, err := sessGetObjectAndState(evm.StateDB, common.BytesToHash(input[:32]))
 	if err != nil {
-		return nil, fmt.Errorf("getSession: %w", err)
+		return sessRevert("getSession: %v", err)
 	}
-	return st.EncodeRLP()
+	out, err := st.EncodeRLP()
+	if err != nil {
+		return sessRevert("getSession: encode state: %v", err)
+	}
+	return out, nil
 }
 
 func (c *novaSessionArbiter) resolveTimeout(evm *EVM, input []byte) ([]byte, error) {
 	if len(input) < 32 {
-		return nil, fmt.Errorf("resolveTimeout: input too short (need 32, got %d)", len(input))
+		return sessRevert("resolveTimeout: input too short (need 32, got %d)", len(input))
 	}
 	id := common.BytesToHash(input[:32])
 	obj, st, err := sessGetObjectAndState(evm.StateDB, id)
 	if err != nil {
-		return nil, fmt.Errorf("resolveTimeout: %w", err)
+		return sessRevert("resolveTimeout: %v", err)
 	}
 	blockNum := evm.Context.BlockNumber.Uint64()
 	if err := sessExpireIfDue(evm.StateDB, obj, st, blockNum); err != nil {
-		return nil, fmt.Errorf("resolveTimeout: %w", err)
+		return sessRevert("resolveTimeout: %v", err)
 	}
 	return common.BigToHash(big.NewInt(1)).Bytes(), nil
 }
@@ -414,6 +455,14 @@ func verifySessionSignatures(st *types.SessionState, id common.Hash, seq uint64,
 		return errors.New("requires exactly two participant signatures")
 	}
 	digest := types.SessionCommitMessageHash(id, seq, stateHash)
+	initiatorSigner := st.InitiatorSigner
+	if initiatorSigner == (common.Address{}) {
+		initiatorSigner = st.Initiator
+	}
+	counterpartySigner := st.CounterpartySigner
+	if counterpartySigner == (common.Address{}) {
+		counterpartySigner = st.Counterparty
+	}
 	seenInitiator := false
 	seenCounterparty := false
 	for _, sig := range sigs {
@@ -422,9 +471,9 @@ func verifySessionSignatures(st *types.SessionState, id common.Hash, seq uint64,
 			return err
 		}
 		switch addr {
-		case st.Initiator:
+		case initiatorSigner:
 			seenInitiator = true
-		case st.Counterparty:
+		case counterpartySigner:
 			seenCounterparty = true
 		default:
 			return fmt.Errorf("signature from non-participant %s", addr.Hex())

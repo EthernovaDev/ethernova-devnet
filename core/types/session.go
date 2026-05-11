@@ -35,7 +35,9 @@ const (
 )
 
 // SessionState is the canonical RLP body stored in ProtocolObject.StateData.
-// Field order is consensus-critical. DO NOT reorder without a hard fork.
+// Field order is consensus-critical. DO NOT reorder existing fields without
+// a hard fork. New fields MUST be added at the end with rlp:"optional" tags
+// so old encodings remain decodable.
 type SessionState struct {
 	Initiator       common.Address
 	Counterparty    common.Address
@@ -48,6 +50,15 @@ type SessionState struct {
 	DisputeRules    common.Hash
 	OpenedBlock     uint64
 	ClosedBlock     uint64
+
+	// Phase 7.1: explicit signer EOAs whose ECDSA signatures authorize
+	// commitState / closeSession / disputeSession. These are usually the
+	// same as Initiator / Counterparty (and default to them when zero), but
+	// when the session is opened from a Domain 2 channel contract the
+	// contract address has no private key and must delegate signing to
+	// designated EOAs via these fields.
+	InitiatorSigner    common.Address `rlp:"optional"`
+	CounterpartySigner common.Address `rlp:"optional"`
 }
 
 func (s *SessionState) EncodeRLP() ([]byte, error) {
@@ -63,21 +74,25 @@ func (s *SessionState) EncodeRLP() ([]byte, error) {
 		s.DisputeRules,
 		s.OpenedBlock,
 		s.ClosedBlock,
+		s.InitiatorSigner,
+		s.CounterpartySigner,
 	})
 }
 
 type sessionStateRLP struct {
-	Initiator       common.Address
-	Counterparty    common.Address
-	SessionType     uint8
-	Status          uint8
-	StateHash       common.Hash
-	SequenceNumber  uint64
-	TimeoutBlock    uint64
-	DisputeDeadline uint64
-	DisputeRules    common.Hash
-	OpenedBlock     uint64
-	ClosedBlock     uint64
+	Initiator          common.Address
+	Counterparty       common.Address
+	SessionType        uint8
+	Status             uint8
+	StateHash          common.Hash
+	SequenceNumber     uint64
+	TimeoutBlock       uint64
+	DisputeDeadline    uint64
+	DisputeRules       common.Hash
+	OpenedBlock        uint64
+	ClosedBlock        uint64
+	InitiatorSigner    common.Address `rlp:"optional"`
+	CounterpartySigner common.Address `rlp:"optional"`
 }
 
 func DecodeSessionState(data []byte) (*SessionState, error) {
@@ -88,18 +103,28 @@ func DecodeSessionState(data []byte) (*SessionState, error) {
 	if err := rlp.DecodeBytes(data, &raw); err != nil {
 		return nil, err
 	}
+	initiatorSigner := raw.InitiatorSigner
+	if initiatorSigner == (common.Address{}) {
+		initiatorSigner = raw.Initiator
+	}
+	counterpartySigner := raw.CounterpartySigner
+	if counterpartySigner == (common.Address{}) {
+		counterpartySigner = raw.Counterparty
+	}
 	return &SessionState{
-		Initiator:       raw.Initiator,
-		Counterparty:    raw.Counterparty,
-		SessionType:     raw.SessionType,
-		Status:          raw.Status,
-		StateHash:       raw.StateHash,
-		SequenceNumber:  raw.SequenceNumber,
-		TimeoutBlock:    raw.TimeoutBlock,
-		DisputeDeadline: raw.DisputeDeadline,
-		DisputeRules:    raw.DisputeRules,
-		OpenedBlock:     raw.OpenedBlock,
-		ClosedBlock:     raw.ClosedBlock,
+		Initiator:          raw.Initiator,
+		Counterparty:       raw.Counterparty,
+		SessionType:        raw.SessionType,
+		Status:             raw.Status,
+		StateHash:          raw.StateHash,
+		SequenceNumber:     raw.SequenceNumber,
+		TimeoutBlock:       raw.TimeoutBlock,
+		DisputeDeadline:    raw.DisputeDeadline,
+		DisputeRules:       raw.DisputeRules,
+		OpenedBlock:        raw.OpenedBlock,
+		ClosedBlock:        raw.ClosedBlock,
+		InitiatorSigner:    initiatorSigner,
+		CounterpartySigner: counterpartySigner,
 	}, nil
 }
 

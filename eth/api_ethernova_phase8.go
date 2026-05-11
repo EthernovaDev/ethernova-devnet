@@ -186,25 +186,27 @@ func capabilityMaskHex(mask vm.CapabilityMask) string {
 // SessionResult is the explorer/tooling view for a Phase 7 Session Protocol
 // Object and its decoded arbiter state.
 type SessionResult struct {
-	ID               common.Hash    `json:"id"`
-	Exists           bool           `json:"exists"`
-	Owner            common.Address `json:"owner"`
-	ExpiryBlock      uint64         `json:"expiryBlock"`
-	LastTouchedBlock uint64         `json:"lastTouchedBlock"`
-	RentBalance      string         `json:"rentBalance"`
-	Initiator        common.Address `json:"initiator"`
-	Counterparty     common.Address `json:"counterparty"`
-	SessionType      uint8          `json:"sessionType"`
-	SessionTypeName  string         `json:"sessionTypeName"`
-	Status           uint8          `json:"status"`
-	StatusName       string         `json:"statusName"`
-	StateHash        common.Hash    `json:"stateHash"`
-	SequenceNumber   uint64         `json:"sequenceNumber"`
-	TimeoutBlock     uint64         `json:"timeoutBlock"`
-	DisputeDeadline  uint64         `json:"disputeDeadline"`
-	DisputeRules     common.Hash    `json:"disputeRules"`
-	OpenedBlock      uint64         `json:"openedBlock"`
-	ClosedBlock      uint64         `json:"closedBlock"`
+	ID                 common.Hash    `json:"id"`
+	Exists             bool           `json:"exists"`
+	Owner              common.Address `json:"owner"`
+	ExpiryBlock        uint64         `json:"expiryBlock"`
+	LastTouchedBlock   uint64         `json:"lastTouchedBlock"`
+	RentBalance        string         `json:"rentBalance"`
+	Initiator          common.Address `json:"initiator"`
+	Counterparty       common.Address `json:"counterparty"`
+	InitiatorSigner    common.Address `json:"initiatorSigner"`
+	CounterpartySigner common.Address `json:"counterpartySigner"`
+	SessionType        uint8          `json:"sessionType"`
+	SessionTypeName    string         `json:"sessionTypeName"`
+	Status             uint8          `json:"status"`
+	StatusName         string         `json:"statusName"`
+	StateHash          common.Hash    `json:"stateHash"`
+	SequenceNumber     uint64         `json:"sequenceNumber"`
+	TimeoutBlock       uint64         `json:"timeoutBlock"`
+	DisputeDeadline    uint64         `json:"disputeDeadline"`
+	DisputeRules       common.Hash    `json:"disputeRules"`
+	OpenedBlock        uint64         `json:"openedBlock"`
+	ClosedBlock        uint64         `json:"closedBlock"`
 }
 
 // GetSession returns a decoded Phase 7 Session by Protocol Object ID. Wire
@@ -228,25 +230,27 @@ func (api *EthernovaAPI) GetSession(idHex string) (*SessionResult, error) {
 		rent = obj.RentBalance.String()
 	}
 	return &SessionResult{
-		ID:               id,
-		Exists:           true,
-		Owner:            obj.Owner,
-		ExpiryBlock:      obj.ExpiryBlock,
-		LastTouchedBlock: obj.LastTouchedBlock,
-		RentBalance:      rent,
-		Initiator:        st.Initiator,
-		Counterparty:     st.Counterparty,
-		SessionType:      st.SessionType,
-		SessionTypeName:  sessionTypeName(st.SessionType),
-		Status:           st.Status,
-		StatusName:       sessionStatusName(st.Status),
-		StateHash:        st.StateHash,
-		SequenceNumber:   st.SequenceNumber,
-		TimeoutBlock:     st.TimeoutBlock,
-		DisputeDeadline:  st.DisputeDeadline,
-		DisputeRules:     st.DisputeRules,
-		OpenedBlock:      st.OpenedBlock,
-		ClosedBlock:      st.ClosedBlock,
+		ID:                 id,
+		Exists:             true,
+		Owner:              obj.Owner,
+		ExpiryBlock:        obj.ExpiryBlock,
+		LastTouchedBlock:   obj.LastTouchedBlock,
+		RentBalance:        rent,
+		Initiator:          st.Initiator,
+		Counterparty:       st.Counterparty,
+		InitiatorSigner:    st.InitiatorSigner,
+		CounterpartySigner: st.CounterpartySigner,
+		SessionType:        st.SessionType,
+		SessionTypeName:    sessionTypeName(st.SessionType),
+		Status:             st.Status,
+		StatusName:         sessionStatusName(st.Status),
+		StateHash:          st.StateHash,
+		SequenceNumber:     st.SequenceNumber,
+		TimeoutBlock:       st.TimeoutBlock,
+		DisputeDeadline:    st.DisputeDeadline,
+		DisputeRules:       st.DisputeRules,
+		OpenedBlock:        st.OpenedBlock,
+		ClosedBlock:        st.ClosedBlock,
 	}, nil
 }
 
