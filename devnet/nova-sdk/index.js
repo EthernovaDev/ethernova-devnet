@@ -146,6 +146,10 @@ class NovaProvider {
     return this.nova("quoteResourceFee", [vector]);
   }
 
+  resourceCongestion() {
+    return this.nova("resourceCongestion", []);
+  }
+
   getResourceVector(txHash) {
     return this.nova("getResourceVector", [txHash]);
   }

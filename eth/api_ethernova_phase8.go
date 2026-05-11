@@ -314,6 +314,7 @@ func (api *EthernovaAPI) DeveloperTooling() map[string]interface{} {
 			"nova_resourcePrices",
 			"nova_estimateResourceLimits",
 			"nova_quoteResourceFee",
+			"nova_resourceCongestion",
 			"nova_getResourceVector",
 		},
 	}

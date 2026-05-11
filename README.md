@@ -322,13 +322,13 @@ Requires: Go 1.21+, GCC, Make
 
 ### Phase 10: Multi-Dimensional Resource Metering (NIP-0004)
 - [x] 5-dimension Resource Vector: compute, state_read, state_write, protocol_ops, proof_verify (10A monitoring)
-- [ ] Per-dimension adaptive pricing (EIP-1559 style, ±12.5% per block, per dimension)
-- [ ] Congestion isolation: busy DeFi (compute) does NOT make chat (protocol_ops) expensive
+- [x] Per-dimension adaptive pricing quote layer (EIP-1559 style, ±12.5% per block, per dimension)
+- [x] Congestion isolation: busy DeFi (compute) does NOT make chat (protocol_ops) expensive
 - [x] Backward compatibility: standard `gasLimit` deterministically mapped to Resource Vector
 - [ ] Extended transaction format (EIP-2718 style) for fine-grained per-dimension limits
 - [x] Substage 10A: Resource Vector tracking (monitoring only, no pricing change)
 - [x] Substage 10B: per-dimension static pricing quote active (generous initial multipliers, no consensus gas change)
-- [ ] Substage 10C: full adaptive pricing + congestion isolation validation
+- [x] Substage 10C: adaptive quote pricing + congestion isolation validation
 - [ ] Consensus verification: 3+ nodes, 2000 blocks, all transaction types, zero BAD BLOCK
 
 ### Phase 11: Application-Layer Precompiles (NIP-0004)

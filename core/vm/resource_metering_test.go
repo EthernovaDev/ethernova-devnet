@@ -91,3 +91,47 @@ func TestPriceResourceVectorSaturates(t *testing.T) {
 		t.Fatalf("total charge should saturate, got %d", got.Total)
 	}
 }
+
+func TestPriceResourceVectorBips(t *testing.T) {
+	vector := ResourceVector{
+		Compute:     1000,
+		StateRead:   100,
+		StateWrite:  50,
+		ProtocolOps: 20,
+		ProofVerify: 10,
+	}
+	got := PriceResourceVectorBips(vector, Phase10CBasePriceBips())
+	if got.Total != 1450 {
+		t.Fatalf("unexpected bips quote total: got %d want 1450 (%+v)", got.Total, got)
+	}
+}
+
+func TestAdaptiveResourcePricingIsolation(t *testing.T) {
+	pricer := NewAdaptiveResourcePricer()
+	target := ResourceTargetForBlockGas(30_000_000)
+	base := Phase10CBasePriceBips()
+	usage := target
+	usage.Compute = target.Compute * 2
+
+	pricer.RecordBlock(10, 30_000_000, usage)
+	snap := pricer.Snapshot()
+	if snap.CurrentPriceBips.Compute <= base.Compute {
+		t.Fatalf("compute price should increase under compute congestion: got %d base %d", snap.CurrentPriceBips.Compute, base.Compute)
+	}
+	if snap.CurrentPriceBips.ProtocolOps != base.ProtocolOps {
+		t.Fatalf("protocol_ops price should not move from compute congestion: got %d base %d", snap.CurrentPriceBips.ProtocolOps, base.ProtocolOps)
+	}
+	if snap.CurrentPriceBips.StateWrite != base.StateWrite {
+		t.Fatalf("state_write price should remain isolated: got %d base %d", snap.CurrentPriceBips.StateWrite, base.StateWrite)
+	}
+}
+
+func TestAdaptiveResourcePricingClampsToBase(t *testing.T) {
+	pricer := NewAdaptiveResourcePricer()
+	pricer.RecordBlock(1, 30_000_000, ResourceVector{})
+	snap := pricer.Snapshot()
+	base := Phase10CBasePriceBips()
+	if snap.CurrentPriceBips != base {
+		t.Fatalf("empty blocks should not decay below base: got %+v want %+v", snap.CurrentPriceBips, base)
+	}
+}

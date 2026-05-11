@@ -60,13 +60,14 @@ func NewStateProcessor(config ctypes.ChainConfigurator, bc *BlockChain, engine c
 // transactions failed to execute due to insufficient gas it will return an error.
 func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
 	var (
-		receipts    types.Receipts
-		usedGas     = new(uint64)
-		header      = block.Header()
-		blockHash   = block.Hash()
-		blockNumber = block.Number()
-		allLogs     []*types.Log
-		gp          = new(GasPool).AddGas(block.GasLimit())
+		receipts       types.Receipts
+		usedGas        = new(uint64)
+		header         = block.Header()
+		blockHash      = block.Hash()
+		blockNumber    = block.Number()
+		allLogs        []*types.Log
+		gp             = new(GasPool).AddGas(block.GasLimit())
+		blockResources vm.ResourceVector
 	)
 	// Mutate the block and state according to any hard-fork specs
 	isDAOSupport := p.config.IsEnabled(p.config.GetEthashEIP779Transition, block.Number())
@@ -128,9 +129,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
+		if sample, ok := vm.GlobalResourceMonitor.GetTx(tx.Hash()); ok {
+			blockResources = blockResources.Add(sample.Vector)
+		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
+	vm.GlobalAdaptiveResourcePricer.RecordBlock(block.NumberU64(), block.GasLimit(), blockResources)
 
 	// Ethernova v3.0: Feed completed block workload sample to convergent tuner.
 	// This runs after all txs are processed and produces deterministic EMA

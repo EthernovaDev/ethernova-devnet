@@ -11,6 +11,10 @@ function must(cond, message) {
   if (!cond) throw new Error(message);
 }
 
+function priceWithBips(amount, bips) {
+  return Number((BigInt(amount) * BigInt(bips) + 9999n) / 10000n);
+}
+
 async function check(name, fn) {
   try {
     const detail = await fn();
@@ -24,7 +28,7 @@ async function check(name, fn) {
 
 (async () => {
   console.log("========================================================================");
-  console.log(" Phase 10B - Multi-Dimensional Resource Pricing (Static Quote)");
+  console.log(" Phase 10C - Adaptive Multi-Dimensional Resource Pricing");
   console.log("========================================================================");
   console.log(`RPC: ${RPC}`);
 
@@ -36,27 +40,31 @@ async function check(name, fn) {
     return chainId;
   });
 
-  await check("nova_resourceConfig static pricing", async () => {
+  await check("nova_resourceConfig adaptive pricing", async () => {
     const cfg = await nova.resourceConfig();
     must(cfg.phase === 10, `expected phase 10, got ${cfg.phase}`);
-    must(cfg.substage === "10B", `expected 10B, got ${cfg.substage}`);
-    must(cfg.mode === "static_per_dimension_pricing", `unexpected mode ${cfg.mode}`);
-    must(cfg.pricingActive === true, "pricing must be active in 10B");
-    must(cfg.consensusGasChanged === false, "10B must not change consensus gas");
+    must(cfg.substage === "10C", `expected 10C, got ${cfg.substage}`);
+    must(cfg.mode === "adaptive_per_dimension_pricing", `unexpected mode ${cfg.mode}`);
+    must(cfg.pricingActive === true, "pricing must be active in 10C");
+    must(cfg.adaptivePricing === true, "adaptivePricing must be true in 10C");
+    must(cfg.consensusGasChanged === false, "10C quote layer must not change consensus gas");
     must(Array.isArray(cfg.dimensions) && cfg.dimensions.length === 5, "missing five dimensions");
     return `${cfg.substage} ${cfg.dimensions.join(",")}`;
   });
 
-  await check("nova_resourcePrices static multipliers", async () => {
+  await check("nova_resourcePrices adaptive bips", async () => {
     const prices = await nova.resourcePrices();
     must(prices.pricingActive === true, "pricing must be active");
-    must(prices.adaptive === false, "adaptive pricing remains 10C scope");
-    must(prices.prices.compute === 1, `compute ${prices.prices.compute}`);
-    must(prices.prices.state_read === 2, `state_read ${prices.prices.state_read}`);
-    must(prices.prices.state_write === 4, `state_write ${prices.prices.state_write}`);
-    must(prices.prices.protocol_ops === 1, `protocol_ops ${prices.prices.protocol_ops}`);
-    must(prices.prices.proof_verify === 3, `proof_verify ${prices.prices.proof_verify}`);
-    return "compute=1 state_read=2 state_write=4 protocol_ops=1 proof_verify=3";
+    must(prices.adaptive === true, "adaptive pricing expected");
+    must(prices.basePriceBips.compute === 10000, `base compute ${prices.basePriceBips.compute}`);
+    must(prices.basePriceBips.stateRead === 20000, `base stateRead ${prices.basePriceBips.stateRead}`);
+    must(prices.basePriceBips.stateWrite === 40000, `base stateWrite ${prices.basePriceBips.stateWrite}`);
+    must(prices.basePriceBips.protocolOps === 10000, `base protocolOps ${prices.basePriceBips.protocolOps}`);
+    must(prices.basePriceBips.proofVerify === 30000, `base proofVerify ${prices.basePriceBips.proofVerify}`);
+    for (const key of ["compute", "stateRead", "stateWrite", "protocolOps", "proofVerify"]) {
+      must(prices.currentPriceBips[key] >= prices.basePriceBips[key], `${key} below base`);
+    }
+    return `block=${prices.lastBlock} computeBips=${prices.currentPriceBips.compute} protocolOpsBips=${prices.currentPriceBips.protocolOps}`;
   });
 
   await check("legacy gasLimit maps to resource vector", async () => {
@@ -69,7 +77,7 @@ async function check(name, fn) {
     return JSON.stringify(limits);
   });
 
-  await check("nova_quoteResourceFee applies per-dimension prices", async () => {
+  await check("nova_quoteResourceFee applies adaptive prices", async () => {
     const quote = await nova.quoteResourceFee({
       compute: 1000,
       stateRead: 100,
@@ -77,21 +85,33 @@ async function check(name, fn) {
       protocolOps: 20,
       proofVerify: 10,
     });
-    must(quote.substage === "10B", `substage ${quote.substage}`);
+    must(quote.substage === "10C", `substage ${quote.substage}`);
     must(quote.pricingActive === true, "pricingActive expected true");
+    must(quote.adaptive === true, "adaptive expected true");
     must(quote.consensusGasChanged === false, "consensus gas must remain unchanged");
-    must(quote.pricedUnits.compute === 1000, `compute ${quote.pricedUnits.compute}`);
-    must(quote.pricedUnits.stateRead === 200, `stateRead ${quote.pricedUnits.stateRead}`);
-    must(quote.pricedUnits.stateWrite === 200, `stateWrite ${quote.pricedUnits.stateWrite}`);
-    must(quote.pricedUnits.protocolOps === 20, `protocolOps ${quote.pricedUnits.protocolOps}`);
-    must(quote.pricedUnits.proofVerify === 30, `proofVerify ${quote.pricedUnits.proofVerify}`);
-    must(quote.pricedUnits.total === 1450, `total ${quote.pricedUnits.total}`);
+    must(quote.pricedUnits.compute === priceWithBips(1000, quote.priceBips.compute), `compute ${quote.pricedUnits.compute}`);
+    must(quote.pricedUnits.stateRead === priceWithBips(100, quote.priceBips.stateRead), `stateRead ${quote.pricedUnits.stateRead}`);
+    must(quote.pricedUnits.stateWrite === priceWithBips(50, quote.priceBips.stateWrite), `stateWrite ${quote.pricedUnits.stateWrite}`);
+    must(quote.pricedUnits.protocolOps === priceWithBips(20, quote.priceBips.protocolOps), `protocolOps ${quote.pricedUnits.protocolOps}`);
+    must(quote.pricedUnits.proofVerify === priceWithBips(10, quote.priceBips.proofVerify), `proofVerify ${quote.pricedUnits.proofVerify}`);
+    const expectedTotal = quote.pricedUnits.compute + quote.pricedUnits.stateRead + quote.pricedUnits.stateWrite + quote.pricedUnits.protocolOps + quote.pricedUnits.proofVerify;
+    must(quote.pricedUnits.total === expectedTotal, `total ${quote.pricedUnits.total}`);
     return `total=${quote.pricedUnits.total}`;
+  });
+
+  await check("nova_resourceCongestion exposes isolated controller", async () => {
+    const congestion = await nova.resourceCongestion();
+    must(congestion.substage === "10C", `substage ${congestion.substage}`);
+    must(congestion.adaptive === true, "adaptive expected true");
+    must(congestion.consensusGasChanged === false, "consensus gas must remain unchanged");
+    must(congestion.snapshot && congestion.snapshot.currentPriceBips, "missing snapshot prices");
+    must(String(congestion.isolation || "").includes("each dimension"), "missing isolation note");
+    return `block=${congestion.snapshot.blockNumber}`;
   });
 
   await check("nova_developerTooling advertises Phase 10 methods", async () => {
     const tooling = await nova.developerTooling();
-    for (const method of ["nova_resourceConfig", "nova_resourcePrices", "nova_estimateResourceLimits", "nova_quoteResourceFee", "nova_getResourceVector"]) {
+    for (const method of ["nova_resourceConfig", "nova_resourcePrices", "nova_estimateResourceLimits", "nova_quoteResourceFee", "nova_resourceCongestion", "nova_getResourceVector"]) {
       must(tooling.rpcMethods.includes(method), `${method} missing`);
     }
     return `${tooling.rpcMethods.length} methods`;

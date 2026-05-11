@@ -52,6 +52,33 @@ type ResourceCharge struct {
 	Total       uint64 `json:"total"`
 }
 
+// ResourcePriceBips stores adaptive prices in basis points, where 10_000 means
+// a 1.00x multiplier. Basis points give Phase 10C enough precision for
+// EIP-1559-style movement without introducing floating point into RPC state.
+type ResourcePriceBips struct {
+	Compute     uint64 `json:"compute"`
+	StateRead   uint64 `json:"stateRead"`
+	StateWrite  uint64 `json:"stateWrite"`
+	ProtocolOps uint64 `json:"protocolOps"`
+	ProofVerify uint64 `json:"proofVerify"`
+}
+
+type ResourceCongestionSnapshot struct {
+	BlockNumber       uint64            `json:"blockNumber"`
+	Usage             ResourceVector    `json:"usage"`
+	Target            ResourceVector    `json:"target"`
+	UtilizationBips   ResourcePriceBips `json:"utilizationBips"`
+	BasePriceBips     ResourcePriceBips `json:"basePriceBips"`
+	CurrentPriceBips  ResourcePriceBips `json:"currentPriceBips"`
+	MaxAdjustmentBips uint64            `json:"maxAdjustmentBips"`
+}
+
+const (
+	resourcePriceUnitBips      uint64 = 10_000
+	resourceMaxAdjustmentBips  uint64 = 1_250
+	resourceMaxPriceMultiplier uint64 = 16
+)
+
 // Phase10BResourcePrices returns conservative devnet multipliers. Protocol ops
 // intentionally stay at 1 so chat/mailbox traffic is not penalized just because
 // storage-heavy DeFi activity has different cost characteristics.
@@ -62,6 +89,17 @@ func Phase10BResourcePrices() ResourcePrices {
 		StateWrite:  4,
 		ProtocolOps: 1,
 		ProofVerify: 3,
+	}
+}
+
+func Phase10CBasePriceBips() ResourcePriceBips {
+	static := Phase10BResourcePrices()
+	return ResourcePriceBips{
+		Compute:     static.Compute * resourcePriceUnitBips,
+		StateRead:   static.StateRead * resourcePriceUnitBips,
+		StateWrite:  static.StateWrite * resourcePriceUnitBips,
+		ProtocolOps: static.ProtocolOps * resourcePriceUnitBips,
+		ProofVerify: static.ProofVerify * resourcePriceUnitBips,
 	}
 }
 
@@ -82,6 +120,35 @@ func PriceResourceVector(v ResourceVector, prices ResourcePrices) ResourceCharge
 	return charge
 }
 
+func PriceResourceVectorBips(v ResourceVector, prices ResourcePriceBips) ResourceCharge {
+	charge := ResourceCharge{
+		Compute:     scaleByBips(v.Compute, prices.Compute),
+		StateRead:   scaleByBips(v.StateRead, prices.StateRead),
+		StateWrite:  scaleByBips(v.StateWrite, prices.StateWrite),
+		ProtocolOps: scaleByBips(v.ProtocolOps, prices.ProtocolOps),
+		ProofVerify: scaleByBips(v.ProofVerify, prices.ProofVerify),
+	}
+	charge.Total = saturatingAdd(charge.Compute, charge.StateRead)
+	charge.Total = saturatingAdd(charge.Total, charge.StateWrite)
+	charge.Total = saturatingAdd(charge.Total, charge.ProtocolOps)
+	charge.Total = saturatingAdd(charge.Total, charge.ProofVerify)
+	return charge
+}
+
+func scaleByBips(amount, bips uint64) uint64 {
+	if amount == 0 || bips == 0 {
+		return 0
+	}
+	product := saturatingMul(amount, bips)
+	if product == math.MaxUint64 {
+		return math.MaxUint64
+	}
+	if product > math.MaxUint64-(resourcePriceUnitBips-1) {
+		return math.MaxUint64
+	}
+	return (product + resourcePriceUnitBips - 1) / resourcePriceUnitBips
+}
+
 func saturatingMul(a, b uint64) uint64 {
 	if a == 0 || b == 0 {
 		return 0
@@ -97,6 +164,135 @@ func saturatingAdd(a, b uint64) uint64 {
 		return math.MaxUint64
 	}
 	return a + b
+}
+
+type AdaptiveResourcePricer struct {
+	mu       sync.RWMutex
+	snapshot ResourceCongestionSnapshot
+}
+
+func NewAdaptiveResourcePricer() *AdaptiveResourcePricer {
+	base := Phase10CBasePriceBips()
+	return &AdaptiveResourcePricer{
+		snapshot: ResourceCongestionSnapshot{
+			BasePriceBips:     base,
+			CurrentPriceBips:  base,
+			MaxAdjustmentBips: resourceMaxAdjustmentBips,
+		},
+	}
+}
+
+var GlobalAdaptiveResourcePricer = NewAdaptiveResourcePricer()
+
+func ResourceTargetForBlockGas(blockGasLimit uint64) ResourceVector {
+	limits := LegacyGasToResourceLimits(blockGasLimit)
+	return ResourceVector{
+		Compute:     maxUint64(1, limits.Compute/2),
+		StateRead:   maxUint64(1, limits.StateRead/2),
+		StateWrite:  maxUint64(1, limits.StateWrite/2),
+		ProtocolOps: maxUint64(1, limits.ProtocolOps/2),
+		ProofVerify: maxUint64(1, limits.ProofVerify/2),
+	}
+}
+
+func (p *AdaptiveResourcePricer) RecordBlock(blockNumber, blockGasLimit uint64, usage ResourceVector) {
+	target := ResourceTargetForBlockGas(blockGasLimit)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	base := p.snapshot.BasePriceBips
+	current := p.snapshot.CurrentPriceBips
+	if current == (ResourcePriceBips{}) {
+		current = base
+	}
+	next := ResourcePriceBips{
+		Compute:     adjustResourcePriceBips(current.Compute, base.Compute, usage.Compute, target.Compute),
+		StateRead:   adjustResourcePriceBips(current.StateRead, base.StateRead, usage.StateRead, target.StateRead),
+		StateWrite:  adjustResourcePriceBips(current.StateWrite, base.StateWrite, usage.StateWrite, target.StateWrite),
+		ProtocolOps: adjustResourcePriceBips(current.ProtocolOps, base.ProtocolOps, usage.ProtocolOps, target.ProtocolOps),
+		ProofVerify: adjustResourcePriceBips(current.ProofVerify, base.ProofVerify, usage.ProofVerify, target.ProofVerify),
+	}
+	p.snapshot = ResourceCongestionSnapshot{
+		BlockNumber:       blockNumber,
+		Usage:             usage,
+		Target:            target,
+		UtilizationBips:   utilizationBips(usage, target),
+		BasePriceBips:     base,
+		CurrentPriceBips:  next,
+		MaxAdjustmentBips: resourceMaxAdjustmentBips,
+	}
+}
+
+func (p *AdaptiveResourcePricer) Snapshot() ResourceCongestionSnapshot {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.snapshot
+}
+
+func adjustResourcePriceBips(current, base, used, target uint64) uint64 {
+	if current == 0 {
+		current = base
+	}
+	if target == 0 || used == target {
+		return current
+	}
+	delta := saturatingMul(current, resourceAbsDiff(used, target))
+	if delta != math.MaxUint64 {
+		delta /= target
+		delta = saturatingMul(delta, resourceMaxAdjustmentBips) / resourcePriceUnitBips
+	}
+	if delta == 0 {
+		delta = 1
+	}
+	maxPrice := saturatingMul(base, resourceMaxPriceMultiplier)
+	if used > target {
+		return minUint64(maxPrice, saturatingAdd(current, delta))
+	}
+	if current <= base {
+		return base
+	}
+	if delta >= current-base {
+		return base
+	}
+	return current - delta
+}
+
+func utilizationBips(usage, target ResourceVector) ResourcePriceBips {
+	return ResourcePriceBips{
+		Compute:     utilizationDimensionBips(usage.Compute, target.Compute),
+		StateRead:   utilizationDimensionBips(usage.StateRead, target.StateRead),
+		StateWrite:  utilizationDimensionBips(usage.StateWrite, target.StateWrite),
+		ProtocolOps: utilizationDimensionBips(usage.ProtocolOps, target.ProtocolOps),
+		ProofVerify: utilizationDimensionBips(usage.ProofVerify, target.ProofVerify),
+	}
+}
+
+func utilizationDimensionBips(used, target uint64) uint64 {
+	if target == 0 {
+		return 0
+	}
+	return saturatingMul(used, resourcePriceUnitBips) / target
+}
+
+func resourceAbsDiff(a, b uint64) uint64 {
+	if a > b {
+		return a - b
+	}
+	return b - a
+}
+
+func maxUint64(a, b uint64) uint64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func minUint64(a, b uint64) uint64 {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // ResourceMeter tracks non-opcode resource usage during one transaction.
