@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"math"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -53,5 +54,40 @@ func TestResourceMeterPrecompileClassification(t *testing.T) {
 	}
 	if got.ProofVerify != 30_000 {
 		t.Fatalf("proof_verify mismatch: got %d", got.ProofVerify)
+	}
+}
+
+func TestPhase10BResourcePricing(t *testing.T) {
+	vector := ResourceVector{
+		Compute:     1000,
+		StateRead:   100,
+		StateWrite:  50,
+		ProtocolOps: 20,
+		ProofVerify: 10,
+	}
+	got := PriceResourceVector(vector, Phase10BResourcePrices())
+	want := ResourceCharge{
+		Compute:     1000,
+		StateRead:   200,
+		StateWrite:  200,
+		ProtocolOps: 20,
+		ProofVerify: 30,
+		Total:       1450,
+	}
+	if got != want {
+		t.Fatalf("unexpected Phase 10B charge: got %+v want %+v", got, want)
+	}
+}
+
+func TestPriceResourceVectorSaturates(t *testing.T) {
+	got := PriceResourceVector(
+		ResourceVector{Compute: math.MaxUint64, StateRead: 2},
+		ResourcePrices{Compute: 2, StateRead: math.MaxUint64},
+	)
+	if got.Compute != math.MaxUint64 {
+		t.Fatalf("compute charge should saturate, got %d", got.Compute)
+	}
+	if got.Total != math.MaxUint64 {
+		t.Fatalf("total charge should saturate, got %d", got.Total)
 	}
 }

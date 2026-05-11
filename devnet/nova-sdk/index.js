@@ -142,6 +142,10 @@ class NovaProvider {
     return this.nova("estimateResourceLimits", [encoded]);
   }
 
+  quoteResourceFee(vector) {
+    return this.nova("quoteResourceFee", [vector]);
+  }
+
   getResourceVector(txHash) {
     return this.nova("getResourceVector", [txHash]);
   }

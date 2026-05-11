@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"math"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -26,6 +27,76 @@ func (v ResourceVector) Add(other ResourceVector) ResourceVector {
 	v.ProtocolOps += other.ProtocolOps
 	v.ProofVerify += other.ProofVerify
 	return v
+}
+
+// ResourcePrices are the Phase 10B per-dimension static multipliers.
+//
+// Phase 10B activates pricing as a deterministic quote/telemetry surface only.
+// Consensus gas charging remains unchanged until the extended transaction and
+// adaptive-pricing substages have completed their devnet soak.
+type ResourcePrices struct {
+	Compute     uint64 `json:"compute"`
+	StateRead   uint64 `json:"stateRead"`
+	StateWrite  uint64 `json:"stateWrite"`
+	ProtocolOps uint64 `json:"protocolOps"`
+	ProofVerify uint64 `json:"proofVerify"`
+}
+
+// ResourceCharge is a priced ResourceVector plus the saturated total.
+type ResourceCharge struct {
+	Compute     uint64 `json:"compute"`
+	StateRead   uint64 `json:"stateRead"`
+	StateWrite  uint64 `json:"stateWrite"`
+	ProtocolOps uint64 `json:"protocolOps"`
+	ProofVerify uint64 `json:"proofVerify"`
+	Total       uint64 `json:"total"`
+}
+
+// Phase10BResourcePrices returns conservative devnet multipliers. Protocol ops
+// intentionally stay at 1 so chat/mailbox traffic is not penalized just because
+// storage-heavy DeFi activity has different cost characteristics.
+func Phase10BResourcePrices() ResourcePrices {
+	return ResourcePrices{
+		Compute:     1,
+		StateRead:   2,
+		StateWrite:  4,
+		ProtocolOps: 1,
+		ProofVerify: 3,
+	}
+}
+
+// PriceResourceVector applies per-dimension prices with saturating arithmetic
+// so RPC quotation can never overflow into a misleading low number.
+func PriceResourceVector(v ResourceVector, prices ResourcePrices) ResourceCharge {
+	charge := ResourceCharge{
+		Compute:     saturatingMul(v.Compute, prices.Compute),
+		StateRead:   saturatingMul(v.StateRead, prices.StateRead),
+		StateWrite:  saturatingMul(v.StateWrite, prices.StateWrite),
+		ProtocolOps: saturatingMul(v.ProtocolOps, prices.ProtocolOps),
+		ProofVerify: saturatingMul(v.ProofVerify, prices.ProofVerify),
+	}
+	charge.Total = saturatingAdd(charge.Compute, charge.StateRead)
+	charge.Total = saturatingAdd(charge.Total, charge.StateWrite)
+	charge.Total = saturatingAdd(charge.Total, charge.ProtocolOps)
+	charge.Total = saturatingAdd(charge.Total, charge.ProofVerify)
+	return charge
+}
+
+func saturatingMul(a, b uint64) uint64 {
+	if a == 0 || b == 0 {
+		return 0
+	}
+	if a > math.MaxUint64/b {
+		return math.MaxUint64
+	}
+	return a * b
+}
+
+func saturatingAdd(a, b uint64) uint64 {
+	if math.MaxUint64-a < b {
+		return math.MaxUint64
+	}
+	return a + b
 }
 
 // ResourceMeter tracks non-opcode resource usage during one transaction.

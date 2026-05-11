@@ -327,7 +327,7 @@ Requires: Go 1.21+, GCC, Make
 - [x] Backward compatibility: standard `gasLimit` deterministically mapped to Resource Vector
 - [ ] Extended transaction format (EIP-2718 style) for fine-grained per-dimension limits
 - [x] Substage 10A: Resource Vector tracking (monitoring only, no pricing change)
-- [ ] Substage 10B: per-dimension pricing active (generous initial multipliers)
+- [x] Substage 10B: per-dimension static pricing quote active (generous initial multipliers, no consensus gas change)
 - [ ] Substage 10C: full adaptive pricing + congestion isolation validation
 - [ ] Consensus verification: 3+ nodes, 2000 blocks, all transaction types, zero BAD BLOCK
 
