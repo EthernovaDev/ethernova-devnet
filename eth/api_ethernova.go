@@ -499,10 +499,58 @@ func (api *EthernovaAPI) Precompiles() []PrecompileInfo {
 			GasModel:    "30k+500/ACL create, 20k+500/ACL configure, 15k destroy, 2k getConfig",
 		},
 		{
+			Address:     "0x000000000000000000000000000000000000002D",
+			Name:        "novaSessionArbiter",
+			Description: "NIP-0004 Phase 7 Session/Channel primitive: open, commit, close, dispute, timeout resolution.",
+			GasModel:    "2k-50k by selector and signature tail",
+		},
+		{
+			Address:     "0x000000000000000000000000000000000000002F",
+			Name:        "novaStateWitness",
+			Description: "NIP-0004 Phase 5 State Lifecycle witness verification and restoration helper.",
+			GasModel:    "1k getTier, 5k verify, 25k restore",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000030",
+			Name:        "novaAsyncCallback",
+			Description: "NIP-0004 Phase 11 app primitive: deterministic callback commitments and readiness checks.",
+			GasModel:    "18k writes, 2k-4k reads/verifies",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000031",
+			Name:        "novaIdentityAttestation",
+			Description: "NIP-0004 Phase 11 app primitive: issuer-owned subject/claim attestations with expiry and revoke.",
+			GasModel:    "18k writes, 2k-4k reads/verifies",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000032",
+			Name:        "novaSocialGraph",
+			Description: "NIP-0004 Phase 11 app primitive: follow/unfollow edges, isFollowing, trustScore.",
+			GasModel:    "18k writes, 2k-4k reads/verifies",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000033",
+			Name:        "novaContentManifest",
+			Description: "NIP-0004 Phase 11 app primitive: manifest root hashes that compose with ContentRef IDs.",
+			GasModel:    "18k writes, 2k-4k reads/verifies",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000034",
+			Name:        "novaGameState",
+			Description: "NIP-0004 Phase 11 app primitive: turn-ordered commit/reveal game state checkpoints.",
+			GasModel:    "18k writes, 2k-4k reads/verifies",
+		},
+		{
 			Address:     "0x0000000000000000000000000000000000000035",
 			Name:        "novaMailboxOps",
 			Description: "NIP-0004 Phase 4 Mailbox messaging: send (deferred to next block), recv, peek, count. Postage in NOVA enforced.",
 			GasModel:    "30k send, 15k recv, 2k peek, 500 count",
+		},
+		{
+			Address:     "0x0000000000000000000000000000000000000036",
+			Name:        "novaComputeBounty",
+			Description: "NIP-0004 Phase 11 app primitive: off-chain compute bounty commitments and proof submissions.",
+			GasModel:    "18k writes, 2k-4k reads/verifies",
 		},
 	}
 }

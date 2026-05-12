@@ -243,6 +243,9 @@ func instructionSetForConfig(config ctypes.ChainConfigurator, isPostMerge bool, 
 	if config.IsEnabledByTime(config.GetEIP6780TransitionTime, bt) || config.IsEnabled(config.GetEIP6780Transition, bn) {
 		enable6780(instructionSet) // EIP-6780 SELFDESTRUCT only in same transaction
 	}
+	if novaOpcodesActive(config, bn) {
+		enableNovaOpcodes(instructionSet)
+	}
 
 	return validate(instructionSet)
 }

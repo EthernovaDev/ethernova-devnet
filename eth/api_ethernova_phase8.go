@@ -93,6 +93,7 @@ var phase8CapabilityCatalog = []vm.CapabilityMask{
 	vm.CapabilityStateWitness,
 	vm.CapabilityMailboxOps,
 	vm.CapabilitySessionArbiter,
+	vm.CapabilityAppPrecompiles,
 }
 
 // GetCapabilities returns the Phase 6 capability mask that applies to an
@@ -163,7 +164,13 @@ func precompileGates() []PrecompileGate {
 		{"0x2C", "novaMailboxManager"},
 		{"0x2D", "novaSessionArbiter"},
 		{"0x2F", "novaStateWitness"},
+		{"0x30", "novaAsyncCallback"},
+		{"0x31", "novaIdentityAttestation"},
+		{"0x32", "novaSocialGraph"},
+		{"0x33", "novaContentManifest"},
+		{"0x34", "novaGameState"},
 		{"0x35", "novaMailboxOps"},
+		{"0x36", "novaComputeBounty"},
 	}
 	out := make([]PrecompileGate, 0, len(precompiles))
 	for _, p := range precompiles {
@@ -291,7 +298,7 @@ func (api *EthernovaAPI) SessionConfig() map[string]interface{} {
 // explorers and SDKs one cheap endpoint to discover the canonical namespace.
 func (api *EthernovaAPI) DeveloperTooling() map[string]interface{} {
 	return map[string]interface{}{
-		"phase":              10,
+		"phase":              12,
 		"canonicalNamespace": "nova",
 		"legacyNamespace":    "ethernova",
 		"sdkPath":            "devnet/nova-sdk",
@@ -316,6 +323,8 @@ func (api *EthernovaAPI) DeveloperTooling() map[string]interface{} {
 			"nova_quoteResourceFee",
 			"nova_resourceCongestion",
 			"nova_getResourceVector",
+			"nova_applicationPrecompiles",
+			"nova_opcodeConfig",
 		},
 	}
 }

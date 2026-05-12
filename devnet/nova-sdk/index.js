@@ -22,7 +22,13 @@ const PRECOMPILES = Object.freeze({
   mailboxManager: "0x000000000000000000000000000000000000002C",
   sessionArbiter: "0x000000000000000000000000000000000000002D",
   stateWitness: "0x000000000000000000000000000000000000002F",
+  asyncCallback: "0x0000000000000000000000000000000000000030",
+  identityAttestation: "0x0000000000000000000000000000000000000031",
+  socialGraph: "0x0000000000000000000000000000000000000032",
+  contentManifest: "0x0000000000000000000000000000000000000033",
+  gameState: "0x0000000000000000000000000000000000000034",
   mailboxOps: "0x0000000000000000000000000000000000000035",
+  computeBounty: "0x0000000000000000000000000000000000000036",
 });
 
 const CHAT_PROFILE_CONTENT_TYPE = "application/ethernova.chat-profile+json";
@@ -152,6 +158,14 @@ class NovaProvider {
 
   getResourceVector(txHash) {
     return this.nova("getResourceVector", [txHash]);
+  }
+
+  applicationPrecompiles() {
+    return this.nova("applicationPrecompiles", []);
+  }
+
+  opcodeConfig() {
+    return this.nova("opcodeConfig", []);
   }
 }
 

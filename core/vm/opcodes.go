@@ -209,6 +209,19 @@ const (
 	LOG4
 )
 
+// 0xd0 range - Ethernova NIP-0004 Nova opcodes.
+const (
+	MSEND OpCode = 0xd0 + iota
+	MRECV
+	MPEEK
+	MCOUNT
+	CREF
+	CVERIFY
+	SOPEN
+	SCOMMIT
+	SCLOSE
+)
+
 // 0xf0 range - closures.
 const (
 	CREATE       OpCode = 0xf0
@@ -384,6 +397,17 @@ var opCodeToString = [256]string{
 	LOG3: "LOG3",
 	LOG4: "LOG4",
 
+	// 0xd0 range - Ethernova NIP-0004 Nova opcodes.
+	MSEND:   "MSEND",
+	MRECV:   "MRECV",
+	MPEEK:   "MPEEK",
+	MCOUNT:  "MCOUNT",
+	CREF:    "CREF",
+	CVERIFY: "CVERIFY",
+	SOPEN:   "SOPEN",
+	SCOMMIT: "SCOMMIT",
+	SCLOSE:  "SCLOSE",
+
 	// 0xf0 range - closures.
 	CREATE:       "CREATE",
 	CALL:         "CALL",
@@ -546,6 +570,15 @@ var stringToOp = map[string]OpCode{
 	"LOG2":           LOG2,
 	"LOG3":           LOG3,
 	"LOG4":           LOG4,
+	"MSEND":          MSEND,
+	"MRECV":          MRECV,
+	"MPEEK":          MPEEK,
+	"MCOUNT":         MCOUNT,
+	"CREF":           CREF,
+	"CVERIFY":        CVERIFY,
+	"SOPEN":          SOPEN,
+	"SCOMMIT":        SCOMMIT,
+	"SCLOSE":         SCLOSE,
 	"CREATE":         CREATE,
 	"CREATE2":        CREATE2,
 	"CALL":           CALL,

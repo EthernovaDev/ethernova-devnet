@@ -348,4 +348,28 @@ const (
 
 	// MaxSessionSignatures caps commit/close/dispute signature tails.
 	MaxSessionSignatures uint64 = 2
+
+	// ============================================================
+	// NIP-0004 — Layered Deterministic Computer
+	// Phase 11: Application-Layer Precompiles
+	//
+	// Adds application-level helpers for async callbacks, identity
+	// attestations, social graph edges, content manifests, game state, and
+	// compute bounties. Devnet map avoids the old draft's 0x2B/0x2C
+	// collisions by using 0x30-0x34 and 0x36; 0x35 remains MailboxOps.
+	// ============================================================
+
+	ApplicationPrecompileForkBlock uint64 = 0
+
+	// ============================================================
+	// NIP-0004 — Layered Deterministic Computer
+	// Phase 12: Nova Opcodes
+	//
+	// Activates the 0xD0-0xD8 opcode bridge that promotes mailbox,
+	// content-reference, and session operations from precompile calls to a
+	// compact VM surface. The old 0xF6-0xFE draft range is intentionally
+	// avoided because that collides with canonical EVM opcodes.
+	// ============================================================
+
+	NovaOpcodeForkBlock uint64 = 0
 )

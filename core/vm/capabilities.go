@@ -15,6 +15,7 @@ const (
 	CapabilityStateWitness
 	CapabilityMailboxOps
 	CapabilitySessionArbiter
+	CapabilityAppPrecompiles
 )
 
 const (
@@ -25,7 +26,8 @@ const (
 		CapabilityMailboxManager |
 		CapabilityStateWitness |
 		CapabilityMailboxOps |
-		CapabilitySessionArbiter
+		CapabilitySessionArbiter |
+		CapabilityAppPrecompiles
 )
 
 type executionFrame struct {
@@ -64,6 +66,8 @@ func requiredCapabilityForPrecompile(addr common.Address) CapabilityMask {
 		return CapabilityStateWitness
 	case 0x35:
 		return CapabilityMailboxOps
+	case 0x30, 0x31, 0x32, 0x33, 0x34, 0x36:
+		return CapabilityAppPrecompiles
 	default:
 		return CapabilityNone
 	}
@@ -92,6 +96,8 @@ func CapabilityName(cap CapabilityMask) string {
 		return "mailboxOps"
 	case CapabilitySessionArbiter:
 		return "sessionArbiter"
+	case CapabilityAppPrecompiles:
+		return "applicationPrecompiles"
 	default:
 		return "unknown"
 	}
@@ -107,6 +113,7 @@ func CapabilityNames(mask CapabilityMask) []string {
 		CapabilityStateWitness,
 		CapabilityMailboxOps,
 		CapabilitySessionArbiter,
+		CapabilityAppPrecompiles,
 	}
 	names := make([]string, 0, len(catalog))
 	for _, cap := range catalog {

@@ -70,7 +70,13 @@ var PrecompiledContractsEthernova = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{0x2C}): &novaMailboxManager{},         // NIP-0004 Phase 4 (lifecycle)
 	common.BytesToAddress([]byte{0x2D}): &novaSessionArbiter{},         // NIP-0004 Phase 7
 	common.BytesToAddress([]byte{0x2F}): &novaStateWitness{},           // NIP-0004 Phase 5
+	common.BytesToAddress([]byte{0x30}): &novaAsyncCallback{},          // NIP-0004 Phase 11
+	common.BytesToAddress([]byte{0x31}): &novaIdentityAttestation{},    // NIP-0004 Phase 11
+	common.BytesToAddress([]byte{0x32}): &novaSocialGraph{},            // NIP-0004 Phase 11
+	common.BytesToAddress([]byte{0x33}): &novaContentManifest{},        // NIP-0004 Phase 11
+	common.BytesToAddress([]byte{0x34}): &novaGameState{},              // NIP-0004 Phase 11
 	common.BytesToAddress([]byte{0x35}): &novaMailboxOps{},             // NIP-0004 Phase 4 (send/recv/peek/count)
+	common.BytesToAddress([]byte{0x36}): &novaComputeBounty{},          // NIP-0004 Phase 11
 }
 
 var PrecompiledContractsBLS = map[common.Address]PrecompiledContract{

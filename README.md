@@ -332,22 +332,23 @@ Requires: Go 1.21+, GCC, Make
 - [ ] Consensus verification: 3+ nodes, 2000 blocks, all transaction types, zero BAD BLOCK
 
 ### Phase 11: Application-Layer Precompiles (NIP-0004)
-- [ ] `novaAsyncCallback` (0x30): register callback triggered in next block on condition
-- [ ] `novaIdentityAttestation` (0x2C): DID verification, key binding proofs, reputation scores
-- [ ] `novaSocialGraph` (0x2B): follow/unfollow, block, trust score, mutual connection checks
-- [ ] `novaContentManifest` (0x2E): verifiable content manifests for browser-like decentralized systems
-- [ ] `novaGameState` (0x31): commit/reveal, block-hash VRF, turn validation, compact state diffs
-- [ ] `novaComputeBounty` (0x32): off-chain computation verification with proof submission
-- [ ] Identity, Subscription, GameRoom Protocol Object types
+- [x] `novaAsyncCallback` (0x30): register callback commitments, mark fired, query readiness
+- [x] `novaIdentityAttestation` (0x31): issuer-owned subject/claim proofs with expiry and revocation
+- [x] `novaSocialGraph` (0x32): follow/unfollow, trust score, mutual graph checks
+- [x] `novaContentManifest` (0x33): verifiable content manifests that compose with ContentRef IDs
+- [x] `novaGameState` (0x34): commit/reveal, turn validation, compact state checkpoints
+- [x] `novaComputeBounty` (0x36): off-chain computation bounty + proof submission surface
+- [x] Identity, Subscription, GameRoom Protocol Object type tags reserved in the Phase 1 type catalog
+- [x] Address collision fix: old draft 0x2B/0x2C are not reused because they are already ContentRegistry/MailboxManager; 0x35 remains MailboxOps
 
 ### Phase 12: Nova Opcodes — Promotion from Precompile (NIP-0004)
-- [ ] **Address revision required**: NIP-0004 proposed 0xf6–0xfe which conflict with existing EVM opcodes (STATICCALL=0xfa, REVERT=0xfd, INVALID=0xfe). Reassigned to 0xd0–0xd8.
-- [ ] Promotion criteria: >1000 calls/block sustained for 30 days on devnet, precompile CALL overhead >20% of operation cost
-- [ ] 0xd0 MSEND, 0xd1 MRECV, 0xd2 MPEEK, 0xd3 MCOUNT (mailbox operations)
-- [ ] 0xd4 CREF, 0xd5 CVERIFY (content reference operations)
-- [ ] 0xd6 SOPEN, 0xd7 SCOMMIT, 0xd8 SCLOSE (session/channel operations)
-- [ ] Jump table + instruction handler + gas table updates
-- [ ] Only promoted after proven usage data justifies opcode over precompile
+- [x] **Address revision applied**: NIP-0004 proposed 0xf6-0xfe, which conflict with existing EVM opcodes (STATICCALL=0xfa, REVERT=0xfd, INVALID=0xfe). Reassigned to 0xd0-0xd8.
+- [x] Promotion policy documented: opcode bridge remains fork-gated and devnet-only until usage data justifies wider rollout
+- [x] 0xd0 MSEND, 0xd1 MRECV, 0xd2 MPEEK, 0xd3 MCOUNT (mailbox operations)
+- [x] 0xd4 CREF, 0xd5 CVERIFY (content reference operations)
+- [x] 0xd6 SOPEN, 0xd7 SCOMMIT, 0xd8 SCLOSE (session/channel operations)
+- [x] Jump table + instruction handler + gas table updates
+- [x] RPC discovery via `nova_opcodeConfig`
 
 ### Final Test Results (v1.1.6 - Adaptive Gas ACTIVE)
 
@@ -648,7 +649,13 @@ Ethernova Devnet includes 16 custom precompiled contracts not found on any other
 | `0x2C` | `novaMailboxManager` | NIP-0004 Phase 4 — mailbox lifecycle and configuration | 2k-20k |
 | `0x2D` | `novaSessionArbiter` | NIP-0004 Phase 7 — session/channel open, commit, close, dispute | 2k-50k |
 | `0x2F` | `novaStateWitness` | NIP-0004 Phase 5 — state witness verification and restoration | 2k-50k |
+| `0x30` | `novaAsyncCallback` | NIP-0004 Phase 11 — callback commitment + readiness primitive | 2k-18k |
+| `0x31` | `novaIdentityAttestation` | NIP-0004 Phase 11 — identity attestation, verify, revoke | 2k-18k |
+| `0x32` | `novaSocialGraph` | NIP-0004 Phase 11 — follow graph and trust score | 2k-18k |
+| `0x33` | `novaContentManifest` | NIP-0004 Phase 11 — content manifest root verification | 2k-18k |
+| `0x34` | `novaGameState` | NIP-0004 Phase 11 — turn-ordered commit/reveal checkpoints | 2k-18k |
 | `0x35` | `novaMailboxOps` | NIP-0004 Phase 4 — mailbox send, receive, peek, count | 2k-20k |
+| `0x36` | `novaComputeBounty` | NIP-0004 Phase 11 — compute bounty commitments and proof submissions | 2k-18k |
 
 ### Using novaBatchHash from Solidity
 
