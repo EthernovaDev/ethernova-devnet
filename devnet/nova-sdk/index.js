@@ -401,8 +401,35 @@ function buildMailboxSendInput(mailboxId, payloadHash, postage = 0n) {
   return `0x01${wordHex(mailboxId)}${wordHex(payloadHash)}${wordHex(postage)}`;
 }
 
-function buildOpenChatSessionInput(counterparty, timeoutBlocks, disputeRules = ZERO_HASH, rentPrepay = 0n) {
-  return `0x01${addressWord(counterparty)}${wordHex(1n)}${wordHex(timeoutBlocks)}${wordHex(disputeRules)}${wordHex(rentPrepay)}`;
+// BUG-4 fix (Phase 8 audit): encode 7 input words to match
+// sessionOpenInputWords=7 in core/vm/ethernova_session_arbiter.go.
+// Required head layout:
+//   [0]   counterparty
+//   [1]   sessionType
+//   [2]   timeoutBlocks
+//   [3]   disputeRules
+//   [4]   rentPrepay
+//   [5]   initiatorSigner   (zero address = use caller)
+//   [6]   counterpartySigner (zero address = use counterparty)
+const ZERO_ADDR_20 = "0x0000000000000000000000000000000000000000";
+function buildOpenChatSessionInput(
+  counterparty,
+  timeoutBlocks,
+  disputeRules = ZERO_HASH,
+  rentPrepay = 0n,
+  initiatorSigner = ZERO_ADDR_20,
+  counterpartySigner = ZERO_ADDR_20
+) {
+  return (
+    "0x01" +
+    addressWord(counterparty) +
+    wordHex(1n) +
+    wordHex(timeoutBlocks) +
+    wordHex(disputeRules) +
+    wordHex(rentPrepay) +
+    addressWord(initiatorSigner) +
+    addressWord(counterpartySigner)
+  );
 }
 
 async function postJson(url, payload) {

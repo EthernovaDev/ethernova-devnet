@@ -1,0 +1,14 @@
+{
+  "name": "ethernova-phase8-hardhat-test-project",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal Hardhat project used by phase8-hardhat-plugin-real-usage.js to drive nova:* CLI tasks against the live devnet RPC. Loads the local devnet/nova-hardhat-plugin (index.js + tasks.js) via file: dependencies.",
+  "main": "hardhat.config.js",
+  "scripts": {
+    "preinstall": "echo Installing Phase 8 hardhat test project dependencies..."
+  },
+  "dependencies": {
+    "hardhat": "^2.22.10",
+    "ethers": "^6.13.0"
+  }
+}
