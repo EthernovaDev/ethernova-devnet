@@ -48,18 +48,60 @@ var (
 	DefaultAuthModules = []string{"eth", "engine"}
 )
 
+// EthernovaDefaultHTTPModules is the API namespace whitelist exposed via HTTP
+// RPC by default when no --http.api flag is provided. It is intentionally
+// broader than upstream go-ethereum so an Ethernova node started with no flags
+// at all is immediately usable by tooling (Hardhat, ethers, the nova-sdk and
+// the Phase 8 test suite), without being unsafe to expose:
+//
+//   - eth, net, web3, txpool: the standard EVM client surface.
+//   - miner:                  miner control (PoW devnet defaults).
+//   - nova, ethernova:        Phase 8 namespaces required by the nova SDK and
+//                             the Hardhat plugin. Both names share the same
+//                             service in eth/backend.go.
+//
+// Deliberately NOT in the default list:
+//
+//   - admin:    peer/datadir manipulation. Add with --http.api admin if needed.
+//   - personal: account creation/unlock. Deprecated upstream; keep opt-in.
+//   - debug:    expensive trace_* and dump methods. Add with --http.api debug.
+//
+// To expose the node externally (LAN, public IP) you still need to override
+// the bind address explicitly with --http.addr 0.0.0.0 -- the default below
+// keeps HTTP loopback-only (localhost) so a bare invocation is production-safe.
+var EthernovaDefaultHTTPModules = []string{
+	"eth", "net", "web3", "txpool", "miner", "nova", "ethernova",
+}
+
+// EthernovaDefaultWSModules mirrors EthernovaDefaultHTTPModules for the
+// websocket transport. Tooling that prefers WS (some hardhat plugins, real-time
+// log subscribers) should work out of the box on ws://localhost:8546.
+var EthernovaDefaultWSModules = []string{
+	"eth", "net", "web3", "txpool", "miner", "nova", "ethernova",
+}
+
 // DefaultConfig contains reasonable default settings.
+//
+// Ethernova customization: HTTPHost and WSHost default to loopback so that an
+// `ethernova.exe` invocation with no flags exposes both RPC transports on
+// localhost. Upstream go-ethereum leaves these empty, which disables both
+// servers by default; that is too unfriendly for a single-binary devnet/PoW
+// chain where the operator is expected to talk to the node from tools on the
+// same machine. External exposure still requires an explicit --http.addr /
+// --ws.addr override -- see EthernovaDefaultHTTPModules comment above.
 var DefaultConfig = Config{
 	DataDir:              vars.DefaultDataDir(),
+	HTTPHost:             DefaultHTTPHost,
 	HTTPPort:             DefaultHTTPPort,
 	AuthAddr:             DefaultAuthHost,
 	AuthPort:             DefaultAuthPort,
 	AuthVirtualHosts:     DefaultAuthVhosts,
-	HTTPModules:          []string{"net", "web3"},
+	HTTPModules:          EthernovaDefaultHTTPModules,
 	HTTPVirtualHosts:     []string{"localhost"},
 	HTTPTimeouts:         rpc.DefaultHTTPTimeouts,
+	WSHost:               DefaultWSHost,
 	WSPort:               DefaultWSPort,
-	WSModules:            []string{"net", "web3"},
+	WSModules:            EthernovaDefaultWSModules,
 	BatchRequestLimit:    1000,
 	BatchResponseMaxSize: 25 * 1000 * 1000,
 	GraphQLVirtualHosts:  []string{"localhost"},
