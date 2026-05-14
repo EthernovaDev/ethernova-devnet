@@ -25,7 +25,6 @@ package eth
 //       data should subscribe to the relevant deferred-queue logs.
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -48,7 +47,14 @@ const listProtocolObjectsMaxLimit uint64 = 100
 
 // ListProtocolObjects returns Protocol Object IDs that match the given
 // (typeTag, owner) filter. typeTag must be one of the registered protocol
-// object type tags. owner must be a non-zero address.
+// object type tags.
+//
+// owner=zero is accepted and returns an empty result with a note. This keeps
+// the method permissive: callers exploring the namespace (e.g. tooling that
+// passes ZERO_ADDR as a placeholder) get a clean shape back instead of an
+// error. To get real results, pass a non-zero owner address. A typeTag-only
+// query (no owner) would require a global type index which this build does
+// not maintain.
 //
 // The Phase 8 audit (BUG-1) tracks this as the proper backing for the spec
 // method nova_listProtocolObjects(type, owner, offset, limit). It is
@@ -62,12 +68,27 @@ func (api *EthernovaAPI) ListProtocolObjects(typeTag uint8, ownerHex string, off
 	if limit == 0 || limit > listProtocolObjectsMaxLimit {
 		limit = listProtocolObjectsMaxLimit
 	}
-	owner := common.HexToAddress(ownerHex)
-	if owner == (common.Address{}) {
-		return nil, errors.New("listProtocolObjects: owner is required (no global type index in this build; pass a non-zero owner address)")
-	}
 	if typeTag == 0 || typeTag > types.MaxProtocolObjectTypes {
 		return nil, fmt.Errorf("listProtocolObjects: invalid typeTag 0x%02x (valid range: 1..%d)", typeTag, types.MaxProtocolObjectTypes)
+	}
+	owner := common.HexToAddress(ownerHex)
+	if owner == (common.Address{}) {
+		// Return an empty, well-formed envelope rather than error out. This
+		// keeps tooling that uses zero-address probes happy and lets the
+		// caller distinguish "no matches" from "method missing".
+		return map[string]interface{}{
+			"typeTag":       typeTag,
+			"typeName":      protocolObjectTypeName(typeTag),
+			"owner":         owner.Hex(),
+			"count":         0,
+			"offset":        offset,
+			"limit":         limit,
+			"ids":           []string{},
+			"scannedSlots":  0,
+			"matchedBefore": 0,
+			"scanCap":       listProtocolObjectsOwnerScanCap,
+			"note":          "owner is zero; pass a non-zero owner to enumerate (no global type index in this build)",
+		}, nil
 	}
 
 	// Scan a generous window of the owner's objects. We deliberately fetch
