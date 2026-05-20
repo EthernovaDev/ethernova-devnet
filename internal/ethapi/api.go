@@ -1155,7 +1155,7 @@ func (s *BlockChainAPI) Call(ctx context.Context, args TransactionArgs, blockNrO
 		latest := rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
 		blockNrOrHash = &latest
 	}
- 
+
 	// Ethernova: check call cache for pure read-only calls.
 	// Only use cache when: target is a contract (To != nil), no value transfer,
 	// no state/block overrides, and cache is enabled.
@@ -1168,7 +1168,7 @@ func (s *BlockChainAPI) Call(ctx context.Context, args TransactionArgs, blockNrO
 			return entry.Result, nil
 		}
 	}
- 
+
 	result, err := DoCall(ctx, s.b, args, *blockNrOrHash, overrides, blockOverrides, s.b.RPCEVMTimeout(), s.b.RPCGasCap())
 	if err != nil {
 		return nil, err
@@ -1177,12 +1177,12 @@ func (s *BlockChainAPI) Call(ctx context.Context, args TransactionArgs, blockNrO
 	if len(result.Revert()) > 0 {
 		return nil, newRevertError(result.Revert())
 	}
- 
+
 	// Ethernova: store successful result in call cache.
 	if cacheable {
 		vm.GlobalCallCache.Put(*args.To, args.data(), result.Return(), result.UsedGas)
 	}
- 
+
 	return result.Return(), result.Err
 }
 
@@ -1271,30 +1271,38 @@ func RPCMarshalHeader(head *types.Header) map[string]interface{} {
 	if head.ParentBeaconRoot != nil {
 		result["parentBeaconBlockRoot"] = head.ParentBeaconRoot
 	}
+	if head.ResourceUsed != nil {
+		result["resourceUsed"] = head.ResourceUsed
+	}
+	if head.ResourceBasePrice != nil {
+		result["resourceBasePrice"] = head.ResourceBasePrice
+	}
 	return result
 }
 
 // RPCMarshalHeaderT defines the RPC marshaling type for block headers.
 type RPCMarshalHeaderT struct {
-	Number           *hexutil.Big      `json:"number"`
-	Hash             *common.Hash      `json:"hash"` // -- Pending will be nil --
-	ParentHash       common.Hash       `json:"parentHash"`
-	Nonce            *types.BlockNonce `json:"nonce"` // -- Pending will be nil --
-	MixHash          common.Hash       `json:"mixHash"`
-	Sha3Uncles       common.Hash       `json:"sha3Uncles"`
-	LogsBloom        types.Bloom       `json:"logsBloom"`
-	StateRoot        common.Hash       `json:"stateRoot"`
-	Miner            *common.Address   `json:"miner"` // -- Pending will be nil --
-	Difficulty       *hexutil.Big      `json:"difficulty"`
-	TotalDifficulty  *hexutil.Big      `json:"totalDifficulty"`
-	ExtraData        hexutil.Bytes     `json:"extraData"`
-	GasLimit         hexutil.Uint64    `json:"gasLimit"`
-	GasUsed          hexutil.Uint64    `json:"gasUsed"`
-	Timestamp        hexutil.Uint64    `json:"timestamp"`
-	TransactionsRoot common.Hash       `json:"transactionsRoot"`
-	ReceiptsRoot     common.Hash       `json:"receiptsRoot"`
-	BaseFee          *hexutil.Big      `json:"baseFeePerGas,omitempty"`
-	WithdrawalsHash  *common.Hash      `json:"withdrawalsRoot,omitempty"`
+	Number            *hexutil.Big          `json:"number"`
+	Hash              *common.Hash          `json:"hash"` // -- Pending will be nil --
+	ParentHash        common.Hash           `json:"parentHash"`
+	Nonce             *types.BlockNonce     `json:"nonce"` // -- Pending will be nil --
+	MixHash           common.Hash           `json:"mixHash"`
+	Sha3Uncles        common.Hash           `json:"sha3Uncles"`
+	LogsBloom         types.Bloom           `json:"logsBloom"`
+	StateRoot         common.Hash           `json:"stateRoot"`
+	Miner             *common.Address       `json:"miner"` // -- Pending will be nil --
+	Difficulty        *hexutil.Big          `json:"difficulty"`
+	TotalDifficulty   *hexutil.Big          `json:"totalDifficulty"`
+	ExtraData         hexutil.Bytes         `json:"extraData"`
+	GasLimit          hexutil.Uint64        `json:"gasLimit"`
+	GasUsed           hexutil.Uint64        `json:"gasUsed"`
+	Timestamp         hexutil.Uint64        `json:"timestamp"`
+	TransactionsRoot  common.Hash           `json:"transactionsRoot"`
+	ReceiptsRoot      common.Hash           `json:"receiptsRoot"`
+	BaseFee           *hexutil.Big          `json:"baseFeePerGas,omitempty"`
+	WithdrawalsHash   *common.Hash          `json:"withdrawalsRoot,omitempty"`
+	ResourceUsed      *types.ResourceLimits `json:"resourceUsed,omitempty"`
+	ResourceBasePrice *types.ResourceLimits `json:"resourceBasePrice,omitempty"`
 }
 
 // NewRPCMarshalHeaderTFromHeader constructs a new RPCMarshalHeaderT struct from a given header.
@@ -1330,6 +1338,12 @@ func NewRPCMarshalHeaderTFromHeader(header *types.Header) *RPCMarshalHeaderT {
 
 	if header.WithdrawalsHash != nil {
 		head.WithdrawalsHash = header.WithdrawalsHash
+	}
+	if header.ResourceUsed != nil {
+		head.ResourceUsed = header.ResourceUsed
+	}
+	if header.ResourceBasePrice != nil {
+		head.ResourceBasePrice = header.ResourceBasePrice
 	}
 
 	return head
