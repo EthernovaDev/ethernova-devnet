@@ -315,20 +315,6 @@ func (tx *Transaction) To() *common.Address {
 	return copyAddressPtr(tx.inner.to())
 }
 
-// ResourceLimits returns the per-dimension resource caps declared by a
-// ResourceTx (type 0x05), or nil for any other transaction type. Callers
-// branching on tx.Type() == ResourceTxType can rely on a non-nil return.
-// The returned pointer is owned by the caller and may be mutated freely.
-//
-// NIP-0004 Phase 10D — Multi-Dimensional Resource Metering.
-func (tx *Transaction) ResourceLimits() *ResourceLimits {
-	if rtx, ok := tx.inner.(*ResourceTx); ok {
-		cp := rtx.ResourceLimits
-		return &cp
-	}
-	return nil
-}
-
 // ResourceLimits returns a pointer to a copy of the per-dimension limit
 // vector declared by a ResourceTx (NIP-0004 Phase 10D, envelope byte
 // 0x05). For any other transaction type ResourceLimits returns nil — the
