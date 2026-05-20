@@ -18,8 +18,7 @@ package vm
 import "github.com/ethereum/go-ethereum/params/ethernova"
 
 // IsResourceMeteringActive reports whether the Phase 10D consensus
-// enforcement is active at blockNumber. On devnet the fork block is 0,
-// which means every block is post-fork. The function is a single uint64
+// enforcement is active at blockNumber. The function is a single uint64
 // comparison so it is safe to call on a per-step hot path.
 func IsResourceMeteringActive(blockNumber uint64) bool {
 	return blockNumber >= ethernova.ResourceMeteringForkBlock

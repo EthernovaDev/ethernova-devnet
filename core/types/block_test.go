@@ -96,6 +96,15 @@ func TestHeaderPhase10DResourceRLPWithNilEthereumOptionals(t *testing.T) {
 	if decoded.WithdrawalsHash != nil {
 		t.Fatalf("withdrawals hash decoded as non-nil: %v", decoded.WithdrawalsHash)
 	}
+	if decoded.BaseFee != nil {
+		t.Fatalf("base fee decoded as non-nil: %v", decoded.BaseFee)
+	}
+	if decoded.BlobGasUsed != nil {
+		t.Fatalf("blob gas used decoded as non-nil: %v", decoded.BlobGasUsed)
+	}
+	if decoded.ExcessBlobGas != nil {
+		t.Fatalf("excess blob gas decoded as non-nil: %v", decoded.ExcessBlobGas)
+	}
 	if decoded.ParentBeaconRoot != nil {
 		t.Fatalf("parent beacon root decoded as non-nil: %v", decoded.ParentBeaconRoot)
 	}

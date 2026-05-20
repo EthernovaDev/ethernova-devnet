@@ -2,7 +2,7 @@
 
 **Status**: implemented (this changeset)
 **Supersedes**: Phase 10A, 10B, 10C (quote-only telemetry layers)
-**Activation**: `params/ethernova.ResourceMeteringForkBlock` (devnet default = 0)
+**Activation**: `params/ethernova.ResourceMeteringForkBlock` (current devnet = 196714)
 
 ## Goal
 
@@ -152,8 +152,9 @@ See `PHASE10D_CHANGELOG.md`.
 
 ## Activation policy
 
-- **Devnet** (chain id 121526): `ResourceMeteringForkBlock = 0` —
-  Phase 10D is on at genesis. Two-node devnet is the target deploy.
+- **Devnet** (chain id 121526): `ResourceMeteringForkBlock = 196714` —
+  Phase 10D activates after the pre-existing devnet history, because
+  blocks 0..196713 were mined before the resource header fields existed.
 - **Mainnet** (chain id 121525): set explicitly in a separate PR. Until
   set, mainnet binaries refuse to enable Phase 10D enforcement.
 

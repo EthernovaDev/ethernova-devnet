@@ -145,12 +145,19 @@ func (obj *Header) DecodeRLP(s *rlp.Stream) error {
 		}
 		return nil
 	}
-	decodeOptionalHash := func(index int, dst **common.Hash, name string) error {
+	isEmptyString := func(index int, name string) (bool, error) {
 		kind, content, _, err := rlp.Split(fields[index])
 		if err != nil {
-			return fmt.Errorf("rlp: decode Header.%s: %w", name, err)
+			return false, fmt.Errorf("rlp: decode Header.%s: %w", name, err)
 		}
-		if kind != rlp.List && len(content) == 0 {
+		return kind != rlp.List && len(content) == 0, nil
+	}
+	decodeOptionalHash := func(index int, dst **common.Hash, name string) error {
+		empty, err := isEmptyString(index, name)
+		if err != nil {
+			return err
+		}
+		if empty {
 			*dst = nil
 			return nil
 		}
@@ -160,6 +167,17 @@ func (obj *Header) DecodeRLP(s *rlp.Stream) error {
 		}
 		*dst = &value
 		return nil
+	}
+	decodeOptional := func(index int, dst interface{}, clear func(), name string) error {
+		empty, err := isEmptyString(index, name)
+		if err != nil {
+			return err
+		}
+		if empty {
+			clear()
+			return nil
+		}
+		return decode(index, dst, name)
 	}
 
 	if err := decode(0, &obj.ParentHash, "ParentHash"); err != nil {
@@ -208,7 +226,7 @@ func (obj *Header) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 	if len(fields) > 15 {
-		if err := decode(15, &obj.BaseFee, "BaseFee"); err != nil {
+		if err := decodeOptional(15, &obj.BaseFee, func() { obj.BaseFee = nil }, "BaseFee"); err != nil {
 			return err
 		}
 	}
@@ -218,12 +236,12 @@ func (obj *Header) DecodeRLP(s *rlp.Stream) error {
 		}
 	}
 	if len(fields) > 17 {
-		if err := decode(17, &obj.BlobGasUsed, "BlobGasUsed"); err != nil {
+		if err := decodeOptional(17, &obj.BlobGasUsed, func() { obj.BlobGasUsed = nil }, "BlobGasUsed"); err != nil {
 			return err
 		}
 	}
 	if len(fields) > 18 {
-		if err := decode(18, &obj.ExcessBlobGas, "ExcessBlobGas"); err != nil {
+		if err := decodeOptional(18, &obj.ExcessBlobGas, func() { obj.ExcessBlobGas = nil }, "ExcessBlobGas"); err != nil {
 			return err
 		}
 	}

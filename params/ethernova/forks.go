@@ -413,12 +413,13 @@ const (
 	//     working but cannot validate Phase 10D headers.
 	//
 	// Activation policy:
-	//   - Devnet: block 0 — Phase 10D starts active. The genesis pricer
-	//     row uses Phase10CBasePriceBips() (10000/20000/40000/10000/30000)
-	//     and target = ResourceTargetForBlockGas(genesisGasLimit).
+	//   - Devnet: block 196714 — first block after the live devnet head
+	//     that existed before Phase 10D deployment. Historical devnet
+	//     blocks 0..196713 do not contain resource header fields, so
+	//     activating at genesis would reject the already-running chain.
 	//   - Mainnet: future block — set explicitly during the mainnet
 	//     activation PR. Set to math.MaxUint64 if you want to disable.
-	ResourceMeteringForkBlock uint64 = 0
+	ResourceMeteringForkBlock uint64 = 196714
 
 	// ResourceMeteringTransitionGracePostFork is the minimum number of
 	// blocks between ResourceMeteringForkBlock and the strict mode that
