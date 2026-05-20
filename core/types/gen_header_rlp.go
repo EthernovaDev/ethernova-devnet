@@ -8,8 +8,13 @@
 
 package types
 
-import "github.com/ethereum/go-ethereum/rlp"
-import "io"
+import (
+	"fmt"
+	"io"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
+)
 
 func (obj *Header) EncodeRLP(_w io.Writer) error {
 	w := rlp.NewEncoderBuffer(_w)
@@ -114,4 +119,132 @@ func (obj *Header) EncodeRLP(_w io.Writer) error {
 	}
 	w.ListEnd(_tmp0)
 	return w.Flush()
+}
+
+func (obj *Header) DecodeRLP(s *rlp.Stream) error {
+	var fields []rlp.RawValue
+	if err := s.Decode(&fields); err != nil {
+		return err
+	}
+	if len(fields) < 15 {
+		return fmt.Errorf("rlp: too few elements for types.Header, got %d", len(fields))
+	}
+	if len(fields) > 22 {
+		return fmt.Errorf("rlp: too many elements for types.Header, got %d", len(fields))
+	}
+	obj.BaseFee = nil
+	obj.WithdrawalsHash = nil
+	obj.BlobGasUsed = nil
+	obj.ExcessBlobGas = nil
+	obj.ParentBeaconRoot = nil
+	obj.ResourceUsed = nil
+	obj.ResourceBasePrice = nil
+	decode := func(index int, dst interface{}, name string) error {
+		if err := rlp.DecodeBytes(fields[index], dst); err != nil {
+			return fmt.Errorf("rlp: decode Header.%s: %w", name, err)
+		}
+		return nil
+	}
+	decodeOptionalHash := func(index int, dst **common.Hash, name string) error {
+		kind, content, _, err := rlp.Split(fields[index])
+		if err != nil {
+			return fmt.Errorf("rlp: decode Header.%s: %w", name, err)
+		}
+		if kind != rlp.List && len(content) == 0 {
+			*dst = nil
+			return nil
+		}
+		var value common.Hash
+		if err := rlp.DecodeBytes(fields[index], &value); err != nil {
+			return fmt.Errorf("rlp: decode Header.%s: %w", name, err)
+		}
+		*dst = &value
+		return nil
+	}
+
+	if err := decode(0, &obj.ParentHash, "ParentHash"); err != nil {
+		return err
+	}
+	if err := decode(1, &obj.UncleHash, "UncleHash"); err != nil {
+		return err
+	}
+	if err := decode(2, &obj.Coinbase, "Coinbase"); err != nil {
+		return err
+	}
+	if err := decode(3, &obj.Root, "Root"); err != nil {
+		return err
+	}
+	if err := decode(4, &obj.TxHash, "TxHash"); err != nil {
+		return err
+	}
+	if err := decode(5, &obj.ReceiptHash, "ReceiptHash"); err != nil {
+		return err
+	}
+	if err := decode(6, &obj.Bloom, "Bloom"); err != nil {
+		return err
+	}
+	if err := decode(7, &obj.Difficulty, "Difficulty"); err != nil {
+		return err
+	}
+	if err := decode(8, &obj.Number, "Number"); err != nil {
+		return err
+	}
+	if err := decode(9, &obj.GasLimit, "GasLimit"); err != nil {
+		return err
+	}
+	if err := decode(10, &obj.GasUsed, "GasUsed"); err != nil {
+		return err
+	}
+	if err := decode(11, &obj.Time, "Time"); err != nil {
+		return err
+	}
+	if err := decode(12, &obj.Extra, "Extra"); err != nil {
+		return err
+	}
+	if err := decode(13, &obj.MixDigest, "MixDigest"); err != nil {
+		return err
+	}
+	if err := decode(14, &obj.Nonce, "Nonce"); err != nil {
+		return err
+	}
+	if len(fields) > 15 {
+		if err := decode(15, &obj.BaseFee, "BaseFee"); err != nil {
+			return err
+		}
+	}
+	if len(fields) > 16 {
+		if err := decodeOptionalHash(16, &obj.WithdrawalsHash, "WithdrawalsHash"); err != nil {
+			return err
+		}
+	}
+	if len(fields) > 17 {
+		if err := decode(17, &obj.BlobGasUsed, "BlobGasUsed"); err != nil {
+			return err
+		}
+	}
+	if len(fields) > 18 {
+		if err := decode(18, &obj.ExcessBlobGas, "ExcessBlobGas"); err != nil {
+			return err
+		}
+	}
+	if len(fields) > 19 {
+		if err := decodeOptionalHash(19, &obj.ParentBeaconRoot, "ParentBeaconRoot"); err != nil {
+			return err
+		}
+	}
+	if len(fields) > 20 {
+		var value ResourceLimits
+		if err := decode(20, &value, "ResourceUsed"); err != nil {
+			return err
+		}
+		obj.ResourceUsed = &value
+	}
+	if len(fields) > 21 {
+		var value ResourceLimits
+		if err := decode(21, &value, "ResourceBasePrice"); err != nil {
+			return err
+		}
+		obj.ResourceBasePrice = &value
+	}
+	return nil
 }
