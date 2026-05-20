@@ -93,6 +93,19 @@ type Header struct {
 
 	// ParentBeaconRoot was added by EIP-4788 and is ignored in legacy headers.
 	ParentBeaconRoot *common.Hash `json:"parentBeaconBlockRoot" rlp:"optional"`
+
+	// NIP-0004 Phase 10D — Multi-Dimensional Resource Metering
+	// ResourceUsed is the sum of per-tx 5-dimension usage vectors for the
+	// block. It is rlp:"optional" so pre-fork headers (where it is nil)
+	// remain decodable. After params/ethernova.ResourceMeteringForkBlock it
+	// MUST be present and MUST equal the recomputed sum.
+	ResourceUsed *ResourceLimits `json:"resourceUsed" rlp:"optional"`
+
+	// ResourceBasePrice is the canonical per-dimension base price (basis
+	// points, 10_000 = 1.00x) for the block. After the fork it is a
+	// deterministic function of (parent.ResourceBasePrice, parent.ResourceUsed,
+	// parent.GasLimit) — see consensus/misc.CalcNextResourcePrice.
+	ResourceBasePrice *ResourceLimits `json:"resourceBasePrice" rlp:"optional"`
 }
 
 // field type overrides for gencodec
@@ -303,6 +316,16 @@ func CopyHeader(h *Header) *Header {
 	if h.ParentBeaconRoot != nil {
 		cpy.ParentBeaconRoot = new(common.Hash)
 		*cpy.ParentBeaconRoot = *h.ParentBeaconRoot
+	}
+	// NIP-0004 Phase 10D — deep copy resource fields so the cached hash on
+	// the source header cannot be invalidated by mutations on the copy.
+	if h.ResourceUsed != nil {
+		v := *h.ResourceUsed
+		cpy.ResourceUsed = &v
+	}
+	if h.ResourceBasePrice != nil {
+		v := *h.ResourceBasePrice
+		cpy.ResourceBasePrice = &v
 	}
 	return &cpy
 }

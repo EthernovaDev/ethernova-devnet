@@ -22,6 +22,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
+	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -136,6 +137,71 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 	vm.GlobalAdaptiveResourcePricer.RecordBlock(block.NumberU64(), block.GasLimit(), blockResources)
+
+	// ================================================================
+	// NIP-0004 Phase 10D — Multi-Dimensional Resource Metering: header
+	// validation. After the fork the block header MUST carry:
+	//   - ResourceUsed      = sum of per-tx vectors (recomputed above
+	//                         into blockResources).
+	//   - ResourceBasePrice = pure function of (parent.ResourceBasePrice,
+	//                         parent.ResourceUsed, parent.GasLimit).
+	// Both fields are CONSENSUS-CRITICAL: a missing or mismatched value
+	// rejects the block. Pre-fork blocks (block.NumberU64() <
+	// ResourceMeteringForkBlock) skip the check entirely so legacy
+	// imports remain unaffected.
+	// ================================================================
+	if vm.IsResourceMeteringActive(block.NumberU64()) {
+		expectedUsed := types.ResourceLimits{
+			Compute:     blockResources.Compute,
+			StateRead:   blockResources.StateRead,
+			StateWrite:  blockResources.StateWrite,
+			ProtocolOps: blockResources.ProtocolOps,
+			ProofVerify: blockResources.ProofVerify,
+		}
+		if header.ResourceUsed == nil {
+			return nil, nil, 0, fmt.Errorf(
+				"phase10d: header.ResourceUsed missing at block %d (post-fork)",
+				block.NumberU64(),
+			)
+		}
+		if !header.ResourceUsed.Equal(expectedUsed) {
+			return nil, nil, 0, fmt.Errorf(
+				"phase10d: header.ResourceUsed mismatch at block %d: have %+v want %+v",
+				block.NumberU64(), *header.ResourceUsed, expectedUsed,
+			)
+		}
+		// Resolve parent header to verify the per-dimension base price
+		// table. Genesis-after-fork (block N == ResourceMeteringForkBlock)
+		// uses BasePriceBips() as parent baseline so the first post-fork
+		// block always returns the base table.
+		var parentPrice, parentUsage *types.ResourceLimits
+		var parentGasLimit uint64
+		if block.NumberU64() > 0 {
+			parent := p.bc.GetHeaderByHash(block.ParentHash())
+			if parent == nil {
+				return nil, nil, 0, fmt.Errorf(
+					"phase10d: parent header %s not found while validating block %d",
+					block.ParentHash().Hex(), block.NumberU64(),
+				)
+			}
+			parentPrice = parent.ResourceBasePrice
+			parentUsage = parent.ResourceUsed
+			parentGasLimit = parent.GasLimit
+		}
+		expectedPrice := misc.CalcNextResourcePrice(parentPrice, parentUsage, parentGasLimit)
+		if header.ResourceBasePrice == nil {
+			return nil, nil, 0, fmt.Errorf(
+				"phase10d: header.ResourceBasePrice missing at block %d (post-fork)",
+				block.NumberU64(),
+			)
+		}
+		if !header.ResourceBasePrice.Equal(expectedPrice) {
+			return nil, nil, 0, fmt.Errorf(
+				"phase10d: header.ResourceBasePrice mismatch at block %d: have %+v want %+v",
+				block.NumberU64(), *header.ResourceBasePrice, expectedPrice,
+			)
+		}
+	}
 
 	// Ethernova v3.0: Feed completed block workload sample to convergent tuner.
 	// This runs after all txs are processed and produces deterministic EMA

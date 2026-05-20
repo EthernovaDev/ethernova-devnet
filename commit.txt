@@ -1,24 +1,32 @@
-devnet: reduce State Lifecycle tier thresholds for faster testing
+feat(node): make bare ethernova.exe production-ready by default
 
-Reduce Active/Warm/Cold tier thresholds to significantly speed up Phase 5 testing on devnet.
+Change node.DefaultConfig so a no-flag invocation of ethernova.exe
+immediately exposes the namespace set required by tooling (hardhat,
+ethers, nova-sdk, Phase 8 test suite) without losing the production
+safety upstream go-ethereum aims for.
 
 Changes:
-- ActiveTierBlocks: 100 -> 10
-- WarmTierBlocks:   500 -> 25
-- ColdTierBlocks:   1000 -> 50
+- HTTPHost defaults to "localhost" (was ""), so HTTP server starts
+  on 127.0.0.1:8545 by default instead of being off.
+- WSHost defaults to "localhost" (was ""), so WS server starts on
+  127.0.0.1:8546 by default.
+- HTTPModules and WSModules default to {eth, net, web3, txpool,
+  miner, nova, ethernova} (was {net, web3}). The nova/ethernova
+  pair is needed by the Phase 8 RPC surface; eth/txpool/miner cover
+  the rest of the standard EVM tooling surface.
 
-Rationale:
-Current devnet values require ~3 hours to reach Archived state (1000 blocks at ~10-11s/block),
-making iterative testing (tier transitions, witness restore, stress tests) extremely slow.
+Sensitive namespaces (admin, personal, debug) are intentionally kept
+opt-in. Operators who need them must add via --http.api admin,debug.
+HTTPVirtualHosts stays at {"localhost"}, preserving DNS-rebinding
+protection. External exposure still requires the explicit
+--http.addr 0.0.0.0 override (same gesture as upstream).
 
-With the new values:
-- Full lifecycle (Active -> Archived) completes in ~9 minutes
-- Enables rapid iteration and debugging for Phase 5 features
+Behavior with CLI flags is unchanged: --http.api still REPLACES the
+default list (upstream semantics), so existing scripts that pass an
+explicit --http.api are unaffected.
 
-IMPORTANT:
-These values are NOT intended for mainnet.
-Mainnet should use significantly higher thresholds (e.g. 100k / 1M / 10M blocks)
-to preserve long-term state economics and realistic lifecycle behavior.
-
-Reminder:
-Revert or adjust these parameters before mainnet deployment.
+Motivation: the Phase 8 test suite (and any consumer of the nova
+SDK) expects nova_*/ethernova_* to be reachable on bare invocations.
+Previously they returned -32601 because the HTTP whitelist
+defaulted to {net, web3} and required an explicit --http.api flag
+to expose anything else.

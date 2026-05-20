@@ -38,10 +38,35 @@ var (
 	ErrInvalidCode              = errors.New("invalid code: must not begin with 0xef")
 	ErrNonceUintOverflow        = errors.New("nonce uint64 overflow")
 
+	// NIP-0004 Phase 10D — per-dimension out-of-resource errors.
+	// These are raised by the resource enforcer in core/state_transition.go
+	// when a transaction exceeds its declared per-dimension limit. They
+	// behave like ErrOutOfGas — the transaction is reverted, intrinsic gas
+	// is still charged, and the receipt is marked failed.
+	ErrOutOfResourceCompute     = errors.New("out of resource: compute dimension exhausted")
+	ErrOutOfResourceStateRead   = errors.New("out of resource: state_read dimension exhausted")
+	ErrOutOfResourceStateWrite  = errors.New("out of resource: state_write dimension exhausted")
+	ErrOutOfResourceProtocolOps = errors.New("out of resource: protocol_ops dimension exhausted")
+	ErrOutOfResourceProofVerify = errors.New("out of resource: proof_verify dimension exhausted")
+
 	// errStopToken is an internal token indicating interpreter loop termination,
 	// never returned to outside callers.
 	errStopToken = errors.New("stop token")
 )
+
+// IsOutOfResourceError reports whether err is one of the per-dimension
+// out-of-resource errors introduced by NIP-0004 Phase 10D.
+func IsOutOfResourceError(err error) bool {
+	switch err {
+	case ErrOutOfResourceCompute,
+		ErrOutOfResourceStateRead,
+		ErrOutOfResourceStateWrite,
+		ErrOutOfResourceProtocolOps,
+		ErrOutOfResourceProofVerify:
+		return true
+	}
+	return false
+}
 
 // ErrStackUnderflow wraps an evm error when the items on the stack less
 // than the minimal requirement.

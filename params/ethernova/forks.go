@@ -372,4 +372,61 @@ const (
 	// ============================================================
 
 	NovaOpcodeForkBlock uint64 = 0
+
+	// ============================================================
+	// NIP-0004 — Layered Deterministic Computer
+	// Phase 10D: Multi-Dimensional Resource Metering (consensus enforcement)
+	//
+	// CONSENSUS-CRITICAL. Activates the full Phase 10 surface:
+	//   - Per-dimension resource limits enforced during state transition
+	//     for legacy and typed transactions. Legacy tx limits default to
+	//     ResourceVector{compute=gasLimit, state_read=gasLimit,
+	//     state_write=gasLimit, protocol_ops=gasLimit,
+	//     proof_verify=gasLimit} so that any tx that succeeded before
+	//     the fork also succeeds after the fork.
+	//   - New ResourceTx type (0x05) that carries an explicit
+	//     ResourceLimits vector. The Transaction decoder accepts type 0x05
+	//     unconditionally after this block.
+	//   - Header.ResourceUsed (5*uint64) is the SUM of all included tx
+	//     resource vectors. It is rlp:"optional" so headers before the
+	//     fork remain decodable; after the fork it MUST be present and
+	//     MUST equal the recomputed sum.
+	//   - Header.ResourceBasePrice (5*uint64 basis points) is the active
+	//     per-dimension base price for the block. After the fork it is a
+	//     pure deterministic function of (parentBasePrice, parentUsage,
+	//     parentBlockGasLimit) via consensus/misc.CalcNextResourcePrice.
+	//   - Pricer snapshot becomes derived from the canonical chain head
+	//     (no global mutable state on the consensus path). RPC quotes
+	//     remain backwards compatible: nova_resourcePrices /
+	//     nova_resourceCongestion / nova_quoteResourceFee now read from
+	//     the head block instead of the in-process pricer singleton.
+	//
+	// Backward compatibility commitments:
+	//   - Legacy tx (type 0x00/0x01/0x02) signing/hash UNCHANGED. ethers.js,
+	//     MetaMask, and existing dApps continue to work without changes.
+	//   - eth_estimateGas / eth_gasPrice / eth_feeHistory UNCHANGED. The
+	//     gas-fee accounting path (gasUsed * effectiveGasPrice) is
+	//     UNCHANGED for legacy tx. Resource metering becomes an additional
+	//     consensus check, not a fee replacement.
+	//   - Block header fields after Number/Time are append-only via
+	//     rlp:"optional" — older serializers ignoring the new tail keep
+	//     working but cannot validate Phase 10D headers.
+	//
+	// Activation policy:
+	//   - Devnet: block 0 — Phase 10D starts active. The genesis pricer
+	//     row uses Phase10CBasePriceBips() (10000/20000/40000/10000/30000)
+	//     and target = ResourceTargetForBlockGas(genesisGasLimit).
+	//   - Mainnet: future block — set explicitly during the mainnet
+	//     activation PR. Set to math.MaxUint64 if you want to disable.
+	ResourceMeteringForkBlock uint64 = 0
+
+	// ResourceMeteringTransitionGracePostFork is the minimum number of
+	// blocks between ResourceMeteringForkBlock and the strict mode that
+	// rejects a transaction for breaching a per-dimension limit. Inside
+	// the grace window per-dim usage is computed, recorded into the
+	// header, and validated, but ErrOutOfResource_* is NOT raised — the
+	// tx still succeeds or fails on classic gas. This lets a freshly
+	// upgraded fleet observe real usage before flipping the kill switch.
+	// Set to 0 for a hard activation (devnet default).
+	ResourceMeteringTransitionGracePostFork uint64 = 0
 )

@@ -144,6 +144,14 @@ type Message struct {
 	BlobGasFeeCap *big.Int
 	BlobHashes    []common.Hash
 
+	// NIP-0004 Phase 10D — Multi-Dimensional Resource Metering.
+	// ResourceLimits is the per-dimension cap declared by the sender.
+	// For ResourceTx (type 0x05) this comes from the signed tx body;
+	// for legacy / EIP-1559 / Blob / Tempo / AccessList tx this stays
+	// nil and state_transition.go falls back to vm.DeriveLegacyLimits
+	// (= every dimension equal to GasLimit, no tightening).
+	ResourceLimits *types.ResourceLimits
+
 	// When SkipAccountChecks is true, the message nonce is not checked against the
 	// account nonce in state. It also disables checking that the sender is an EOA.
 	// This field will be set to true for operations like RPC eth_call.
@@ -165,6 +173,15 @@ func TransactionToMessage(tx *types.Transaction, s types.Signer, baseFee *big.In
 		SkipAccountChecks: false,
 		BlobHashes:        tx.BlobHashes(),
 		BlobGasFeeCap:     tx.BlobGasFeeCap(),
+	}
+	// NIP-0004 Phase 10D — copy explicit per-dimension limits out of a
+	// ResourceTx so the state-transition enforcer can read them without
+	// reaching back through the Transaction wrapper. Any other tx type
+	// returns nil here; the enforcer then falls back to the
+	// gas-derived limit vector.
+	if rl := tx.ResourceLimits(); rl != nil {
+		cp := *rl
+		msg.ResourceLimits = &cp
 	}
 	// If baseFee provided, set gasPrice to effectiveGasPrice.
 	if baseFee != nil {
@@ -472,6 +489,54 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, value)
+	}
+
+	// ================================================================
+	// NIP-0004 Phase 10D — Multi-Dimensional Resource Metering enforcement
+	// ----------------------------------------------------------------
+	// After every successful EVM execution we compare the per-dimension
+	// usage vector against the per-dimension limit derived from the
+	// transaction. If any dimension is over its cap we overwrite vmerr
+	// with the matching ErrOutOfResource_* sentinel, which then flows
+	// through the standard revert path: gas refund stays correct, the
+	// receipt records status=0, and the failure is attributed to the
+	// exact dimension that overflowed.
+	//
+	// Pre-fork (blockNumber < ethernova.ResourceMeteringForkBlock) this
+	// block is a no-op. Inside the grace window this block computes the
+	// vector but does NOT raise the error so the fleet can soak.
+	// ================================================================
+	{
+		blockNum := st.evm.Context.BlockNumber.Uint64()
+		if vm.IsResourceMeteringActive(blockNum) && vmerr == nil {
+			usage := vm.ResourceVectorFromExecution(
+				&st.evm.TraceCounters,
+				st.evm.ResourceMeter.Vector(),
+				st.gasUsed(),
+				gas, // intrinsicGas
+			)
+			var limit vm.LimitVector
+			if msg.ResourceLimits != nil {
+				limit = vm.LimitVector{
+					Compute:     msg.ResourceLimits.Compute,
+					StateRead:   msg.ResourceLimits.StateRead,
+					StateWrite:  msg.ResourceLimits.StateWrite,
+					ProtocolOps: msg.ResourceLimits.ProtocolOps,
+					ProofVerify: msg.ResourceLimits.ProofVerify,
+				}
+			} else {
+				limit = vm.DeriveLegacyLimits(msg.GasLimit)
+			}
+			if oerr := vm.EnforceVectorAgainstLimits(usage, limit); oerr != nil {
+				if !vm.IsResourceMeteringGrace(blockNum) {
+					vmerr = oerr
+					// Mirror the OOG semantics: consume all execution
+					// gas so the refund logic does not return ETH for
+					// the over-budget execution.
+					st.gasRemaining = 0
+				}
+			}
+		}
 	}
 
 	// Ethernova v2.0 (Noven Fork): Trace-based adaptive gas adjustment (POST-EXECUTION)

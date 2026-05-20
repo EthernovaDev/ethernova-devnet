@@ -206,6 +206,12 @@ func (tx *Transaction) decodeTyped(b []byte) (TxData, error) {
 		inner = new(DynamicFeeTx)
 	case BlobTxType:
 		inner = new(BlobTx)
+	case ResourceTxType:
+		// NIP-0004 Phase 10D — typed transaction with explicit
+		// per-dimension resource limits. Decoder accepts the envelope
+		// unconditionally; per-dimension enforcement runs in
+		// core/state_transition.go gated on the Phase 10D fork block.
+		inner = new(ResourceTx)
 	default:
 		return nil, ErrTxTypeNotSupported
 	}
@@ -307,6 +313,38 @@ func (tx *Transaction) Nonce() uint64 { return tx.inner.nonce() }
 // For contract-creation transactions, To returns nil.
 func (tx *Transaction) To() *common.Address {
 	return copyAddressPtr(tx.inner.to())
+}
+
+// ResourceLimits returns the per-dimension resource caps declared by a
+// ResourceTx (type 0x05), or nil for any other transaction type. Callers
+// branching on tx.Type() == ResourceTxType can rely on a non-nil return.
+// The returned pointer is owned by the caller and may be mutated freely.
+//
+// NIP-0004 Phase 10D — Multi-Dimensional Resource Metering.
+func (tx *Transaction) ResourceLimits() *ResourceLimits {
+	if rtx, ok := tx.inner.(*ResourceTx); ok {
+		cp := rtx.ResourceLimits
+		return &cp
+	}
+	return nil
+}
+
+// ResourceLimits returns a pointer to a copy of the per-dimension limit
+// vector declared by a ResourceTx (NIP-0004 Phase 10D, envelope byte
+// 0x05). For any other transaction type ResourceLimits returns nil — the
+// caller is expected to fall back to a derived limit (typically
+// vm.DeriveLegacyLimits(tx.Gas())).
+//
+// Returning a *copy* (not the inner pointer) preserves the immutability
+// guarantee the Transaction type advertises elsewhere: callers may mutate
+// the returned ResourceLimits without affecting the canonical signed tx.
+func (tx *Transaction) ResourceLimits() *ResourceLimits {
+	rtx, ok := tx.inner.(*ResourceTx)
+	if !ok {
+		return nil
+	}
+	cp := rtx.ResourceLimits
+	return &cp
 }
 
 // Cost returns (gas * gasPrice) + (blobGas * blobGasPrice) + value.

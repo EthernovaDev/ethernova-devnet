@@ -51,7 +51,12 @@ func MakeSigner(config ctypes.ChainConfigurator, blockNumber *big.Int, blockTime
 func makeSigner(config ctypes.ChainConfigurator, blockNumber *big.Int, blockTime uint64, chainID *big.Int) Signer {
 	switch {
 	case config.IsEnabledByTime(config.GetEIP4844TransitionTime, &blockTime), config.IsEnabled(config.GetEIP4844Transition, blockNumber):
-		return NewCancunSigner(chainID)
+		// NIP-0004 Phase 10D — outer signer recognises ResourceTx (0x05)
+		// and falls through to NewCancunSigner behavior for every other
+		// tx type. Returning the Phase 10D signer here is safe pre-fork
+		// because resourceSigner just delegates when the tx type is not
+		// ResourceTxType.
+		return NewPhase10DSigner(chainID)
 	case config.IsEnabled(config.GetEIP1559Transition, blockNumber):
 		return NewEIP1559Signer(chainID)
 	case config.IsEnabled(config.GetEIP2930Transition, blockNumber):
@@ -75,7 +80,8 @@ func makeSigner(config ctypes.ChainConfigurator, blockNumber *big.Int, blockTime
 func LatestSigner(config ctypes.ChainConfigurator) Signer {
 	if chainID := config.GetChainID(); chainID != nil {
 		if config.GetEIP4844TransitionTime() != nil || config.GetEIP4844Transition() != nil {
-			return NewCancunSigner(chainID)
+			// NIP-0004 Phase 10D — see comment in makeSigner.
+			return NewPhase10DSigner(chainID)
 		}
 		if config.GetEIP1559Transition() != nil {
 			return NewEIP1559Signer(chainID)
@@ -112,8 +118,8 @@ func LatestSignerForChainID(chainID *big.Int) Signer {
 	if chainID == nil {
 		return HomesteadSigner{}
 	}
-	// EIP4844Signer == CancunSigner
-	return NewCancunSigner(chainID)
+	// NIP-0004 Phase 10D — see comment in makeSigner.
+	return NewPhase10DSigner(chainID)
 }
 
 // SignTx signs the transaction using the given signer and private key.
